@@ -1,0 +1,17 @@
+body,h1,h2,h3,p,td,quote,small,form,input,ul,li,ol,label{
+	margin:0px;
+	padding:0px;
+	font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+	color:#00FF00;
+	background-color:#282828;
+	font-size:xx-small;
+}
+
+legend{
+	color: #00FFFF;
+	font-size: 12px;
+	font-weight:bold;
+}

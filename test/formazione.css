@@ -1,0 +1,284 @@
+/* DATI RELATIVI ALLA PAGINA FORMAZIONE */
+.contenuto_a_tre{
+	float:inherit;
+	display:block;
+	width:100%;
+	height:1px;
+}
+.contenuto_uno{
+	float:left;
+	width:60%;
+}
+.contenuto_due{
+	float:left;
+	width:15%;
+}
+.contenuto_tre{
+	float:left;
+	width:25%;
+}
+.contenuto_sotto{
+	float:left;
+	display:inline-block;
+	width:100%;
+	margin-left:20px;
+	margin-top:20px;
+}
+
+.contenuto_tre_sopra{
+	float:inherit;
+	position: relative;
+	display:inline-block;
+	width:90%;
+	top: 10px;
+	color: #000000;
+	font: 12px Geneva, Arial, Helvetica, sans-serif;
+}
+.contenuto_tre_sotto{
+	float: inherit;
+	width: 90%;
+	height:10px;
+	color: #000000;
+	font: 12px Geneva, Arial, Helvetica, sans-serif;
+	margin-top:30px;
+}
+div#sposta_totale {
+	width:308px;
+	height:340px;
+	overflow:hidden;
+}
+div#sposta_righe {
+	position:relative;
+	top: -355px;
+	left: -14px;
+}
+div#campo_formazione {
+	position: relative;
+	top: 20px;
+	left: 0px;
+	border:none;
+} 
+img#campo_formazione {
+	width: 308px;
+	height: 320px;
+}
+
+div#panchina_formazione {
+	position:relative;
+	top: 140px;
+	left:-40px;
+}
+
+div#forza_panchina_formazione{
+	position: relative;
+	top:-60px;
+	left:-40px;
+	color:#000000;
+	font: bold 12px Geneva, Arial, Helvetica, sans-serif;
+}
+div#portiere_formazione{
+	float:left;
+	padding: 0px 20px 10px 0px;
+}
+div#difesa_formazione{
+	float:left;
+	padding: 0px 20px 10px 0px;
+}
+div#centrocampo_formazione{
+	float:left;
+	padding: 0px 20px 10px 0px;
+}
+div#attacco_formazione{
+	float:left;
+	padding: 0px 20px 10px 0px;
+	width:10%;
+}
+div#totale_formazione{
+	float:left;
+	padding: 0px 30px 10px 0px;
+	color: #000066;
+	font-weight:bold;
+	font-size:18px;
+}
+.legenda{
+	background-color:#006600;
+	color:#CCCCCC;
+}
+input.board {
+ width : 30px;
+ height: 30px;
+ background: url(images/barrettavuota.png); 
+ /*background: url(images/maglietta_azzurra.png); */
+ font-size: 0px;
+ border: 0px ;
+}
+input.brdgioca {
+ width : 30px;
+ height: 34px;
+ background: url(images/maglietta_azzurra.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+input.brdpanchina {
+ width : 30px;
+ height: 34px;
+ background: url(images/maglietta_azzurra.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+input.brdportiere {
+ width : 30px;
+ height: 34px;
+ background: url(images/maglietta_arancione.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+input.brdpanchinaportiere {
+ width : 30px;
+ height: 34px;
+ background: url(images/maglietta_arancione.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+input.brdlist_player {
+ width : 20px;
+ height: 5px;
+ background: url(images/barrettavuota.png); 
+ /*background: url(images/maglietta_azzurra.png); */
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 10px;
+ font-weight:bold;
+ border: 0px ;
+ z-index:1;
+ position:relative;
+ top:-21px;
+ left:2px;
+ overflow:visible;
+}
+
+
+
+.compiti {
+ border: 1px solid white ;
+}
+
+span#riga1 {/*   */
+	position: absolute;
+	top:40px;
+	left:51px;
+} 
+span#riga2 {
+	position: absolute;
+	top:70px;
+	left:47px;
+} 
+span#riga3 {
+	position: absolute;
+	top:100px;
+	left:44px;
+} 
+span#riga4 {
+	position: absolute;
+	top:140px;
+	left:39px;
+} 
+span#riga5 {
+	position: absolute;
+	top:170px;
+	left:35px;
+} 
+span#riga6 {
+	position: absolute;
+	top:200px;
+	left:31px;
+} 
+span#riga7 {
+	position: absolute;
+	top:235px;
+	left:28px;
+} 
+span#riga8 {
+	position: absolute;
+	top:265px;
+	left:23px;
+} 
+span#riga9 {
+	position: absolute;
+	top:295px;
+	left:20px;
+} 
+span#riga10 {
+	position: absolute;
+	top:340px;
+	left:153px;
+} 
+span#rigapanca65 {
+	position: absolute;
+	top:203px;
+	left:312px;
+} 
+span#rigapanca66 {
+	position: absolute;
+	top:235px;
+	left:317px;
+} 
+span#rigapanca67 {
+	position: absolute;
+	top:267px;
+	left:322px;
+} 
+span#rigapanca68 {
+	position: absolute;
+	top:301px;
+	left:326px;
+} 
+span#rigapanca69 {
+	position: absolute;
+	top:336px;
+	left:331px;
+}
+div#compiti_suggeriti{
+	margin-top:20px;
+}
+ 
+div#scelta_tattiche{
+	margin-top:20px;
+}
+
+.form_regole{
+	height:180px;
+	overflow-y: auto;
+	margin-bottom:10px;
+}
+
+
+.div_allena { width:50%; height:50%; float:left;}
+.div_sx_all {position:relative; float:left; width:64%; height:20px; background-color:#CCCCCC; color:#000000; border: 1px solid #ffffff; text-transform:uppercase; font-weight:bold; text-align:center; padding-top:10px;}
+.div_dx_all {position:relative; float:right; width:34%; height:30px; background-color:#333333; color:#ffffff; border: 1px solid #cccccc;}
+.div_barra_up {position:relative; display:block; width:100%; height:15px; background-color: #333333; color:#ffffff; text-align:center;}
+.div_barra_down {position:relative; display:block; width:100%; height:15px; background-color: #333333; color:#ffffff; text-align:center;}
+
+.contenuto_allena{
+	width:100%;
+	background-color:#333333;
+	color:#FFFF00;
+	overflow-y: auto;
+	height:190px;
+}
+
+.contenuto_allena_bottom{
+}
+

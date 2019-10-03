@@ -1,0 +1,91 @@
+#dashboard {
+    /*bottom: 0;*/
+	
+    position: absolute;
+    overflow: hidden;
+}
+
+#shelf, #left_shelf, #right_shelf {
+    float:left;
+    height: 100px;
+}
+
+#left_shelf, #right_shelf {
+    width: 30px;
+}
+
+#menu_dashboard {
+	display: inline-block;
+	width: auto;
+	margin: 0px;
+	padding: 0px;
+	list-style: none;
+}
+
+
+#menu_dashboard li {
+	width: auto; 
+	height: auto;
+	display: inline-block; 
+	bottom: 0; 
+	vertical-align: bottom;
+	float:left;   /* QUESTO ELEMENTO CREA COMPATIBILITA' CON EXPLORER 8, MA L'EFFETTO VISIVO E' MOLTO SCARSO*/
+	
+}
+
+
+
+#menu_dashboard li.separator {
+	width: 50px;
+	height: 98px; /* HO MESSO 98 INVECE DI 100 IN QUANTO COSì VIENE MOSTRATA LA BARRA INFERIORE DI 2 PIXEL*/
+}
+
+#menu_dashboard li a {
+	display: block;
+	height: 70px;
+	width: 70px;
+	position: relative;
+	
+    -webkit-transition-property: width, height;
+    -webkit-transition-duration: 0.5s;
+    -o-transition-property: width, height;
+    -o-transition-duration: 0.5s;
+    -moz-transition-property: width, height;
+    -moz-transition-duration: 0.5s;
+}
+
+#menu_dashboard li a:hover {
+	width: 100px;
+	height: 98px;
+}
+
+
+
+#menu_dashboard li a img {
+	width: 100%;
+	position: absolute;
+	bottom: 0;
+	left: 0;
+	border: none;
+}
+
+
+.tooltip{
+	position:  fixed;
+	top: 0;
+	left: 0;
+	z-index: 100;
+	display: none;
+	text-align:left;
+
+	color:#fcfcfc;
+
+	padding:0px 0px 0px 0px;
+	
+	-moz-border-radius:12px;
+	-khtml-border-radius: 12px;
+	-webkit-border-radius: 12px;
+	border-radius:12px;
+}
+
+

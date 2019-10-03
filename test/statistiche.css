@@ -1,0 +1,156 @@
+body,h1,h2,h3,p,td,quote,small,form,input,ul,li,ol,label{
+	margin:0px;
+	padding:0px;
+	font-family:Arial, Helvetica, sans-serif;
+}
+
+body{
+	color: #FFFFFF;
+	font-size:12px;
+	background-color: trasparent;
+}
+a.button,a.button:visited{
+	display:block;
+
+	height:29px;
+	width:136px;
+
+	padding-top:15px;
+	margin:0 auto;
+	overflow:hidden;
+
+	color:white;	
+	font-size:12px;
+	font-weight:bold;
+	text-align:center;
+	text-transform:uppercase;
+	text-decoration:none;
+	
+	background:url(images/button.png) no-repeat center top;
+}
+
+a.button:hover{
+	background-position:bottom;
+	text-decoration:none;
+}
+a.buttongray,a.buttongray:visited{
+	display:block;
+
+	height:29px;
+	width:136px;
+
+	padding-top:15px;
+	margin:0 auto;
+	overflow:hidden;
+
+	color:white;	
+	font-size:12px;
+	font-weight:bold;
+	text-align:center;
+	text-transform:uppercase;
+	text-decoration:none;
+	
+	background:url(images/buttongray.png) no-repeat center top;
+}
+
+a.buttongray:hover{
+	background-position:bottom;
+	text-decoration:none;
+}
+
+span#s_rosa{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	color:#000000;
+}
+
+h4 {
+	background-color:#006600;
+	color:#FFFFFF;
+	font-size:16px;
+}
+div#s_listagiocatori{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	color:#000000;
+}
+.td_stipendio	{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:16px;
+	color:#FFFF00;
+	font-weight:bold;
+	background-color:#0000FF;
+}
+	
+.BGreen {
+	font-size: 12px;  
+	background-color: #009000; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+} 
+.LGreen {
+	font-size: 12px;  
+	background-color:#009966; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+} 
+.a_null{
+	color: #ffffff;
+	font-size:12px;
+	font-variant:normal;
+	font-weight:bold;
+	text-decoration:none;
+}
+a.a_null:hover {
+	color: #ffffff;
+	font-size:12px;
+}
+a.a_null:visited {
+	color: #ffffff;
+	font-size:12px;
+	text-decoration:none;
+	
+}
+.a_black{
+	color: #000000;
+	font-size:12px;
+	font-variant:normal;
+	font-weight:bold;
+}
+a.a_black:hover {
+	color: #000000;
+	font-size:12px;
+}
+a.a_black:visited {
+	color: #000000;
+	font-size:12px;
+}
+	
+.tooltip{
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 3;
+	display: none;
+
+	background-color:#333333;
+	border:1px solid #666666;
+	color:#fcfcfc;
+	padding:10px;
+	margin-top:-240px;
+	
+	-moz-border-radius:12px;
+	-khtml-border-radius: 12px;
+	-webkit-border-radius: 12px;
+	border-radius:12px;
+
+}
+.my_players{
+	float: absolute;
+	margin:0px;
+	padding:0px;
+}
+
+.my_players img{
+	cursor:move;
+}

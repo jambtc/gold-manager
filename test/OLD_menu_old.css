@@ -1,0 +1,140 @@
+#nav {
+	width:500px;
+	height:54px;
+	margin:0;
+	padding:0;
+}
+
+#nav * {
+	text-align:center;
+	color:#fff;
+	font-weight:bold;
+	text-decoration:none;
+	font-family:arial, helvetica, sans-serif;
+	font-size:9pt;
+}
+
+#nav ul, #nav ul li {
+	margin:0;
+	padding:0;
+	list-tyle-type:none;
+}
+#nav ul li {
+	display:inline;
+}
+
+ul#tabBar {
+	float: right;
+}
+
+
+
+ul#tabBar li a {
+	display:block;
+	float:left;
+	width:90px;
+	/*height:29px;
+	line-height:39px;
+	/*background:url(../64imgs/tab_bg.png) 0 10px no-repeat;*/
+	overflow:hidden; /* fixed IE display bug */
+}
+
+ul#tabBar li a:hover {
+	line-height:29px;
+	/*background:url(../images/badge_blu.png) 0 0px no-repeat;*/
+	/*background:url(../64imgs/tab_bg.png) top left no-repeat;*/
+}
+
+#subNav ul {
+	display:none;
+}
+
+#subNav {
+	clear:both;
+	height:25px;
+	/*background:url(../64imgs/subnav_bg.jpg) top left repeat-x;*/
+	/*background:url(../images/badge_blu.png) top left repeat-x;*/
+	padding-left:10px;
+	position:absolute;
+	top: 45px;
+	left:10px;
+	width:480px;
+}
+
+#subNav ul {
+	float:left;
+	/*background:url(../64imgs/subnav_seperator.jpg) top left no-repeat;*/
+	
+}
+
+#subNav ul li a {
+	display:block;
+	float:left;
+	width:90px;
+	text-align:center;
+	line-height:25px;
+	/*background:url(../64imgs/subnav_seperator.jpg) top right no-repeat;*/
+}
+
+#subNav li a:hover {
+	color:#cde7ff;
+}
+
+#info {
+	width:565px;
+	font-size:6pt;
+	text-transform:uppercase;
+	letter-spacing:1px;
+	padding:5px;
+	background:#f5f5f5;
+	border:1px solid #ccc;
+	margin:10px;
+}
+
+#info h1 {
+	font-size:9pt;
+	letter-spacing:0;
+	color:#011343;
+}
+
+#info a {
+	color:#011343;
+	text-decoration:none;
+	font-weight:bold;
+}
+
+#info a:hover {
+	color:#f00;
+}	 
+
+a.aqua,a.aqua:visited{
+	display:block;
+
+	height:24px;
+	width:122px;
+
+	padding-top:9px;
+	margin:0 auto;
+	overflow:hidden;
+
+	color:white;	
+	font-size:12px;
+	font-weight:bold;
+	text-align:center;
+	text-transform:uppercase;
+	text-decoration:none;
+	
+	background:url(images/aqua.png) no-repeat center top;
+}
+
+a.aqua:hover{
+	background-position:bottom;
+	text-decoration:none;
+}
+ul#xtabBar {
+	float: left;
+}
+ul#xtabBar li a {
+	float:left;
+	overflow:hidden; /* fixed IE display bug */
+}

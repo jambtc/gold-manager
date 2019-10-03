@@ -1,0 +1,20 @@
+Carattere 	Bonus 	Malus
+Grintoso 	Per impegno alto e molto alto 							Per impegno basso e molto basso, maggiori probabilità di cartellini
+ambizioso 	Elevata forma se impiegato sempre, miglior rigenerazione della freschezza, maggior guadagno diesperienza 	pesante calo di forma quando non gioca, anche al termine della stagione (se non si giocano i playoff)
+razionale 	gioca meglio fuori casa, ottimo rigorista 	-
+diligente 	miglior rendimento in allenamento, miglior condizione 	peggior rigenerazione della freschezza: ca. 85%-90%
+corretto 	minori probabilità di cartellini or infortuni 	-
+duttile 	piccolo malus se impiegato fuori ruolo, più veloce nell'apprendere nuove posizioni 	-
+inflessibile 	gioca meglio in main position 	gioca male se impiegato fuori ruolo, più lento nell'apprendere nuove posizioni
+introverso 	Per impegno basso e molto basso 	Per impegno alto e molto alto, cattivo capitano
+carismatico 	ottimo capitano	-
+popolare 	sullo Spirito di Squadra e sullareputazione 	-
+costante 	tende a livelli più alti di forma e ad avere minori fluttuazioni della stessa 	-
+irrequieto 	gioca meglio in casa, miglior forma quando lo Spirito di squadra è alto 	maggiori probabilità di cartellini rossi, peggior forma quando lo Spirito di squadra è basso 
+
+
+
+
+
+
+

@@ -1,0 +1,101 @@
+/*img#Home {	width:75px;	height:75px;}
+img#Sede {	width:85px;	height:85px;}
+
+
+/*img#Squadra {	width:85px;	height:60px;}
+img#Società {	width:85px;	height:60px;}
+img#Guestbook {	width:85px;	height:60px;}
+img#Sede {	width:85px;	height:60px;}
+img#Profilo {	width:85px;	height:60px;}
+img#Logout {	width:62px;	height:56px;}
+img#Giocatori {	width:85px;	height:60px;}
+img#Allenamento {	width:85px;	height:60px;}
+img#Formazione {	width:85px;	height:60px;}
+img#Automatico {	width:85px;	height:60px;}
+img#Calcolatore {	width:85px;	height:60px;}
+img#Staff {	width:85px;	height:60px;}
+img#Statistiche {	width:85px;	height:60px;}
+*/
+
+#nav {
+	width:590px;
+	height:100px;
+	margin:0;
+	padding:0;
+}
+
+#nav * {
+	text-align:center;
+	color:#fff;
+	font-weight:bold;
+	text-decoration:none;
+	font-family: Verdana, Arial, Helvetica, sans-serif;
+	font-size:9pt;
+	z-index:2;
+}
+
+#nav ul, #nav ul li {
+	margin:0;
+	padding:0;
+	list-tyle-type:none;
+}
+#nav ul li {
+	display:inline;
+}
+
+ul#tabBar {
+	float:left;
+	width:15%;
+}
+
+ul#tabBar li a {
+	display:block;
+	float:left;
+	width:100%;
+	/*height:76px;*/
+	line-height:29px;
+	border:0px;
+	/*background: url(../images/a1_sede.png) -10px -10px no-repeat;*/
+	/*border-left:4px solid #fff;*/
+	overflow:hidden; /* fixed IE display bug */
+}
+
+ul#tabBar li a:hover {
+	line-height:29px;
+	/*background: url(../images/b1_sede.png) top left no-repeat;*/
+	/*width:71px;
+	height:55px;*/
+}
+
+
+#subNav ul {
+	display:none;
+}
+
+#subNav {
+	clear:both;
+	height:25px;
+	/*background:url(../images/0_barra.png) top left repeat-x;*/
+	top: 20px;
+	padding-left:80px;
+}
+
+#subNav ul {
+	float:left;
+	
+	/*background:url(../64imgs/subnav_seperator.jpg) top left no-repeat;*/
+}
+
+#subNav ul li a {
+	display:block;
+	float:left;
+	width:80px;
+	text-align:center;
+	line-height:25px;
+	/*background:url(../64imgs/subnav_seperator.jpg) top right no-repeat;*/
+}
+
+#subNav li a:hover {
+	color:#cde7ff;
+}
+
