@@ -1,0 +1,376 @@
+/* DATI RELATIVI ALLA PAGINA FORMAZIONE */
+input.board {
+ width : 30px;
+ height: 30px;
+ background: url(../images/barrettavuota.png); 
+ /*background: url(../images/maglietta_azzurra.png); */
+ font-size: 0px;
+ border: 0px ;
+}
+input.brdgioca {
+ width : 30px;
+ height: 34px;
+ background: url(../images/maglietta_azzurra.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+input.brdpanchina {
+ width : 30px;
+ height: 34px;
+ background: url(../images/maglietta_azzurra.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+input.brdportiere {
+ width : 30px;
+ height: 34px;
+ background: url(../images/maglietta_arancione.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+input.brdpanchinaportiere {
+ width : 30px;
+ height: 34px;
+ background: url(../images/maglietta_arancione.png);
+ color: #FFFFFF;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 11px;
+ font-weight:bold;
+ border: 0px ;
+}
+.compiti {
+ border: 1px solid white ;
+}
+
+
+div#campo_di_gioco{
+	position: absolute;
+	top: -25px;
+	left: -2px;
+}
+
+span#riga1 {/*   */
+	position: absolute;
+	top:40px;
+	left:51px;
+} 
+span#riga2 {
+	position: absolute;
+	top:70px;
+	left:47px;
+} 
+span#riga3 {
+	position: absolute;
+	top:100px;
+	left:44px;
+} 
+span#riga4 {
+	position: absolute;
+	top:140px;
+	left:39px;
+} 
+span#riga5 {
+	position: absolute;
+	top:170px;
+	left:35px;
+} 
+span#riga6 {
+	position: absolute;
+	top:200px;
+	left:31px;
+} 
+span#riga7 {
+	position: absolute;
+	top:235px;
+	left:28px;
+} 
+span#riga8 {
+	position: absolute;
+	top:265px;
+	left:23px;
+} 
+span#riga9 {
+	position: absolute;
+	top:295px;
+	left:20px;
+} 
+span#riga10 {
+	position: absolute;
+	top:340px;
+	left:153px;
+	
+} 
+span#rigapanca65 {
+	position: absolute;
+	top:203px;
+	left:312px;
+} 
+span#rigapanca66 {
+	position: absolute;
+	top:235px;
+	left:317px;
+} 
+span#rigapanca67 {
+	position: absolute;
+	top:267px;
+	left:322px;
+} 
+span#rigapanca68 {
+	position: absolute;
+	top:301px;
+	left:326px;
+} 
+span#rigapanca69 {
+	position: absolute;
+	top:336px;
+	left:331px;
+}
+ 
+div#campo_formazione {
+	position: absolute;
+	top: 55px;
+	left: 15px;
+	border:none;
+} 
+img#campo_formazione {
+	width: 308px;
+	height: 320px;
+}
+div#panchina_formazione{
+	position: absolute;
+	top:210px;
+	left:307px;
+	border:none;
+}
+img#panchina_formazione {
+	width: 60px;
+	height: 162px;
+}
+div#bonus {
+	position: absolute;
+	top:0px;
+	left:0px;
+	color: #00FF00;
+	font: 12px Verdana, Arial, Helvetica, sans-serif;
+} 
+div#perc_tattiche{
+	position: absolute;
+	top:33px;
+	left:12px;
+	width:300px;
+}
+table#table_tattiche{
+	width:100%;
+	color:#000000;
+	font-size:12px;
+	font-weight:bold;
+}
+
+div#forza_formazione{
+	position: absolute;
+	top: 190px;
+	left:355px;
+	color: #000000;
+	font-weight:bold;
+	font-size:10px;
+	font-family: Geneva, Arial, Helvetica, sans-serif;
+}
+div#forza_panchina_formazione{
+	position: absolute;
+	top:300px;
+	left:370px;
+	color:#000000;
+	font-weight:bold;
+	font-size:10px;
+	font-family: Geneva, Arial, Helvetica, sans-serif;
+}
+div#speciale_formazione{
+	position: absolute;
+	top:35px;
+	left:330px;
+	color: #000000;
+	font: 10px Verdana, Arial, Helvetica, sans-serif;
+}
+div#dati_formazione{
+	position:absolute;
+	top:360px;
+	font-size:11px;
+	font-weight:bold;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+div#portiere_formazione{
+	float:left;
+	padding: 0px 10px 10px 0px;
+}
+div#difesa_formazione{
+	float:left;
+	padding: 0px 10px 10px 0px;
+}
+div#centrocampo_formazione{
+	float:left;
+	padding: 0px 10px 10px 0px;
+
+}
+div#attacco_formazione{
+	float:left;
+	padding: 0px 10px 10px 0px;
+}
+div#totale_formazione{
+	float:left;
+	padding: 0px 10px 10px 0px;
+	color: #000066;
+	font-weight:bold;
+	font-size:12px;
+}
+div#scegli_formazione{
+	position:absolute;
+	top:355px;
+	left:345px;
+}
+/* ************ DATI RELATIVI ALLA PAGINA FORMAZIONE - TATTICHE  */
+
+div#form_tattiche{
+	position:absolute;
+	top:200px;
+	left:70px;
+	font-size:14px;
+	font-weight:bold;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+/* ************ DATI RELATIVI ALLA PAGINA FORMAZIONE - ISTRUZIONI  */
+div#form_istruzioni{
+	position:absolute;
+	top:50px;
+	left:30px;
+	font-size:14px;
+	font-weight:bold;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	width:420px;
+}
+div#form_regole{
+	color:#000000;
+	font-size:12px;
+	font-family:Verdana, Arial, Helvetica, sans-serif;
+	font-weight:normal;
+}
+
+
+/* ********************************************************************** */
+ 
+.box{  
+    background-color: #00AAFF;  
+    width:  200px;  
+    padding: 15px;  
+    text-align: center;  
+    margin-bottom:  10px;  
+}  
+.hover{  
+    background-color: #FFFFD4;  
+} 
+.tooltip{
+	position: absolute;
+	top: 0;
+	left: 0;
+	z-index: 3;
+	display: none;
+
+	background-color:#333333;
+	border:1px solid #666666;
+	color:#fcfcfc;
+	padding:10px;
+	margin-top:-240px;
+	
+	-moz-border-radius:12px;
+	-khtml-border-radius: 12px;
+	-webkit-border-radius: 12px;
+	border-radius:12px;
+
+}
+/*-------------------------------------------------------------------*/
+.soloGreen {
+	font-size: 10px;  
+	background-color:#009000; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:normal;
+}
+.scelto_in_campo {
+	font-size: 10px;  
+	background-color: #006699; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:normal;
+} 
+.scelto_in_panchina {
+	font-size: 10px;  
+	background-color: #999999; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:normal;
+}
+
+h5 {
+	color: #FFFFFF;
+	background-color:#FF0000;
+	margin: 0px 0px 0px;
+	padding: 0px 0px 0px;
+	font: bold 12px Verdana, Arial, Helvetica, sans-serif;
+}
+input.skilltrasparent {
+	width : 30px;
+	height: 18px;
+	background:none;
+	font-size: 0px;
+	border: 1px solid white ;
+}
+
+input.skillgreenscuro {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #006600;
+	color:#006600;
+}
+input.skillgreen {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #009900;
+	color: #009900;
+}
+input.skillyellow {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FFFF00;
+	color: #FFFF00;
+}
+input.skillorange {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FFCC00;
+	color: #FFCC00;
+}
+
+input.skillred {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FF0000;
+	color: #FF0000;
+}

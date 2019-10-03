@@ -1,0 +1,1357 @@
+
+img#lavagna {width:190px;}
+#auto_pleasewait{
+	position:absolute;		
+	left:530px;
+	top:50%;
+	z-index: -1;
+	
+}
+.fld_breve{
+	width:30px;
+}
+iframe {
+  background-color: transparent;
+}
+
+legend 
+{
+	font-size:80%;
+	background-color:#CCCCCC;
+	color:#0000FF;
+	padding:1px;
+	border: 1px;
+	border-style: solid;
+	font-weight:bold;
+
+}
+a {
+	color: #FFFF00;
+}
+a:hover {
+	color: #99CC00;
+}
+
+h6 {
+	color: #00FFFF;
+	margin: 0px 0px 0px;
+	padding: 0px 0px 0px;
+	font: 12px Verdana, Arial, Helvetica, sans-serif;
+}
+h4 {
+	margin: 0px 0px 5px;
+	padding: 0px 0px 3px;
+	font: bold 16px Verdana, Arial, Helvetica, sans-serif;
+	color: #000099;
+	width:auto;
+	height:auto;
+}
+
+h3 {
+	
+	margin: 0px 0px 5px;
+	padding: 0px 0px 3px;
+	font: bold 14px Verdana, Arial, Helvetica, sans-serif;
+	color: #00FFFF;
+	width:auto;
+	height:auto;
+}
+
+h1 {
+	color: #00FFFF;
+	margin: 0px 0px 5px;
+	padding: 0px 0px 3px;
+	font: bold 18px Verdana, Arial, Helvetica, sans-serif;
+	border-bottom: 1px dashed #E6E8ED;
+	text-align:right;
+}
+.fieldbutton {
+	font-size: 12px;
+	color: #333333;
+	border: 2px solid #CCCCCC;
+	background: #F7F7F7;
+	z-index:;
+}
+
+
+div#page            { /* Page Holder */
+	position        : relative;
+	text-align      : center;
+}
+body                { /* Page Body */
+	/*background-color: #96bde8;*/
+	overflow        : hidden;
+	padding 		: 0;
+	margin:			0;
+	color:#FFFFFF;
+	background-image:url(../images/sfondo_campo.jpg);
+	background-repeat:repeat;
+	
+}
+div#intest_bottom	{
+	position		: absolute;
+	z-index			: -1;
+	overflow		: hidden;
+	background-repeat:repeat;
+	
+
+	}
+div#intest_barra	{
+	position		: absolute;
+	z-index			: 3;
+	left:30px;
+}
+
+div#topbar {
+	BORDER-RIGHT: trasparent; 
+	BORDER-TOP: trasparent ; 
+	VISIBILITY: hidden; 
+	BORDER-LEFT: trasparent; 
+	BORDER-BOTTOM: trasparent; 
+	POSITION: absolute; 
+	BACKGROUND-COLOR: trasparent;
+	padding-right:50px;
+	font-family:Verdana, Arial, Helvetica, sans-serif;
+	font-size:9px;
+}
+
+	
+span#intest_online	{
+	position: absolute;
+	top:1%;
+	left:68%;
+	width:150px;
+	height:100px;
+	overflow-y:auto;
+}	
+div#intest_monitor	{
+	position:absolute;
+	z-index: 1;
+	width: 18%;
+	top: 5px;
+	float:left;
+}	
+div#intest_login	{
+	position:	absolute;
+	z-index: 4;
+	color:#ffffff;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top: 21px;
+	left:1%;
+}
+div#intest_logo	{
+	z-index			: 1;
+	float:right;
+}
+img#gm_logo {
+	padding-top:25px;
+	width:200px;
+}
+div#intest_m-login	{
+	position:		absolute;
+	z-index: 1;
+	color:#ffffff;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top: 11px;
+	left:1%;
+}
+div#intest_corpo	{
+	position:		absolute;
+	color:			#FFFF00;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	top:			20%;
+	left:			10px;
+	margin:auto;
+	width:		98%;
+	z-index:2;
+}
+div#intest_visite			{
+	position:absolute;
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top:98%;
+	left:5px;
+}
+
+div#intest_membri			{
+	position:absolute;
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top:98%;
+	left:68%;
+}
+div#sexjam {
+	position:absolute;
+	float:left;
+	top:20px;
+}
+div#vertext{
+	position:relative;
+	top: 20px;
+	float:right;
+}
+
+div#corpo_intestazione		{
+	float:inherit;
+	position:absolute;
+	top:10%;
+	left:20%;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	color:#0000FF;
+	/*height:300px;
+	overflow-y: scroll;*/
+}	
+img#corpo_quadrato {
+	width:520px; 
+	height:320px; 
+}
+div#corpo_testo	{
+	position:absolute;
+	text-align: center;
+	padding-left:60px;
+	padding-right:60px;
+	top: 20%;
+}
+
+div#privacy{
+	color:#0000FF;
+}
+img#privacy{
+	width:600px; 
+	height:200px;
+}
+fieldset#privacy{
+	width:560px;
+	height:160px;
+}
+span#privacy{
+	position:absolute;
+	left:200px;
+	padding:15px 10px 10px 10px;
+}
+div#ripristino{
+	color:#0000FF;
+}
+img#ripristino{
+	width:500px; 
+	height:120px;
+}
+fieldset#ripristino{
+	width:460px;
+	height:80px;
+}
+span#ripristino{
+	position:absolute;
+	left:250px;
+	padding:15px 10px 10px 10px;
+}
+div#register{
+	color:#0000FF;
+}
+img#register{
+	width:800px; 
+	height:300px;
+}
+fieldset#register{
+	width:760px;
+	height:260px;
+}
+span#register{
+	position:absolute;
+	left:100px;
+	padding:15px 10px 10px 10px;
+}
+
+
+.fieldlogin {
+	font-size: 11px;
+	color: #333333;
+	background: #F7F7F7;
+	border: 1px solid #CCCCCC;
+	padding-left: 0px;
+	width:65%;
+}
+div#login_benvenuto			{
+	font-size:x-small;
+	font-size		: 16px;
+	color			: #66CCFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	width:160px;
+}
+div#login_team		{
+	position:absolute;
+	top:40%;
+	left:55px;
+	color: #00FF00;
+}
+span#login_team		{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:14px;
+	font-weight:bold;
+	color:#FFFFFF;
+	
+}
+div#login_serie		{
+	position:absolute;
+	top:75%;
+	left:55px;
+	color: #00FF00;
+}
+span#login_serie		{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:14px;
+	font-weight:bold;
+	color:#FFFFFF;
+}
+div#login_data		{
+	position:absolute;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	font-weight:bold;
+	color: #00FF00;
+	top: 100px;
+	width:165px;
+	text-align:right;
+}
+div#m_corpo_sx		{
+	position:absolute;
+	width:35%;
+	top: 10%;
+}
+div#m_corpo_dx		{
+	float: left;
+	position:absolute;
+	width:70%;
+	top:20%;
+	left:32%;
+	height:100%;
+}
+
+div#insert_dati           { 
+	padding-top     :   0.00pt;
+	position        : absolute;
+	left            : 450px;
+	top             :  101pt;
+	width           :  40%;
+	height          :  auto;
+	color: #FFFF00;
+	
+	}
+input.button_inserisci	{
+	background-image:url(../images/add_player.png);
+	width:30px;
+	height:26px;
+	padding:0px;
+	margin:0px;
+	
+}
+
+input.button_importa	{
+	background-image:url(../images/importa.png);
+	width:30px;
+	height:26px;
+	padding:0px;
+	margin:0px;
+	
+}
+input.button_password	{
+	background-image:url(../images/password.jpg);
+	width:30px;
+	height:26px;
+	padding:0px;
+	margin:0px;
+	
+}
+input.button_esporta	{
+	background-image:url(../images/esporta.png);
+	width:30px;
+	height:26px;
+	padding:0px;
+	margin:0px;
+	
+}
+input.button_ripristina	{
+	background-image:url(../images/ripristina.jpg);
+	width:30px;
+	height:26px;
+	padding:0px;
+	margin:0px;
+}
+input.button_indietro	{
+	background-image:url(../images/indietro.png);
+	width:35px;
+	height:28px;
+	padding:0px;
+	margin:0px;
+}
+
+/*--- DATI DEL CALCOLATORE */
+.campocorto {
+font-size: 10px;
+width: 40px;
+} 
+
+div#campo_calcolatore {
+	position: absolute;
+	top:125px;
+	left:70px;
+	width:100%;
+	border:none;
+	z-index:-1;
+} 
+img#campo_calcolatore {
+	width: 300px;
+	height: 270px;
+}
+input.normal { /* BOX CON I VALORI MINORI DEL CALCOLO POSIZIONE*/
+ width : 30px;
+ height: 30px;
+ background: none;
+ color: #FFFF00;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 9px;
+ border: 0;
+ padding-left:5px;
+ 
+}
+input.max { /* BOX CON I VALORI MAX DEL CALCOLO POSIZIONE*/
+ width : 30px;
+ height: 30px;
+ background: #006600;
+ color: #FFFF00;
+ font-family: Verdana, Arial, Helvetica, sans-serif;
+ font-size: 9px;
+ font-weight:bold;
+ text-align:left;
+ border: 1px solid red ;
+ padding-left:5px;
+ }
+
+.Stile8 {
+	font-size: 14px; 
+	font-family: Arial, Helvetica, sans-serif; 
+	font-weight: bold; 
+	color:#FFFE00;
+}
+.BGreen {
+	font-size: 12px;  
+	background-color: #009000; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+} 
+.LGreen {
+	font-size: 12px;  
+	background-color:#009966; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+} 
+ 
+select.fld_y {
+	font-size: 11px; 
+	font-family: Arial, Helvetica, sans-serif; 
+	color:#333333; 
+}
+.Portiere {font-size: 9px; color:#FFFFFF;} 
+.Difesa {font-size: 9px;  color:#FFFFFF;} 
+.Centrocampo {font-size: 9px; color:#000000;} 
+.Attacco {font-size: 9px;  color:#000000;} 
+.Massimo {font-size: 9px; font-weight: bold; color:#FFFE00;}
+/* --- DATI INVESTIMENTO PRIMAVERA ---- */
+img#inv_prima{
+	width:580px; 
+	height:370px;
+}
+fieldset#inv_prima{
+	width:545px;
+	height:325px;
+}
+span#inv_prima{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+
+
+
+
+/* --- INFORMAZIONI CALCOLATORE AUTOMATICO ---- */
+
+.BGreen2 {font-size: 11px;  background-color:#009900; color:#FFFF00; font-family:Geneva, Arial, Helvetica, sans-serif;} 
+.LGreen2 {font-size: 11px;  background-color:#009966; color:#FFFF00; font-family:Geneva, Arial, Helvetica, sans-serif;} 
+
+span#bonus {
+	position: absolute;
+	top:0px;
+	left:0px;
+	color: #00FF00;
+	font: 12px Verdana, Arial, Helvetica, sans-serif;
+} 
+
+span#campo_automatico {
+	position: absolute;
+	top:-50px;
+	left:-70px;
+	border:none;
+
+} 
+div#campo_automatico {
+	position: absolute;
+	top: 120px;
+	left: 70px;
+	border:none;
+} 
+img#campo_automatico {
+	width: 295px;
+	height: 280px;
+}
+span#briga1 {
+	position: absolute;
+	top:115px;
+	left:101px;
+} 
+span#briga2 {
+	position: absolute;
+	top:135px;
+	left:98px;
+} 
+span#briga3 {
+	position: absolute;
+	top:165px;
+	left:94px;
+} 
+span#briga4 {
+	position: absolute;
+	top:192px;
+	left:90px;
+} 
+span#briga5 {
+	position: absolute;
+	top:220px;
+	left:86px;
+} 
+span#briga6 {
+	position: absolute;
+	top:246px;
+	left:82px;
+} 
+span#briga7 {
+	position: absolute;
+	top:275px;
+	left:78px;
+} 
+span#briga8 {
+	position: absolute;
+	top:300px;
+	left:74px;
+} 
+span#briga9 {
+	position: absolute;
+	top:330px;
+	left:70px;
+}  
+span#briga10 {
+	position: absolute;
+	top:370px;
+	left:202px;
+	
+} 
+
+
+span#campo2 {
+	position: absolute;
+	top:125px;
+	left:70px;
+	border:none;
+
+} 
+div#tattica_automatico{
+	position: absolute;
+	top:0px;
+	left:400px;;
+	color:#FFFF00;
+	font-weight: normal;
+	font: 12px Verdana, Arial, Helvetica, sans-serif;
+	width:140px;
+}
+table#table_automatico{
+	border:0px;
+	width:80px;
+}
+
+
+span#percentuale_auto{
+	position: absolute;
+	top:80px;
+	left:315px;
+	color:#FFFF00;
+	font-weight: normal;
+	font-size:11px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+table#percentuale_auto_table{
+	border:0px;
+	width:225px;
+}
+
+div#elencoformazione_auto{
+	position: absolute;
+	top: 180px;
+	left: 315px;
+	width: 290px;
+	height:220px;
+	overflow-y:scroll;
+	z-index:3;
+	color:#FFFF00;
+	font-weight: normal;
+	font-size:10px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+
+span#portiere_auto{
+	position: absolute;
+	top:84%;
+	left:1%;
+	color:#FFFF00;
+	font-weight:bold;
+	font-size:11px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+span#difesa_auto{
+	position: absolute;
+	top:84%;
+	left:10%;
+	color:#FFFF00;
+	font-weight:bold;
+	font-size:11px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+span#centrocampo_auto{
+	position: absolute;
+	top:84%;
+	left:18%;
+	color:#FFFF00;
+	font-weight:bold;
+	font-size:11px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+span#attacco_auto{
+	position: absolute;
+	top:84%;
+	left:32%;
+	color:#FFFF00;
+	font-weight:bold;
+	font-size:11px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+span#totale_auto{
+	position: absolute;
+	top:84%;
+	left:42%;
+	color:#66CCFF;
+	font-weight:bold;
+	font-size:12px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}
+span#invio_auto{
+	position:absolute;
+	top:92%;
+	left:8%;
+}
+
+/*--- DATI RELATIVI ALLE STATISTICHE ---*/
+img#stat_squadra{
+	width:415px; 
+	height:220px;
+}
+fieldset#stat_squadra{
+	width:375px;
+	height:180px;
+}
+span#stat_squadra{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+img#stat_giocatori{
+	width:415px; 
+	height:320px;
+}
+fieldset#stat_giocatori{
+	width:375px;
+	height:280px;
+}
+span#stat_giocatori{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+img#stat_dx{
+	width:570px; 
+	height:400px;
+}
+fieldset#stat_dx{
+	width:535px;
+	height:360px;
+}
+span#stat_dx{
+	position:absolute;
+	left:430px;
+	padding:15px 10px 10px 10px;
+}
+img#stat_dx_gio{
+	width:570px; 
+	height:400px;
+}
+fieldset#stat_dx_gio{
+	width:535px;
+	height:360px;
+}
+span#stat_dx_gio{
+	position:absolute;
+	left:430px;
+	padding:15px 10px 10px 10px;
+}
+div#div_stat_staff{
+	position:absolute;
+	top:270px;
+	left:0px;
+	width:415px; 
+	height:175px; 
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	
+}
+
+img#stat_staff{
+	width:415px; 
+	height:110px;
+}
+fieldset#stat_staff{
+	width:375px;
+	height:70px;
+}
+span#stat_staff{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+
+div#div_stat_staff{
+	position:absolute;
+	top:170px;
+	left:0px;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	height:330px;
+}
+img#stat_dx_staff{
+	width:415px; 
+	height:260px;
+}
+fieldset#stat_dx_staff{
+	width:375px;
+	height:220px;
+}
+span#stat_dx_staff{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+/*--- DATI RELATIVI AI COMUNICATI STAMPA ---*/
+img#stampa{
+	width:720px; 
+	height:350px;
+}
+fieldset#stampa{
+	width:680px;
+	height:310px;
+}
+span#stampa{
+	position:absolute;
+	left:140px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+
+/*--- DATI RELATIVI A IMPOSTAZIONI UTENTE ---*/
+img#utente{
+	width:720px; 
+	height:240px;
+}
+fieldset#utente{
+	width:680px;
+	height:205px;
+}
+span#utente{
+	position:absolute;
+	left:140px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+
+/*--- DATI RELATIVI A STAFF ---*/
+img#staff{
+	width:580px; 
+	height:270px;
+}
+fieldset#staff{
+	width:545px;
+	height:225px;
+}
+span#staff{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+img#staff_bon{
+	width:540px; 
+	height:80px;
+}
+fieldset#staff_bon{
+	width:505px;
+	height:40px;
+}
+span#staff_bon{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+img#staff_motiva{
+	width:400px; 
+	height:300px;
+}
+fieldset#staff_motiva{
+	width:360px;
+	height:260px;
+}
+span#staff_motiva{
+	position:absolute;
+	left:600px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+img#staff_offerte{
+	width:490px; 
+	height:310px;
+}
+fieldset#staff_offerte{
+	width:450px;
+	height:275px;
+}
+span#staff_offerte{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+div#staff_offerte{
+	color:#000000;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	height:270px;
+	overflow-y: scroll;
+}
+
+img#staff_contra{
+	width:490px; 
+	height:310px;
+}
+fieldset#staff_contra{
+	width:450px;
+	height:275px;
+}
+span#staff_contra{
+	position:absolute;
+	left:510px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+/*--- DATI RELATIVI A LISTA GIOCATORI ---*/
+img#giocatori{
+	width:1000px; 
+	height:420px;
+}
+fieldset#giocatori{
+	width:960px;
+	height:380px;
+}
+span#giocatori{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+div#giocatori{
+	color:#000000;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	height:380px;
+	overflow-y: scroll;
+}
+/*--- DATI RELATIVI A ALLENAMENTO ---*/
+img#allena{
+	width:580px; 
+	height:370px;
+}
+fieldset#allena{
+	width:545px;
+	height:325px;
+}
+span#allena{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+
+/*--- DATI RELATIVI A FORMAZIONE ---*/
+.giocatori{
+	float: absolute;
+	margin:0px;
+	padding:0px;
+}
+
+.giocatori img{
+	cursor:move;
+}
+img#formaz_sx{
+	width:505px; 
+	height:400px;
+}
+fieldset#formaz_sx{
+	width:470px;
+	height:360px;
+}
+span#formaz_sx{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+div#formaz_sx{
+	color:#000000;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	height:360px;
+	overflow-y: scroll;
+}
+
+img#formaz_dx{
+	width:480px; 
+	height:420px;
+}
+fieldset#formaz_dx{
+	width:440px;
+	height:380px;
+}
+span#formaz_dx{
+	position:absolute;
+	left:520px;
+	padding:15px 10px 10px 10px;
+	color: #0000FF;
+}
+
+
+
+
+
+/*--- DATI RELATIVI AI TITOLI  ---*/
+.label-stat{
+background:url(../images/quadrato_rounded_chiaro.png) no-repeat top right;   /* shows the right part of the wider label */ 
+	display:inline-block;  
+    font-size:12px;  
+    height:26px;  
+    margin-left:10px;   /* leaves space on the left, so that the outer span can show its background */  padding:8px 12px 0 5px;
+	color: #0000FF;  
+}
+.a1{
+	color: #0000FF;
+	font-size:14px;
+	font-weight:bold;
+}
+a.a1:hover {
+	color: #0066FF;
+	font-size:14px;
+	font-weight:bold;
+}
+.a2{
+	color: #006600;
+	font-size:14px;
+	font-weight:bold;
+}
+a.a2:hover {
+	color: #009900;
+	font-size:14px;
+	font-weight:bold;
+}
+.a3{
+	color: #0066FF;
+	font-size:12px;
+}
+a.a3:hover {
+	color: #0033FF;
+	font-size:12px;
+}
+.a_null{
+	color: #ffffff;
+	font-size:12px;
+	font-variant:normal;
+	font-weight:bold;
+	text-decoration:none;
+	
+}
+a.a_null:hover {
+	color: #ffffff;
+	font-size:12px;
+}
+/*--- DATI RELATIVI AL GUESTBOOK ---*/
+
+span#guest_sx{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	color:#FFFF00;
+}
+div#guest_dx{
+	position:absolute;
+	top:30px;
+	left: 400px;
+	overflow-y: scroll;
+	width:850px;
+	height:450px;
+	
+}
+iframe#guest_framedx{
+	width:100%;
+	height:100000px;
+		
+}
+.texttitolo {
+	font-size: 12px;
+	color: #333333;
+	background: #F7F7F7;
+	border: 1px solid #CCCCCC;
+	padding-left: 1px;
+	width:600px;
+	font-family: Geneva, Arial, Helvetica, sans-serif;
+	text-transform:uppercase;
+}
+.Stile8 {
+	font-size: 12px; 
+	font-family: Arial, Helvetica, sans-serif; 
+	font-weight: bold; 
+	color:#FFFE00;
+}
+table#guest_table{
+	width:100%;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	color: #00ffFF;
+}
+
+/* DATI SEDE SQUADRA*/
+img#sede_prossimo{
+	width:500px; 
+	height:160px;
+}
+fieldset#sede_prossimo{
+	width:460px;
+	height:120px;
+}
+span#sede_prossimo{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+
+img#sede_notizie{
+	width:500px; 
+	height:180px;
+}
+fieldset#sede_notizie{
+	width:460px;
+	height:140px;
+}
+span#sede_notizie{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+div#sede_notizie{
+	color:#0000FF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+	height:140px;
+	overflow-y: scroll;
+}
+
+img#sede_serie{
+	width:450px; 
+	height:160px;
+}
+span#sede_serie{
+	position:absolute;
+	padding:15px 10px 10px 10px;
+	left:550px;
+}
+fieldset#sede_serie{
+	width:410px;
+	height:120px;
+}
+div#sede_serie{
+	color:#0000FF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+	height:120px;
+	overflow-y: scroll;
+}
+/* DATI CALENDARIO SQUADRA*/
+img#calend_serie{
+	width:420px; 
+	height:320px;
+}
+fieldset#calend_serie{
+	width:380px;
+	height:280px;
+}
+span#calend_serie{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+div#calend_serie{
+	color: #006600;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+	height:270px;
+	overflow-y: scroll;
+}
+span#calend_serie2{
+	position:absolute;
+	left:580px;
+	padding:15px 10px 10px 10px;
+}
+/* DATI CLASSIFICA SQUADRA*/
+img#class_serie{
+	width:420px; 
+	height:260px;
+}
+fieldset#class_serie{
+	width:380px;
+	height:220px;
+}
+span#class_serie{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+div#class_serie{
+	color: #006600;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+	
+}
+img#class_marca{
+	width:530px; 
+	height:200px;
+}
+fieldset#class_marca{
+	width:490px;
+	height:160px;
+}
+span#class_marca{
+	position:relative;
+	padding:15px 10px 10px 10px;
+	top:-180px;
+	left:10px;
+}
+div#class_marca{
+	color: #006600;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+	height:160px;
+	overflow-y: scroll;
+}
+span#class_marcatori{
+	position:absolute;
+	padding:15px 10px 10px 10px;
+	top:310px;
+	left:430px;
+}
+img#class_giorna{
+	width:260px; 
+	height:140px;
+}
+fieldset#class_giorna{
+	width:220px;
+	height:100px;
+}
+span#class_giorna{
+	position:absolute;
+	left:430px;
+	padding:15px 10px 10px 10px;
+}
+div#class_giorna{
+	color: #006600;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+}
+img#class_prossi{
+	width:260px; 
+	height:140px;
+}
+fieldset#class_prossi{
+	width:220px;
+	height:100px;
+}
+span#class_prossi{
+	position:absolute;
+	left:700px;
+	padding:15px 10px 10px 10px;
+}
+div#class_prossi{
+	color: #006600;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-weight:bold;
+}
+
+/* DATI VISUALIZZA GIOCATORE */
+img#dati_personali{
+	width:480px; 
+	height:100px;
+}
+fieldset#dati_personali{
+	width:440px;
+	height:60px;
+}
+span#dati_personali{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+span#elementi_dati_statistici{
+	position:absolute;
+	padding-left: 20px;
+}
+img#dati_statistici{
+	width:280px; 
+	height:140px;
+}
+fieldset#dati_statistici{
+	width:240px;
+	height:100px;
+	font-size:14px;
+}
+span#dati_statistici{
+	position:absolute;
+	left:20px;
+	padding:15px 10px 10px 10px;
+}
+img#dati_abilita{
+	width:200px; 
+	height:360px;
+}
+fieldset#dati_abilita{
+	width:160px;
+	height:320px;
+}
+span#dati_abilita{
+	position:absolute;
+	left:795px;
+	padding:15px 10px 10px 10px;
+}
+img#elementi_nascosti{
+	width:280px; 
+	height:100px;
+}
+fieldset#elementi_nascosti{
+	width:240px;
+	height:60px;
+	font-size:14px;
+}
+span#elementi_nascosti{
+	position:absolute;
+	left:0px;
+}
+span#elemento_nascosto{
+	position:absolute;
+	left:0px;
+	padding:15px 10px 10px 10px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.top-label{ /* the outer span comprising the label */ 
+
+   background:url(../images/quadrato_rounded_chiaro.png) no-repeat; /* showing the left part of label a wide round-cornered image */ 
+  display:inline-block;  
+  margin-left:20px;  
+  position:relative;  
+  margin-bottom:-15px;    /* the whole label is lowered on the product section */ 
+}  
+
+.label-txt{ /* the inner span - red border in the illustration above */ 
+	background:url(../images/quadrato_rounded_chiaro.png) no-repeat top right;   /* shows the right part of the wider label */ 
+	display:inline-block;  
+    font-size:12px;  
+    height:26px;  
+    margin-left:10px;   /* leaves space on the left, so that the outer span can show its background */    padding:8px 12px 0 5px;
+	color: #0000FF;  
+}  
+span#sede_casa{
+	color:#0000FF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:16px;
+	font-weight:bold;
+}
+span#sede_fuori{
+	color: #FF0000;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:16px;
+	font-weight:bold;
+}
+span#sede_orario{
+	color: #006600;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	font-weight:bold;
+}
+/* --- DATI LISTA GIOCATORI --- */
+div#team_list{
+	width:1000px;
+}
+img#team_list{
+	width:500px; 
+	height:160px;
+	float:left;
+}
+.Stile8 {font-size: 12px; font-family: Arial, Helvetica, sans-serif; font-weight: bold; color:#FFFE00;}
+.BGreen {font-size: 10px;  background-color:#009000; color:#FFFFFF;} 
+.LGreen {font-size: 10px;  background-color:  #009966; color:#FFFFFF;} 
+
+a {
+	color: #FFFF00;
+	font-size:11px;
+}
+a:hover {
+	color: #00FFFF;
+	font-size:11px;
+}
+/*--- EndOfFile ---*/

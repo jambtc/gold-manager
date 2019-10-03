@@ -1,0 +1,2 @@
+aggiunto campo prim_base in zz_config
+aggiunto campo prim_gio e prim_ski in members

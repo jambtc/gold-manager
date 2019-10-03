@@ -1,0 +1,56 @@
+h5 {
+	color: #FFFFFF;
+	background-color:#FF0000;
+	margin: 0px 0px 0px;
+	padding: 0px 0px 0px;
+	font: bold 12px Verdana, Arial, Helvetica, sans-serif;
+}
+input.skilltrasparent {
+	width : 30px;
+	height: 18px;
+	background:none;
+	font-size: 0px;
+	border: 1px solid white ;
+}
+
+input.skillgreenscuro {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #006600;
+	color:#006600;
+}
+input.skillgreen {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #009900;
+	color: #009900;
+}
+input.skillyellow {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FFFF00;
+	color: #FFFF00;
+}
+input.skillorange {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FFCC00;
+	color: #FFCC00;
+}
+
+input.skillred {
+	width : 30px;
+	height: 18px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FF0000;
+	color: #FF0000;
+}

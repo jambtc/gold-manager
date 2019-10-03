@@ -1,0 +1,425 @@
+
+
+
+
+
+/* *****************************************************   */
+
+span#motiva{
+	position:absolute;
+	padding-top: 20px;
+	
+}
+
+div#s_listagiocatori{
+	color: #000000; 
+	font-weight: normal;
+	font-size:12px;
+	overflow-y:scroll;
+	height:360px;
+}
+
+span#s_listarosa{
+	color: #000000; 
+	font-weight: normal;
+	font-size:12px;
+}
+span#s_rosa{
+	color: #000000; 
+	font-weight: normal;
+	font-size:11px;
+}
+div#s_listastaff{
+	color: #000000; 
+	font-weight: normal;
+	font-size:12px;
+	height:360px;
+}
+
+
+.Stile3 {color: #FF6600}
+.Stile4 {color: #FFFF00}
+.Stile5 {font-size: 14px}
+
+.BGreen {
+	font-size: 11px;  
+	background-color:#009000; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+} 
+.LGreen {
+	font-size: 11px;  
+	background-color:#009966; 
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+} 
+
+a {
+	color: #FFFF00;
+}
+a:hover {
+	color: #99CC00;
+}
+.a1{
+	color: #0000FF;
+	font-size:10px;
+	font-weight:bold;
+}
+a.a1:hover {
+	color: #0066FF;
+	font-size:10px;
+	font-weight:bold;
+}
+
+.a2{
+	color: #0000FF;
+	font-size:14px;
+	font-weight:bold;
+}
+a.a2:hover {
+	color: #0066FF;
+	font-size:14px;
+	font-weight:bold;
+}
+.a3{
+	color: #0066FF;
+	font-size:12px;
+}
+a.a3:hover {
+	color: #0033FF;
+	font-size:12px;
+}
+
+legend 
+{
+	font-size:100%;
+	background-color:#CCCCCC;
+	color:#0000FF;
+	padding:1px;
+	border: 1px;
+	border-style: solid;
+	font-weight:bold;
+}
+h6 {
+	color: #00FFFF;
+	margin: 0px 0px 0px;
+	padding: 0px 0px 0px;
+	font: 12px Verdana, Arial, Helvetica, sans-serif;
+}
+h5 {
+	color: #FFFFFF;
+	background-color:#FF0000;
+	margin: 0px 0px 0px;
+	padding: 0px 0px 0px;
+	font: bold 12px Verdana, Arial, Helvetica, sans-serif;
+}
+h4 {
+	margin: 0px 0px 5px;
+	padding: 0px 0px 3px;
+	font: bold 16px Verdana, Arial, Helvetica, sans-serif;
+	color: #000099;
+	width:auto;
+	height:auto;
+}
+
+h3 {
+	
+	margin: 0px 0px 5px;
+	padding: 0px 0px 3px;
+	font: bold 14px Verdana, Arial, Helvetica, sans-serif;
+	color: #00FFFF;
+	width:auto;
+	height:auto;
+}
+
+h1 {
+	color: #99CC00;
+	margin: 0px 0px 5px;
+	padding: 0px 0px 3px;
+	font: bold 18px Verdana, Arial, Helvetica, sans-serif;
+	border-bottom: 1px dashed #E6E8ED;
+}
+.fieldbutton {
+	font-size: 12px;
+	color: #333333;
+	border: 2px solid #CCCCCC;*/
+	background: #F7F7F7;
+}
+.contra {
+	font-size: 14px;
+	font-weight:bold;
+	color: #333333;
+	border: 2px solid #CCCCCC;
+	background: #F7F7F7;
+	width:210px;
+	height:50px;
+}
+
+div#page            { /* Page Holder */
+	position        : relative;
+	text-align      : center;
+}
+body                { /* Page Body */
+	overflow        : hidden;
+	padding 		: 0;
+	margin:			0;
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	font-weight:bold;
+	
+}
+div#intest_bottom	{
+	position		: absolute;
+	z-index			: -1;
+	overflow		: hidden;
+	width:	100%;
+	height:100%;
+	}
+div#intest_logo	{
+	position		: absolute;
+	z-index			: 1;
+	width: 17%;
+	top: -35px;
+	left: 0px;
+	
+}	
+div#intest_monitor	{
+	position		: absolute;
+	z-index			: 1;
+	width: 18%;
+	top: 10px;
+	left: 81%;
+	
+}	
+div#intest_login	{
+	position:		absolute;
+	left: 81.5%;
+	z-index: 2;
+	color:#ffffff;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top: 5%;
+}
+div#intest_m-login	{
+	position:		absolute;
+	left: 81.5%;
+	z-index: 2;
+	color:#ffffff;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top: 3%;
+}
+div#intest_corpo	{
+	position:		absolute;
+	color:			#FFFF00;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:12px;
+	top:			20%;
+	left:			10px;
+	margin:auto;
+	width:		90%;
+}
+div#intest_visite			{
+	position:absolute;
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top:98%;
+	left:30px;
+}
+div#intest_membri			{
+	position:absolute;
+	color:#FFFFFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:9px;
+	top:98%;
+	left:70%;
+}
+
+div#corpo_intestazione		{
+	position:absolute;
+	top:10%;
+	left:20%;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+}	
+div#login_benvenuto			{
+	 font-size:x-small;
+	
+	font-size		: 14px;
+	color			: #66CCFF;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	width:100%;
+}
+div#login_stellina_sx		{
+	position:absolute;
+	top:90%;
+	
+}
+div#login_stellina_dx		{
+	position:absolute;
+	top:90%;
+	left:32%;
+	
+}
+div#login_team		{
+	position:absolute;
+	top:35%;
+	left:55%;
+	color: #00FF00;
+	
+}
+span#login_team		{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:14px;
+	font-weight:bold;
+	color:#FFFFFF;
+	
+	
+}
+div#login_serie		{
+	position:absolute;
+	top:70%;
+	left:55%;
+	color: #00FF00;
+	
+}
+span#login_serie		{
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:14px;
+	font-weight:bold;
+	color:#FFFFFF;
+	
+	
+}
+div#login_data		{
+	position:absolute;
+	font-family:Geneva, Arial, Helvetica, sans-serif;
+	font-size:10px;
+	font-weight:bold;
+	color: #00FF00;
+	top:	110%;
+	width:200px;
+	
+	
+}
+div#m_corpo_sx		{
+	position:absolute;
+	width:35%;
+	top: 10%;
+	
+
+}
+div#m_corpo_dx		{
+	float: left;
+	position:absolute;
+	width:65%;
+	top:12%;
+	left:32%;
+	background:none;
+	
+
+}
+
+input.skilltrasparent {
+	width : 30px;
+	height: 21px;
+	background:none;
+	font-size: 0px;
+	border: 1px solid white ;
+}
+
+input.skillgreenscuro {
+	width : 30px;
+	height: 21px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #006600;
+	color:#006600
+}
+input.skillgreen {
+	width : 30px;
+	height: 21px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #009900;
+	color: #009900;
+}
+input.skillyellow {
+	width : 30px;
+	height: 21px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FFFF00;
+	color: #FFFF00;
+}
+input.skillorange {
+	width : 30px;
+	height: 21px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FFCC00;
+	color: #FFCC00;
+}
+
+input.skillred {
+	width : 30px;
+	height: 21px;
+	font-size: 0px;
+	border: 1px solid white;
+	background: #FF0000;
+	color: #FF0000;
+}
+.rew {
+	background-image: url(../images/back_f2.png);
+	background-repeat:no-repeat; 
+	background-position:center center; 
+	width:21px;
+	height:21px; 
+	/*background-color:0000ff;*/
+
+	}
+.frew {
+	background-image: url(../images/back_ff2.png);
+	background-repeat:no-repeat; 
+	background-position:center center; 
+	width:21px;
+	height:21px; 
+	/*background-color:0000ff;*/
+	}
+.forw {
+	background-image: url(../images/next_f2.png);
+	background-repeat:no-repeat; 
+	background-position:center center; 
+	width:21px;
+	height:21px; 
+	/*background-color:0000ff;*/
+	}
+.fforw {
+	background-image: url(../images/next_ff2.png);
+	background-repeat:no-repeat; 
+	background-position:center center; 
+	width:21px;
+	height:21px; 
+	/*background-color:0000ff;*/
+	}
+
+.top-label{ /* the outer span comprising the label */ 
+
+   background:url(../images/quadrato_rounded_chiaro.png) no-repeat; /* showing the left part of label a wide round-cornered image */ 
+  display:inline-block;  
+  margin-left:20px;  
+  position:relative;  
+  margin-bottom:-15px;    /* the whole label is lowered on the product section */ 
+}  
+
+.label-txt{ /* the inner span - red border in the illustration above */ 
+	background:url(../images/quadrato_rounded_chiaro.png) no-repeat top right;   /* shows the right part of the wider label */ 
+	display:inline-block;  
+    font-size:12px;  
+    height:26px;  
+    margin-left:10px;   /* leaves space on the left, so that the outer span can show its background */    padding:8px 12px 0 5px;
+	color: #0000FF;  
+}  
+
+/*--- EndOfFile ---*/
