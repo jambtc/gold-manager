@@ -16,10 +16,10 @@
 			<fieldset>
 					<?php
 						$qry = "SELECT * FROM z_calendario WHERE serie='$serie' AND giocata=0 ORDER BY data";
-						$result = mysql_query($qry);
-						if (mysql_num_rows($result) >0)
+						$result = mysqli_query($link, $qry);
+						if (mysqli_num_rows($result) >0)
 						{
-							while ($row = mysql_fetch_array($result))
+							while ($row = mysqli_fetch_array($result))
 							{
 								$id_partita[] = $row['id_partita'];
 								//$serie[] = $row['serie'];
@@ -40,7 +40,7 @@
 								{
 									$giornata ++;
 									echo "<tr>";
-									echo "<td>".$giornata."°</td>";
+									echo "<td>".$giornata."ï¿½</td>";
 									echo "<td><font color='#000000'><b>";
 									echo $data[$j];
 									echo "</b></font></td>";
@@ -96,7 +96,7 @@
 <div style="float: right; width:50%;">
 	<div class='div_disputate'>	
 		<span class="top-label">  
-			<span class="label-txt">Elenco partite già disputate</span>
+			<span class="label-txt">Elenco partite giï¿½ disputate</span>
 		</span> 
 		<img class='img_disputate' src="images/quadrato_rounded.png"  width="10%" height="10%" border="0" /> 
 		<div class="cnt_disputate"> 
@@ -112,10 +112,10 @@
 						unset($giocata);
 						
 						$qry = "SELECT * FROM z_calendario WHERE serie='$serie' AND giocata= 1 ORDER BY data";
-						$result = mysql_query($qry);
-						if (mysql_num_rows($result) > 0)
+						$result = mysqli_query($link, $qry);
+						if (mysqli_num_rows($result) > 0)
 						{
-							while ($row = mysql_fetch_array($result))
+							while ($row = mysqli_fetch_array($result))
 							{
 								$id_partita[] = $row['id_partita'];
 								//$serie[] = $row['serie'];
@@ -136,7 +136,7 @@
 								{
 									$giornata ++;
 									echo "<tr>";
-									echo "<td>".$giornata."°</td>";
+									echo "<td>".$giornata."ï¿½</td>";
 									echo "<td><font color='#000000'><b>";
 									echo $data[$j];
 									echo "</b></font></td>";

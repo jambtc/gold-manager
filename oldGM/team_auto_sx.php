@@ -65,15 +65,15 @@
 	}
 	//->FINE FUNZIONE STAMPA DATI A VIDEO
 
-	$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+	$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 	
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0) {
-			while ($rig = mysql_fetch_array($result)){
+			while ($rig = mysqli_fetch_array($result)){
 				$nome[] = $rig['nome'];
 				$nr[] = $rig['nr'];
 				$wskill[] = $rig['skill'];
@@ -94,7 +94,7 @@
 				$winfortunio[] = $rig['infortunio'];
 			}
 			// TOTALE GIOCATORI
-			$totgio = mysql_num_rows($result);
+			$totgio = mysqli_num_rows($result);
 			$formula = "Formula 2";
 			$tattica = "4-4-2";
 			$qu0_val[0] = 0;
@@ -135,15 +135,15 @@
 					$controllo = 15; // valore dell'esperienza
 					
 					// CARICO I DATI DAL CALCOLATORE
-					$calc_result = mysql_query("SELECT * FROM calcolatore WHERE formula=\"$formula\" ORDER BY ord");
-					if (!$calc_result) { echo 'Errore nella query calcolatore: ' . mysql_error(); exit(); }
+					$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE formula=\"$formula\" ORDER BY ord");
+					if (!$calc_result) { echo 'Errore nella query calcolatore: ' . mysqli_error(); exit(); }
 					
 					$max = 0;
 					unset($box);
 					unset($val);
 
 					$ii = 1; 
-					while   ($riga   =   mysql_fetch_array($calc_result)) 
+					while   ($riga   =   mysqli_fetch_array($calc_result)) 
 					{
 						// CONTROLLA TUTTI I CASI DELLE CASELLE
 						switch ($ii) { 
@@ -441,7 +441,7 @@
 						$gio_rig = $nr[$conta];
 					}
 					// calcia angoli
-					if ($wtalento[$conta] == "Calcio d´angolo")
+					if ($wtalento[$conta] == "Calcio dï¿½angolo")
 					{	
 						$conteggio_angoli = ($wtc[$conta]*1.3+$wcr[$conta])* (2*$wqta[$conta]);
 					}
@@ -719,7 +719,7 @@
 			echo "</form>";
 		}
 
-mysql_close($link);
+mysqli_close($link);
 ?>
 
 

@@ -37,17 +37,17 @@ a.a_nullst:visited {
 	$split_data = explode($separatore, $dataIta);
 	$dataSql = $split_data[2] . "-" . $split_data[1] . "-" . $split_data[0]; 
 
-	$result = mysql_query("SELECT * FROM staff_mercato WHERE s_scadenza > '$dataSql' AND s_id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM staff_mercato WHERE s_scadenza > '$dataSql' AND s_id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
 	echo "<div class='s_listastaff' >"; 
 	echo "<table border='0' width='98%' >";
 	echo "<tr class='green_bar'>";
 	echo "<th align=left>Candidato</th>";
-	echo "<th title='Abilità'>Abi.</th>";
+	echo "<th title='Abilitï¿½'>Abi.</th>";
 	echo "<th title='Esperienza'>Esp.</th>";
 	echo "<th title='Motivazione'>Mot.</th>";
 	echo "<th title='Stipendio'>Stipendio</th>";
@@ -70,7 +70,7 @@ a.a_nullst:visited {
 
 	$wstip = 0;
 	$counter=0;
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 		//($counter % 2 == 0) ? $class = "BlackOnWhite" : $class = "BlackOnWhite"; 
 	
@@ -84,7 +84,7 @@ a.a_nullst:visited {
 		echo "<td align=center>$row[s_abi]</td>";
 		echo "<td align=center>$row[s_esp]</td>";
 		echo "<td align=center>$row[s_mot]</td>";
-		echo "<td align=right>€.&nbsp;&nbsp;$wstip</td>";
+		echo "<td align=right>ï¿½.&nbsp;&nbsp;$wstip</td>";
 		echo "<td align=center>$row[s_car]</td>";
 		if ($row['s_id_staff'] == 1 or
 			$row['s_id_staff'] == 2 or

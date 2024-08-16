@@ -57,13 +57,13 @@
 
 	/*
 	// CARICO IL CHECK DEL BONUS FORMA, FRESCHEZZA E CONDIZIONE
-	$tipo_result = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
+	$tipo_result = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
 	if (!$tipo_result)
 	{
-	    echo 'Errore nella query tattica: ' . mysql_error();
+	    echo 'Errore nella query tattica: ' . mysqli_error();
     	exit();
 	}
-	$row   =   mysql_fetch_array($tipo_result);
+	$row   =   mysqli_fetch_array($tipo_result);
 	$BonusFfc = $row['t_forma'];
 	$QualeFormazione = $row['t_formazione'];
 	if ($QualeFormazione == "")	{	$QualeFormazione = "Formazione 1"; 	}
@@ -138,13 +138,13 @@
 	}
 	*/
 	
-	$result = mysql_query("SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$QualeFormazione\"");
+	$result = mysqli_query($link, "SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$QualeFormazione\"");
 	if (!$result)
 	{
-		echo 'Errore nella query CREA ARRAY: ' . mysql_error();
+		echo 'Errore nella query CREA ARRAY: ' . mysqli_error();
 		exit();
 	}
-	$row   =   mysql_fetch_array($result);
+	$row   =   mysqli_fetch_array($result);
 		
 	$conta = 1;
 	while ($conta < 74)
@@ -156,59 +156,59 @@
 
 	// CALCOLO SULLE MAIN POSITION
 	// CARICO I DATI PORTIERE DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='0' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore portiere: ' . mysql_error(); exit(); }
-	$riga_po = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='0' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore portiere: ' . mysqli_error(); exit(); }
+	$riga_po = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI DIFENSORE SINISTRO DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='10' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore difensore sinistro: ' . mysql_error(); exit(); }
-	$riga_ds = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='10' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore difensore sinistro: ' . mysqli_error(); exit(); }
+	$riga_ds = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI DIFENSORE CENTRALE DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='20' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore difensore centrale: ' . mysql_error(); exit(); }
-	$riga_dc = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='20' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore difensore centrale: ' . mysqli_error(); exit(); }
+	$riga_dc = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI DIFENSORE DESTRO DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='30' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore difensore destro: ' . mysql_error(); exit(); }
-	$riga_dd = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='30' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore difensore destro: ' . mysqli_error(); exit(); }
+	$riga_dd = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI CENTROCAMPISTA SINISTRO DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='40' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore CENTROCAMPISTA SINISTRO: ' . mysql_error(); exit(); }
-	$riga_cs = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='40' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore CENTROCAMPISTA SINISTRO: ' . mysqli_error(); exit(); }
+	$riga_cs = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI CENTROCAMPISTA CENTRALE DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='50' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore CENTROCAMPISTA CENTRALE: ' . mysql_error(); exit(); }
-	$riga_cc = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='50' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore CENTROCAMPISTA CENTRALE: ' . mysqli_error(); exit(); }
+	$riga_cc = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI CENTROCAMPISTA DESTRO DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='60' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore CENTROCAMPISTA DESTRO: ' . mysql_error(); exit(); }
-	$riga_cd = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='60' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore CENTROCAMPISTA DESTRO: ' . mysqli_error(); exit(); }
+	$riga_cd = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI ATTACCANTE SINISTRO DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='70' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore ATTACCANTE SINISTRO: ' . mysql_error(); exit(); }
-	$riga_as = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='70' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore ATTACCANTE SINISTRO: ' . mysqli_error(); exit(); }
+	$riga_as = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI ATTACCANTE CENTRALE DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='80' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore ATTACCANTE CENTRALE: ' . mysql_error(); exit(); }
-	$riga_ac = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='80' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore ATTACCANTE CENTRALE: ' . mysqli_error(); exit(); }
+	$riga_ac = mysqli_fetch_array($calc_result);
 
 	// CARICO I DATI ATTACCANTE destro DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE qu='90' AND formula=\"$formula\"");
-	if (!$calc_result) { echo 'Errore nella query calcolatore ATTACCANTE DESTRO: ' . mysql_error(); exit(); }
-	$riga_ad = mysql_fetch_array($calc_result);
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE qu='90' AND formula=\"$formula\"");
+	if (!$calc_result) { echo 'Errore nella query calcolatore ATTACCANTE DESTRO: ' . mysqli_error(); exit(); }
+	$riga_ad = mysqli_fetch_array($calc_result);
 
 	//VISUALIZZA I GIOCATORI
-	$result = mysql_query("SELECT * FROM giocatori as g, ruoli as r WHERE g.id_team=\"$nome_team\" and g.pos=r.ruolo_desc order by r.ruolo_order");
+	$result = mysqli_query($link, "SELECT * FROM giocatori as g, ruoli as r WHERE g.id_team=\"$nome_team\" and g.pos=r.ruolo_desc order by r.ruolo_order");
 	if (!$result) {
-    	echo 'Errore nella query SELEZIONA GIOCATORI: ' . mysql_error();
+    	echo 'Errore nella query SELEZIONA GIOCATORI: ' . mysqli_error();
 	    exit();
 	}
 ?>
@@ -262,7 +262,7 @@
 
 <?php
 $counter = 0; 
-while   ($row = mysql_fetch_array($result))
+while   ($row = mysqli_fetch_array($result))
 {
 	switch ($row['pos'])
 	{

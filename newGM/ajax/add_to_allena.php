@@ -49,21 +49,21 @@
 	{
 		$qry = "DELETE FROM allena_skill WHERE id_player = '$id' LIMIT 1";
 	}
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-		echo 'Errore nella query ALLENAMENTO: ' . mysql_error();
+		echo 'Errore nella query ALLENAMENTO: ' . mysqli_error();
     	exit();
 	}
 
 	//******************** RIcarico come se fosse la pagina
-	$result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ORDER BY s_id_staff");
+	$result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ORDER BY s_id_staff");
 	if (!$result)
 	{
-		echo 'Errore nella query STAFF: ' . mysql_error();
+		echo 'Errore nella query STAFF: ' . mysqli_error();
 	    exit();
 	}
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 		$id_staff[] = $row['s_id_staff'];
 		$effic_staff[] = (0.9 * $row['s_abi'] * $row['s_mot']) / 100 + $row['s_esp']/8;
@@ -72,13 +72,13 @@
 	$efficienza_allenatori = array_combine($id_staff,$effic_staff);
 	$nome_allenatori = array_combine($id_staff,$nome_staff);
 	
-	$result = mysql_query("SELECT * FROM allena_skill WHERE id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM allena_skill WHERE id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-		echo 'Errore nella query SELECT ALLENAMENTO: ' . mysql_error();
+		echo 'Errore nella query SELECT ALLENAMENTO: ' . mysqli_error();
 	    exit();
 	}
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 		$a_id_player[] = $row['id_player'];
 		$a_id_allena[] = $row['id_allena'];
@@ -97,13 +97,13 @@
 	}
 	$ar_player_allenato = array_combine($a_id_player,$a_id_allena);
 	
-	$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-		echo 'Errore nella query GIOCATORI: ' . mysql_error();
+		echo 'Errore nella query GIOCATORI: ' . mysqli_error();
 	    exit();
 	}
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 		$id_player[] = $row['id'];
 		$nr_player[] = $row['nr'];

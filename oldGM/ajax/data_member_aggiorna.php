@@ -12,12 +12,12 @@
 								prim_ski = \"$ski\"
 				WHERE team = \"$nome_team\"";
 
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	
 	if (!$result)
 	{
-   		echo 'Errore nella query : ' . mysql_error();
+   		echo 'Errore nella query : ' . mysqli_error();
 	    exit();
 	}
-	mysql_close($link);
+	mysqli_close($link);
 ?>

@@ -15,11 +15,11 @@
 				'$abi','$esp','$mot','$sti',\"$car\",\"$fil\",
 				'$contr','$for','$con','$po','$df','$cn','$pa','$rg','$cr','$tc','$tr','$tal')";
 				
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result)
 		{
-			echo 'Errore nella fase di creazione Mercato STAFF: ' . mysql_error();
-			echo '<br>la query è:<br>'.$qry;
+			echo 'Errore nella fase di creazione Mercato STAFF: ' . mysqli_error();
+			echo '<br>la query ï¿½:<br>'.$qry;
 		    exit();
 		}
 		echo $id.") ".$team." ".$scadenza." ".$id_staff." ".$descrizione." ".$nome." ".$abi." ".$esp." ".$mot." ".$sti." ".$car." ".$fil." ".$contr." ".$for." ".$con." ".$po." ".$df." ".$cn." ".$pa." ".$rg." ".$cr." ".$tc." ".$tr." ".$tal."<br>";
@@ -34,13 +34,13 @@
 
 	/*//CARICO BONUS STAFF
 	$qry = "SELECT * FROM  bonus_staff WHERE 1";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-   		echo 'Errore nella query SELECT BONUS_STAFF: ' . mysql_error();
+   		echo 'Errore nella query SELECT BONUS_STAFF: ' . mysqli_error();
    		exit();
 	}
-	while ($row   =   mysql_fetch_array($result))
+	while ($row   =   mysqli_fetch_array($result))
 	{
 		$bonus_staff_id[] = $row['id_allenatore'];
 		$bonus_staff_forma[] = $row['forma'];
@@ -71,13 +71,13 @@
 	
 	//CARICO LISTA STAFF
 	$qry = "SELECT * FROM  staff_lista WHERE 1";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-   		echo 'Errore nella query SELECT STAFF_LISTA: ' . mysql_error();
+   		echo 'Errore nella query SELECT STAFF_LISTA: ' . mysqli_error();
    		exit();
 	}
-	while ($row   =   mysql_fetch_array($result))
+	while ($row   =   mysqli_fetch_array($result))
 	{
 		$staff_id[] = $row['staff_id'];
 		$staff_lista[] = $row['staff_descrizione'];
@@ -87,13 +87,13 @@
 	
 	//CARICO FILOSOFIA
 	$qry = "SELECT * FROM  bonus_filosofia WHERE 1";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-   		echo 'Errore nella query SELECT BONUS_FILOSOFIA: ' . mysql_error();
+   		echo 'Errore nella query SELECT BONUS_FILOSOFIA: ' . mysqli_error();
    		exit();
 	}
-	while ($row   =   mysql_fetch_array($result))
+	while ($row   =   mysqli_fetch_array($result))
 	{
 		$lista_filosofia[] = $row['descrizione'];
 	}
@@ -101,29 +101,29 @@
 	
 	//CARICO TABELLA CARATTERI 
 	$qry = "SELECT * FROM caratteri WHERE id_carattere='allenatore'";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result) 
 	{
-    	echo 'Errore nella query caratteri: ' . mysql_error();
+    	echo 'Errore nella query caratteri: ' . mysqli_error();
 	    exit();
 	}
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 		$lista_caratteri[] = $row['descrizione'];
 	}
 	$caratteri_ultimo = count($lista_caratteri)-1;
 	
 	// seleziono i nomi propri
-	$qry_nomi = mysql_query("SELECT * FROM nomi");
-	while ($row = mysql_fetch_array($qry_nomi))
+	$qry_nomi = mysqli_query($link, "SELECT * FROM nomi");
+	while ($row = mysqli_fetch_array($qry_nomi))
 	{
 		$nomi_nome[] = $row['nome'];
 	}
 	$nomi_ultimo = count($nomi_nome)-1;
 
 	//seleziono i cognomi di persona
-	$qry_cognomi = mysql_query("SELECT * FROM cognomi");
-	while ($row = mysql_fetch_array($qry_cognomi))
+	$qry_cognomi = mysqli_query($link, "SELECT * FROM cognomi");
+	while ($row = mysqli_fetch_array($qry_cognomi))
 	{
 		$cognomi_nome[] = $row['cognome'];
 	}
@@ -131,15 +131,15 @@
 	
 	// CARICO LE SQUADRE CON CPU=1
 	$qry = "SELECT * FROM z_iscritti WHERE cpu=1";
-	$result = mysql_query($qry);
-	while ($row = mysql_fetch_array($result))
+	$result = mysqli_query($link, $qry);
+	while ($row = mysqli_fetch_array($result))
 	{
 		$nome_squadra[] = $row['squadra'];
 	}
 	
 	// conto l'id deLLO STAFF
-	$qry_contatore = mysql_query("SELECT * FROM contatore WHERE pagina = '90222'");
-	$row = mysql_fetch_array($qry_contatore);
+	$qry_contatore = mysqli_query($link, "SELECT * FROM contatore WHERE pagina = '90222'");
+	$row = mysqli_fetch_array($qry_contatore);
 	$id = $row['visite'] +1;
 	
 	// SELEZIONA LA DATA 
@@ -204,7 +204,7 @@
 		}
 	}
 	// AGGIORNO IL CONTATORE STAFF
-	$result = mysql_query("UPDATE contatore SET visite = '$id'-1 WHERE pagina = '90222'");
+	$result = mysqli_query($link, "UPDATE contatore SET visite = '$id'-1 WHERE pagina = '90222'");
 	
 	echo "</div>";
 ?>

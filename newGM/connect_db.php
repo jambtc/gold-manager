@@ -1,13 +1,13 @@
 <?php
 	include "config.php";
 
-	$link = mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
+	$link = mysqli_connect(DB_HOST, DB_USER, DB_PASSWORD);
 	if (!$link) {
-    	die('Could not connect: ' . mysql_error());
+    	die('Could not connect: ' . mysqli_error());
 	}
 
-	$rest = mysql_select_db(DB_DATABASE);
+	$rest = mysqli_select_db($link, DB_DATABASE);
 	if (!$rest) {
-    	die('Could not selecte dbase: ' . mysql_error());
+    	die('Could not selecte dbase: ' . mysqli_error());
 	}
 ?>

@@ -37,18 +37,18 @@
 		$data4mesifa = $a2."-".$m2."-".$g2;
 		
 		// CARICO I DATI DELLO STAFF DALLE STATISTICHE
-		$result = mysql_query("SELECT * FROM stat_staff WHERE s_id_team=\"$nome_team\" AND s_id_staff='$scelta' AND s_data > '$data4mesifa' ");
+		$result = mysqli_query($link, "SELECT * FROM stat_staff WHERE s_id_team=\"$nome_team\" AND s_id_staff='$scelta' AND s_data > '$data4mesifa' ");
 		if (!$result) 
 		{
-		    echo 'Errore nella query STAT STAFF: ' . mysql_error();
+		    echo 'Errore nella query STAT STAFF: ' . mysqli_error();
 	    	exit();
 		}
 		$max = 0;
-		$esiste = mysql_num_rows($result);
+		$esiste = mysqli_num_rows($result);
 		
 		if ($esiste != 0)
 		{
-			while ($riga = mysql_fetch_array($result))
+			while ($riga = mysqli_fetch_array($result))
 			{
 				$dataSql = $riga['s_data'];
 				$dataIta = strtotime($dataSql);
@@ -66,13 +66,13 @@
 			}
 			
 			// CARICO I DATI DELLO STAFF SELEZIONATO
-			$result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff='$scelta'");
+			$result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff='$scelta'");
 			if (!$result) 
 			{
-				echo 'Errore nella query STAFF: ' . mysql_error();
+				echo 'Errore nella query STAFF: ' . mysqli_error();
 				exit();
 			}
-			$row   =   mysql_fetch_array($result);
+			$row   =   mysqli_fetch_array($result);
 	
 			$random = mt_rand();
 			$dir    = 'generated/';
@@ -100,7 +100,7 @@
 				//$serie4->addPoint(new Point($data[$ii], $stipendio[$ii]));
 			}
 			$dataSet = new XYSeriesDataSet();
-			$dataSet->addSerie("Abilità", $serie1);
+			$dataSet->addSerie("Abilitï¿½", $serie1);
 			$dataSet->addSerie("Esperienza", $serie2);
 			$dataSet->addSerie("Motivazione", $serie3);
 			//$dataSet->addSerie("Stipendio", $serie4);
@@ -119,7 +119,7 @@
 			echo "<h4>Non esistono dati su cui effettuare statistiche.</h4>";
 		}
 	}
-	mysql_close($link);	
+	mysqli_close($link);	
 ?>
 </body>
 </html>

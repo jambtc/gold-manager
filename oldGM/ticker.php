@@ -30,8 +30,8 @@
 	$immbianca = "images/barrettabianca.png";
 
 	$qry = "SELECT * FROM z_calendario WHERE data<='$datasql' AND serie='$serie' ORDER BY data DESC";
-	$result = mysql_query($qry);
-	$row_calendario = mysql_fetch_array($result);	
+	$result = mysqli_query($link, $qry);
+	$row_calendario = mysqli_fetch_array($result);	
 	
 	$ID_PARTITA = $row_calendario['id_partita'];
 	
@@ -56,8 +56,8 @@
 	{
 		//CARICO I DATI DELLA PARTITA
 		$qry = "SELECT * FROM z_partita WHERE id_partita='$ID_PARTITA'";
-		$result = mysql_query($qry);
-		$row_partita = mysql_fetch_array($result);
+		$result = mysqli_query($link, $qry);
+		$row_partita = mysqli_fetch_array($result);
 		
 		if ($row_partita['sorteggio'] == 1)
 		{
@@ -73,8 +73,8 @@
 				
 		//CARICO LA TELECRONACA !!!
 		$qry = "SELECT * FROM z_telecronaca WHERE id_partita='$ID_PARTITA' ORDER BY prog";
-		$result = mysql_query($qry);
-		$row_telecronaca = mysql_fetch_array($result);	
+		$result = mysqli_query($link, $qry);
+		$row_telecronaca = mysqli_fetch_array($result);	
 		
 		echo "<div id='ticker_svolgimento'>";
 			include("ticker_svolgimento.php");

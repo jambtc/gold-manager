@@ -26,7 +26,7 @@
 		if(get_magic_quotes_gpc()) {
 			$str = stripslashes($str);
 		}
-		return mysql_real_escape_string($str);
+		return mysqli_real_escape_string($str);
 	}
 	
 	
@@ -48,11 +48,11 @@
 				$errflag = true;
 				break;
 			case 3:
-				$errmsg_arr[] = 'il file non è stato caricato completamente';
+				$errmsg_arr[] = 'il file non ï¿½ stato caricato completamente';
 				$errflag = true;
 				break;
 			case 4:
-				$errmsg_arr[] = 'il file non è stato caricato';
+				$errmsg_arr[] = 'il file non ï¿½ stato caricato';
 				$errflag = true;
 				break;
 			case 6:
@@ -64,7 +64,7 @@
 				$errflag = true;
 				break;
 			case 8:
-				$errmsg_arr[] = 'il caricamento del file è stato bloccato a causa dell\'estensione file non accettata';
+				$errmsg_arr[] = 'il caricamento del file ï¿½ stato bloccato a causa dell\'estensione file non accettata';
 				$errflag = true;
 				break;
 		}
@@ -81,7 +81,7 @@
 	}
 	
 	if(substr($wfile,-4,4) != '.csv') {
-		$errmsg_arr[] = 'Il file non è di tipo .csv';
+		$errmsg_arr[] = 'Il file non ï¿½ di tipo .csv';
 		$errflag = true;
 	}
 	
@@ -93,15 +93,15 @@
 		exit();
 	}
 	// seleziono i nomi propri
-	$qry_nomi = mysql_query("SELECT * FROM nomi");
-	while ($row = mysql_fetch_array($qry_nomi))
+	$qry_nomi = mysqli_query($link, "SELECT * FROM nomi");
+	while ($row = mysqli_fetch_array($qry_nomi))
 	{
 		$vecchi_nomi[] = trim($row['nome']);
 	}
 
 	//seleziono i cognomi di persona
-	$qry_cognomi = mysql_query("SELECT * FROM cognomi");
-	while ($row = mysql_fetch_array($qry_cognomi))
+	$qry_cognomi = mysqli_query($link, "SELECT * FROM cognomi");
+	while ($row = mysqli_fetch_array($qry_cognomi))
 	{
 		$vecchi_cognomi[] = trim($row['cognome']);
 	}
@@ -152,10 +152,10 @@
 		if (!in_array($cognome,$vecchi_cognomi))
 		{
 			$vecchi_cognomi[] = $cognome;
-			$res_cognome = @mysql_query($qry_cognome);
+			$res_cognome = @mysqli_query($qry_cognome);
 			if (!$res_cognome)
 			{
-				echo 'Errore nella query COGNOME: ' . mysql_error();
+				echo 'Errore nella query COGNOME: ' . mysqli_error();
 				exit();
 			}
 		}
@@ -164,10 +164,10 @@
 			if (!in_array($nome,$vecchi_nomi))
 			{	
 				$vecchi_nomi[] = $nome;
-				$res_nome = @mysql_query($qry_nome);
+				$res_nome = @mysqli_query($qry_nome);
 				if (!$res_nome)
 				{
-					echo 'Errore nella query NOME: ' . mysql_error();
+					echo 'Errore nella query NOME: ' . mysqli_error();
 					exit();
 				}
 			}

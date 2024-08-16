@@ -65,19 +65,19 @@ div#h1{
 <body style="background:trasparent;"> 
 
 <?php
-	require_once('auth.php');
+	// require_once('auth.php');
 	include "connect_db.php";
 	
  	$nome_team = $_SESSION['SESS_TEAM'];
 	$trova = $_REQUEST['id'];
 	
-	$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
-	$totale = mysql_num_rows($result);
+	$totale = mysqli_num_rows($result);
 	
 	
 	$quale_piede['L'] = "Sinistro";
@@ -101,45 +101,45 @@ div#h1{
 	$quale_ruolo['XX'] = "(XX) Jolly"; 
 
 	//CARICO TABELLA RUOLI
-	$ruoli_result = mysql_query("SELECT * FROM ruoli ORDER BY ruolo_order ASC");
+	$ruoli_result = mysqli_query($link, "SELECT * FROM ruoli ORDER BY ruolo_order ASC");
 	if (!$ruoli_result) {
-		echo 'Errore nella query ruoli: ' . mysql_error();
+		echo 'Errore nella query ruoli: ' . mysqli_error();
 		exit();
 	}
 	$conta = 0;
-	while   ($row   =   mysql_fetch_array($ruoli_result)) {
+	while   ($row   =   mysqli_fetch_array($ruoli_result)) {
 		$ruolo[$conta] = $row['ruolo_desc'];
 		$conta++;
 	}
 	// CREO ELENCO DEI CARATTERI DEL GIOCATORE
-	$caratteri_result = mysql_query("SELECT * FROM caratteri WHERE id_carattere='giocatore' ORDER BY descrizione");
+	$caratteri_result = mysqli_query($link, "SELECT * FROM caratteri WHERE id_carattere='giocatore' ORDER BY descrizione");
 	if (!$caratteri_result) {
-		echo 'Errore nella query caratteri: ' . mysql_error();
+		echo 'Errore nella query caratteri: ' . mysqli_error();
 		exit();
 	}
 	$conta = 0;
-	while   ($row   =   mysql_fetch_array($caratteri_result)) {
+	while   ($row   =   mysqli_fetch_array($caratteri_result)) {
 		$caratteri[$conta] = $row['descrizione'];
 		$conta++;
 	}
 	//CARICO TABELLA TALENTI
-	$talenti_result = mysql_query("SELECT * FROM talenti WHERE 1");
+	$talenti_result = mysqli_query($link, "SELECT * FROM talenti WHERE 1");
 	if (!$talenti_result) {
-		echo 'Errore nella query talenti: ' . mysql_error();
+		echo 'Errore nella query talenti: ' . mysqli_error();
 		exit();
 	}
 	$conta = 0;
-	while   ($row   =   mysql_fetch_array($talenti_result)) {
+	while   ($row   =   mysqli_fetch_array($talenti_result)) {
 		$talento[$conta] = $row['tal_descrizione'];
 		$conta++;
 	}
 	
-	$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id=\"$trova\"");
+	$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id=\"$trova\"");
 	if (!$result) {
-		echo 'Errore nella query giocatori: ' . mysql_error();
+		echo 'Errore nella query giocatori: ' . mysqli_error();
 		exit();
 	}
-	$row   =   mysql_fetch_array($result);
+	$row   =   mysqli_fetch_array($result);
 	
 	$mostra_ruolo = $quale_ruolo[$row['pos']];
 	
@@ -163,7 +163,7 @@ div#h1{
 		case "Dribbling":
 			$immtal = $im_tal[5];
 			break;
-		case "Velocità":
+		case "Velocitï¿½":
 			$immtal = $im_tal[6];
 			break;
 		case "Resistenza":
@@ -175,7 +175,7 @@ div#h1{
 		case "Cross":
 			$immtal = $im_tal[9];
 			break;
-		case "Creatività":
+		case "Creativitï¿½":
 			$immtal = $im_tal[10];
 			break;
 		case "Fiuto del goal":
@@ -340,7 +340,7 @@ div#h1{
 					<?php $aumento_valore = 6; ?>
 					<tr style='font-size: 14px; color:#0000FF; font-family:Geneva, Arial, Helvetica, sans-serif; '>
 						<th id='visualizza_cont'><?php echo $aumento_valore+$row['contratto'] ?></th>
-						<th id='visualizza_stip'>€. <?php echo $walstip ?></th>
+						<th id='visualizza_stip'>ï¿½. <?php echo $walstip ?></th>
 						<input id='wdata0' name='wdata0' type='hidden' value="<?php echo $aumento_valore+$row['contratto'] ?>">	
 						<input id='wdata1' name='wdata1' type='hidden' value='0'>	
 						<input id='wdata2' name='wdata2' type='hidden' value='<?php echo $walstip ?>'>
@@ -413,7 +413,7 @@ div#h1{
   </div>
 	<div class='div_player_personali' style="float:right; margin-left:10px; margin-right:5px; ">	
 		<span class="top-label">  
-			<span class="label-txt">Abilità Personali</span>
+			<span class="label-txt">Abilitï¿½ Personali</span>
 		</span> 
 		<img class='img_player_personali' src="images/quadrato_rounded.png"  width="10%" height="10%" border="0" /> 
 		<div class='cnt_player_personali'>

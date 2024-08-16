@@ -9,15 +9,15 @@
 	$qry = "DELETE FROM formazione WHERE f_id_team = \"$nome_team\" AND f_formazione = \"$formazione\"	";
 
 	//echo $qry;
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	
 	if (!$result)
 	{
-    	echo 'Errore nella query RESET FORMAZIONE: ' . mysql_error();
+    	echo 'Errore nella query RESET FORMAZIONE: ' . mysqli_error();
 	    exit();
 	}
 	
-	mysql_close($link);
+	mysqli_close($link);
 ?>
 <select id='ws_formazione' name='ws_formazione' onchange='javascript:CambiaFormazione();' >
 		<option value='<?php echo $formazione ?>' selected='selected'><?php echo $formazione ?></option>

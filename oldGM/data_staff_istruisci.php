@@ -5,11 +5,11 @@
 	$controllo = $_REQUEST['id'];
 	$nome_team = $_SESSION['SESS_TEAM'];
 	
-	$result = mysql_query("UPDATE staff SET s_addestramento = 14 WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$controllo\"");
+	$result = mysqli_query($link, "UPDATE staff SET s_addestramento = 14 WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$controllo\"");
 	
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
 	
@@ -25,7 +25,7 @@
 	// !! messaggio serie
 	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			
-	mysql_close($link);
+	mysqli_close($link);
 	header("location: form_staff.php");
 
 

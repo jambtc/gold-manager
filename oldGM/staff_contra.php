@@ -57,7 +57,7 @@ function Contratta()
 	}
 		
 	//document.getElementById('td_motivazione').innerHTML = variazione;
-	//document.getElementById('td_stipendio').innerHTML = "€. "+nuovo_stipendio;
+	//document.getElementById('td_stipendio').innerHTML = "ï¿½. "+nuovo_stipendio;
   indirizzo="data_staff_contratta.php?id="+id_staff+"&contra="+contrattazioni;
   
   //window.parent.location.href=indirizzo;
@@ -86,14 +86,14 @@ function Assumi()
 	
 	if ($id != 0)
 	{
-		$result = mysql_query("SELECT * FROM staff_mercato WHERE s_id=\"$id\" ");
+		$result = mysqli_query($link, "SELECT * FROM staff_mercato WHERE s_id=\"$id\" ");
 		if (!$result)
 		{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 		}
 	
-		$row = mysql_fetch_array($result);
+		$row = mysqli_fetch_array($result);
 		$wstip = number_format($row['s_sti'],0,",",".");
 		$tentativi = 4 - $row['s_contrattazioni'];
 		$attivo_contra = "enabled";
@@ -141,7 +141,7 @@ function Assumi()
 		//echo "<th align='left'>$row[s_mot]</th>";
 		echo "<th align='left'>$row[s_car]</th>";
 		echo "<th align='left'>$row[s_fil]</th>";
-		echo "<th align='left'>€. $wstip</th>";
+		echo "<th align='left'>ï¿½. $wstip</th>";
 		echo "</tr>";
 		echo "</table>";
 		echo "<br>";
@@ -167,7 +167,7 @@ function Assumi()
 		
 		echo "<tr style='color:#000000;'>";
 		echo "<th align='left'>Nuovo&nbsp;Stipendio:</th>";
-		echo "<th align='left'>€. $wstip_nuovo</th>";
+		echo "<th align='left'>ï¿½. $wstip_nuovo</th>";
 		echo "</tr>";
 		echo "<tr>";
 		echo "<td colspan=2><input type='button' name='ASSUMI' $attivo_assumi value='Assumi Candidato' class='contra' onclick='javascript:Assumi();'/></td>";

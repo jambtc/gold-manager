@@ -8,13 +8,13 @@
 	include "connect_db.php";	
 
 	//SELEZIONO IL CANDIDATO DAL MERCATO
-	$result1 = mysql_query("SELECT * FROM staff_mercato WHERE s_id=\"$controllo\" ");
+	$result1 = mysqli_query($link, "SELECT * FROM staff_mercato WHERE s_id=\"$controllo\" ");
 	if (!$result1)
 	{
-		echo 'Errore nella query: ' . mysql_error();
+		echo 'Errore nella query: ' . mysqli_error();
 		exit();
 	}
-	$row = mysql_fetch_array($result1);
+	$row = mysqli_fetch_array($result1);
 	$id_staff = $row['s_id_staff'];
 	$descri = $row['s_descrizione'];
 	$abi = $row['s_abi'];
@@ -25,13 +25,13 @@
 	$fil = $row['s_fil'];
 	
 	//VERIFICO SE ESISTE UN DIPENDENTE DELLO STESSO TIPO
-	$result2 = mysql_query("SELECT * FROM staff WHERE s_id_staff=\"$id_staff\" AND s_id_team=\"$nome_team\" ");
+	$result2 = mysqli_query($link, "SELECT * FROM staff WHERE s_id_staff=\"$id_staff\" AND s_id_team=\"$nome_team\" ");
 	if (!$result2)
 	{
-		echo 'Errore nella query: ' . mysql_error();
+		echo 'Errore nella query: ' . mysqli_error();
 		exit();
 	}
-	$num = mysql_num_rows($result2);
+	$num = mysqli_num_rows($result2);
 	// se non esiste inserisco il nuovo
 	if ($num == 0)
 	{
@@ -44,7 +44,7 @@
 									$stipendio,\"$car\",\"$fil\",
 									15)";
 	}
-	//altrimenti aggiorno quello già esistente
+	//altrimenti aggiorno quello giï¿½ esistente
 	else
 	{
 		$qry = "UPDATE staff SET	s_abi=$abi,
@@ -56,20 +56,20 @@
 									s_addestramento=15
 				WHERE s_id_staff=\"$id_staff\" AND s_id_team=\"$nome_team\" ";
 	}
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-    	echo 'Errore nella query STAFF : ' . mysql_error();
+    	echo 'Errore nella query STAFF : ' . mysqli_error();
 	    exit();
 	}
 	
 	// ELIMINO IL CANDIDATO
 	$qry = "DELETE FROM staff_mercato WHERE s_id_team=\"$nome_team\" AND s_id=$controllo LIMIT 1";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	
 	if (!$result)
 	{
-    	echo 'Errore nella query STAFF Mercato: ' . mysql_error();
+    	echo 'Errore nella query STAFF Mercato: ' . mysqli_error();
 	    exit();
 	}
 	
@@ -89,9 +89,9 @@
 
 	// numero di modifiche giornaliere
 	$qry = "SELECT * FROM stat_staff WHERE s_data = '$datasql' AND s_id_team = \"$nome_team\" AND s_id_staff = '$id_staff'";
-	$verif = mysql_query($qry);
+	$verif = mysqli_query($link, $qry);
 	
-	$num = mysql_num_rows($verif);
+	$num = mysqli_num_rows($verif);
 
 	if ($num == 0){ 
 		// se non presente nel database
@@ -113,12 +113,12 @@
 				AND		s_id_staff = '$id_staff'";
 	}
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result) {
-		echo 'Errore nella query aggiornamento statistiche STAFF: ' . mysql_error();
+		echo 'Errore nella query aggiornamento statistiche STAFF: ' . mysqli_error();
 		exit();
 	}
 	
-	mysql_close($link);
+	mysqli_close($link);
 	header("location: form_staff.php");
 ?>

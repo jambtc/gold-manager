@@ -12,11 +12,11 @@
 	$budget = "ERR!!";
 	
 	$qry = "SELECT * FROM members WHERE team=\"$team\"";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 		
 	if($result)
 	{
-		$member = mysql_fetch_assoc($result);
+		$member = mysqli_fetch_assoc($result);
 		$budget = $member['budget'];
 	}
 ?>
@@ -61,7 +61,7 @@
 			<?php
 				$budget = number_format($budget,0,",",".");
 		 
-				echo "€. ".$budget;
+				echo "ï¿½. ".$budget;
 			?>
 		</div>
 	</div>

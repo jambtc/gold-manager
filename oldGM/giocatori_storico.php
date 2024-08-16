@@ -69,17 +69,17 @@ function check(arg)
 		
 
 		// CARICO I DATI DEL GIOCATORE DALLE STATISTICHE
-		$result = mysql_query("SELECT * FROM stat_giocatori WHERE id_team=\"$nome_team\" AND id='$scelta' AND s_data > '$data4mesifa' ORDER BY s_data");
+		$result = mysqli_query($link, "SELECT * FROM stat_giocatori WHERE id_team=\"$nome_team\" AND id='$scelta' AND s_data > '$data4mesifa' ORDER BY s_data");
 		if (!$result) {
-		    echo 'Errore nella query STAT GIOCATORI: ' . mysql_error();
+		    echo 'Errore nella query STAT GIOCATORI: ' . mysqli_error();
 		    exit();
 		}
 		$max = 0;
-		$esiste = mysql_num_rows($result);
+		$esiste = mysqli_num_rows($result);
 		
 		if ($esiste != 0)
 		{
-			while ($riga = mysql_fetch_array($result))
+			while ($riga = mysqli_fetch_array($result))
 			{
 				$dataSql = $riga['s_data'];
 				$dataIta = strtotime($dataSql);
@@ -113,12 +113,12 @@ function check(arg)
 			}
 			
 			// CARICO I DATI DEL GIOCATORE SELEZIONATO
-			$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id='$scelta'");
+			$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id='$scelta'");
 			if (!$result) {
-				echo 'Errore nella query GIOCATORI: ' . mysql_error();
+				echo 'Errore nella query GIOCATORI: ' . mysqli_error();
 				exit();
 			}
-			$row   =   mysql_fetch_array($result);
+			$row   =   mysqli_fetch_array($result);
 	
 			$wposizione = $row['pos'];
 			$wpiede = strtoupper($row['piede']);
@@ -328,7 +328,7 @@ function check(arg)
 			
 			$chart1->setTitle("Skill");
 			$chart2->setTitle("Preparazione Atletica");
-			$chart3->setTitle("Abilità Personali");
+			$chart3->setTitle("Abilitï¿½ Personali");
 			$chart4->setTitle("Realizzazioni");
 			$chart5->setTitle("Cartellini");
 	
@@ -356,7 +356,7 @@ function check(arg)
 						
 			echo "<tr>";
 			echo "<td>Preparazione Atletica</td>";
-			echo "<td>Abilità&nbsp;Personali</td>";
+			echo "<td>Abilitï¿½&nbsp;Personali</td>";
 			echo "<td>Statistiche&nbsp;di&nbsp;gioco</td>";
 			echo "<td>Skill</td>";
 			echo "<td>Cartellini";
@@ -376,7 +376,7 @@ function check(arg)
 	}
 
 
-mysql_close($link);	
+mysqli_close($link);	
 ?>
 <body>
 </body>

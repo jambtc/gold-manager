@@ -18,11 +18,11 @@
 				\"$pd\",\"$talento\",\"$qta\",
 				\"$stipendio\",\"$valore\",\"$carattere\",9)";
 				
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result)
 		{
-			echo 'Errore nella fase di creazione giocatori: ' . mysql_error();
-			echo '<br>la query è:<br>'.$qry;
+			echo 'Errore nella fase di creazione giocatori: ' . mysqli_error();
+			echo '<br>la query ï¿½:<br>'.$qry;
 		    exit();
 		}
 		echo $nr_maglia.") ".$nome." ".$skill." ".$eta." ".$ruolo." ".$forma." ".$fresc." ".$cond." ".$esp." ".$po." ".$df." ".$cn." ".$pa." ".$rg." ".$cr." ".$tc." ".$tr." ".$pd." ".$talento." ".$carattere." ".$stipendio." ".$valore."<br>";
@@ -38,13 +38,13 @@
 	//CARICO LA CONFIGURAZIONE
 	$qry = "SELECT * FROM  zz_config WHERE id=1";
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-   		echo 'Errore nella query: ' . mysql_error();
+   		echo 'Errore nella query: ' . mysqli_error();
    		exit();
 	}
-	$row   =   mysql_fetch_array($result);
+	$row   =   mysqli_fetch_array($result);
 		
 	$config_data = $row['data'];
 	$config_giorno = $row['giorno'];
@@ -62,8 +62,8 @@
 	{
 		$qry = "SELECT * FROM z_iscritti WHERE serie='3.".$quale_serie."'";
 		
-		$result = mysql_query($qry);
-		if (mysql_num_rows($result) == $config_squadre)
+		$result = mysqli_query($link, $qry);
+		if (mysqli_num_rows($result) == $config_squadre)
 		{
 			$quale_serie ++;
 			continue; 
@@ -77,50 +77,50 @@
 	$serie = "3.".$quale_serie;
 	
 	// seleziono i nomi propri
-	$qry_nomi = mysql_query("SELECT * FROM nomi");
-	while ($row = mysql_fetch_array($qry_nomi))
+	$qry_nomi = mysqli_query($link, "SELECT * FROM nomi");
+	while ($row = mysqli_fetch_array($qry_nomi))
 	{
 		$nomi_nome[] = $row['nome'];
 	}
 	$nomi_ultimo = count($nomi_nome)-1;
 
 	//seleziono i cognomi di persona
-	$qry_cognomi = mysql_query("SELECT * FROM cognomi");
-	while ($row = mysql_fetch_array($qry_cognomi))
+	$qry_cognomi = mysqli_query($link, "SELECT * FROM cognomi");
+	while ($row = mysqli_fetch_array($qry_cognomi))
 	{
 		$cognomi_nome[] = $row['cognome'];
 	}
 	$cognomi_ultimo = count($cognomi_nome)-1;
 	
 	// conto l'id dei giocatori
-	$qry_contatore = mysql_query("SELECT * FROM contatore WHERE pagina = '90701'");
-	$row = mysql_fetch_array($qry_contatore);
+	$qry_contatore = mysqli_query($link, "SELECT * FROM contatore WHERE pagina = '90701'");
+	$row = mysqli_fetch_array($qry_contatore);
 	$id_giocatore = $row['visite'] +1;
 	
 	// creo array contenente il valore dei piedi
 	$ar_piedi = array("LR","R","L","R");
 	
 	//CARICO TABELLA TALENTI
-	$talenti_result = mysql_query("SELECT * FROM talenti WHERE 1");
+	$talenti_result = mysqli_query($link, "SELECT * FROM talenti WHERE 1");
 	if (!$talenti_result) 
 	{
-    	echo 'Errore nella query talenti: ' . mysql_error();
+    	echo 'Errore nella query talenti: ' . mysqli_error();
 	    exit();
 	}
 	
-	while   ($row   =   mysql_fetch_array($talenti_result))
+	while   ($row   =   mysqli_fetch_array($talenti_result))
 	{
 		$lista_talenti[] = $row['tal_descrizione'];
 	}
 	//CARICO TABELLA CARATTERI GIOCATORI
-	$caratteri_result = mysql_query("SELECT * FROM caratteri WHERE id_carattere='giocatore'");
+	$caratteri_result = mysqli_query($link, "SELECT * FROM caratteri WHERE id_carattere='giocatore'");
 	if (!$caratteri_result) 
 	{
-    	echo 'Errore nella query caratteri: ' . mysql_error();
+    	echo 'Errore nella query caratteri: ' . mysqli_error();
 	    exit();
 	}
 	
-	while   ($row   =   mysql_fetch_array($caratteri_result))
+	while   ($row   =   mysqli_fetch_array($caratteri_result))
 	{
 		$lista_caratteri[] = $row['descrizione'];
 	}
@@ -349,13 +349,13 @@
 	}
 		
 	// AGGIORNO IL CONTATORE GIOCATORI
-	$result = mysql_query("UPDATE contatore SET visite = '$id_giocatore'-1 WHERE pagina = '90701'");
+	$result = mysqli_query($link, "UPDATE contatore SET visite = '$id_giocatore'-1 WHERE pagina = '90701'");
 	
 	// INSERISCO LA SQUADRA TRA QUELLE DELLE CPU
 	$cols = mt_rand(0,15);
 	$cold = mt_rand(0,15);
 	
-	$result = mysql_query("INSERT INTO z_iscritti (serie,squadra,cpu,logos,logod) 
+	$result = mysqli_query($link, "INSERT INTO z_iscritti (serie,squadra,cpu,logos,logod) 
 									VALUES ('$serie', \"$team\",0,'$cols','$cold')");
 	
 	

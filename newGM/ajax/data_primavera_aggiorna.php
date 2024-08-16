@@ -8,8 +8,8 @@
 	$gio = $_REQUEST['giovani'];
 	$ski = $_REQUEST['skill'];
 
-	$verif = mysql_query("SELECT * FROM pri_investimento WHERE id_team = \"$nome_team\"");
-	$esiste = mysql_num_rows($verif);
+	$verif = mysqli_query($link, "SELECT * FROM pri_investimento WHERE id_team = \"$nome_team\"");
+	$esiste = mysqli_num_rows($verif);
 	
 	if ($esiste == 0)
 	{
@@ -20,12 +20,12 @@
 		$qry = "UPDATE pri_investimento SET giovani = '$gio', skill = '$ski' WHERE id_team = \"$nome_team\" ";
 	}
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	
 	if (!$result)
 	{
-   		echo 'Errore nella query : ' . mysql_error();
+   		echo 'Errore nella query : ' . mysqli_error();
 	    exit();
 	}
-	mysql_close($link);
+	mysqli_close($link);
 ?>

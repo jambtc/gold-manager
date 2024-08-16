@@ -9,8 +9,8 @@
 	$user = $_SESSION['SESS_USER'];
 	
 	$select = "SELECT * FROM members ";
-	$rest = mysql_query($select);
-	while   ($row   =   mysql_fetch_array($rest))
+	$rest = mysqli_query($link, $select);
+	while   ($row   =   mysqli_fetch_array($rest))
 	{
 		$avatar[$row['login']] = $row['avatar'];
 	}
@@ -20,27 +20,27 @@
 	$timeout = $timestamp-$timeoutseconds;
 	
 	$insert = "INSERT INTO useronline VALUES ('$timestamp',\"$user\")";
-	$result1 = mysql_query($insert);
+	$result1 = mysqli_query($link, $insert);
 	
 	if (!($result1))
 	{
-		print "Useronline Insert Failed > ".mysql_error();
+		print "Useronline Insert Failed > ".mysqli_error();
 	}
 	$delete = "DELETE FROM useronline WHERE timestamp<$timeout";
-	$result2 = mysql_query($delete);
+	$result2 = mysqli_query($link, $delete);
 	
 	if (!($result2))
 	{
-		print "Useronline Delete Failed > ".mysql_error();
+		print "Useronline Delete Failed > ".mysqli_error();
 	}
 	
 	$seleziona = "SELECT DISTINCT user FROM useronline WHERE 1";
-	$result3 = mysql_query($seleziona);
+	$result3 = mysqli_query($link, $seleziona);
 	if (!($result3))
 	{
-		print "Useronline Select Error > ".mysql_error();
+		print "Useronline Select Error > ".mysqli_error();
 	}
-	while   ($row   =   mysql_fetch_array($result3))
+	while   ($row   =   mysqli_fetch_array($result3))
 	{
 		$utente_online[] = $row['user'];
 	}
@@ -56,19 +56,19 @@
 			
 			$expire_time = $timestamp-$clear_chat;
 			$del_chat = "DELETE FROM messaggi WHERE time<$expire_time";
-			$result5 = mysql_query($del_chat);
+			$result5 = mysqli_query($link, $del_chat);
 			if (!($result5))
 			{
-				print "Chat Delete Failed > ".mysql_error();
+				print "Chat Delete Failed > ".mysqli_error();
 			}
 			$seleziona = "SELECT * FROM messaggi WHERE 1 ORDER BY time DESC";
-			$result_box = mysql_query($seleziona);
+			$result_box = mysqli_query($link, $seleziona);
 			if (!($result_box))
 			{
-				print "Message Printing Error > ".mysql_error();
+				print "Message Printing Error > ".mysqli_error();
 			}
 			
-			while ($row   =   mysql_fetch_array($result_box))
+			while ($row   =   mysqli_fetch_array($result_box))
 			{
 				$Oggi = $row['time'];
 				$g1 = date("d",$Oggi);

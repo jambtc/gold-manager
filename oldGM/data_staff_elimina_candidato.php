@@ -8,15 +8,15 @@
 
 	$qry = "DELETE FROM staff_mercato WHERE s_id_team=\"$nome_team\" AND s_id=$controllo LIMIT 1";
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	
 	if (!$result)
 	{
-    	echo 'Errore nella query STAFF Mercato: ' . mysql_error();
+    	echo 'Errore nella query STAFF Mercato: ' . mysqli_error();
 	    exit();
 	}
 				
-	mysql_close($link);
+	mysqli_close($link);
 	header("location: form_staff.php?pagina=1");
 
 ?>

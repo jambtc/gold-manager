@@ -16,17 +16,17 @@
 	$sti = $_REQUEST['sti'];
 	$nome_team = $_SESSION['SESS_TEAM'];
 
-	$result = mysql_query("UPDATE staff SET s_mot=\"$mot\",s_sti=\"$sti\"
+	$result = mysqli_query($link, "UPDATE staff SET s_mot=\"$mot\",s_sti=\"$sti\"
 							WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$id\"");
 	
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
 	
-	$rs2 = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$id\"");
-	$row = mysql_fetch_array($rs2);
+	$rs2 = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$id\"");
+	$row = mysqli_fetch_array($rs2);
 	
 	$dipendente = $row['s_descrizione'];
 	/*
@@ -46,9 +46,9 @@
 
 	// numero di modifiche giornaliere
 	$qry = "SELECT * FROM stat_staff WHERE s_data = '$datasql' AND s_id_team = \"$nome_team\" AND s_id_staff = '$controllo'";
-	$verif = mysql_query($qry);
+	$verif = mysqli_query($link, $qry);
 	
-	$num = mysql_num_rows($verif);
+	$num = mysqli_num_rows($verif);
 
 	if ($num == 0){ 
 		// se non presente nel database
@@ -71,9 +71,9 @@
 				AND		s_id_staff = '$controllo'";
 	}
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result) {
-		echo 'Errore nella query: ' . mysql_error();
+		echo 'Errore nella query: ' . mysqli_error();
 		exit();
 	}
 */
@@ -85,15 +85,15 @@
 	$a1 = date("Y",$oggi);
 	$dataSql = $a1."-".$m1."-".$g1;
 		
-	$msg = "Hai dato un aumento di stipendio al tuo <b>$dipendente</b>. Ora pagherai ogni settimana <b>€. $sti</b>.";
+	$msg = "Hai dato un aumento di stipendio al tuo <b>$dipendente</b>. Ora pagherai ogni settimana <b>ï¿½. $sti</b>.";
 							
 	$qry = "INSERT INTO notiziario (team, data, notizia) VALUES (\"$nome_team\", '$dataSql', \"$msg\")";
-	mysql_query($qry);
+	mysqli_query($link, $qry);
 	
 	
 	
 	
-	mysql_close($link);
+	mysqli_close($link);
 	?>
 	<h4>Salvataggio effettuato correttamente.</h4>
 	<table>

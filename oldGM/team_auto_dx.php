@@ -768,16 +768,16 @@ function AssegnaPosizioni($formazione)
 include "connect_db.php";	
 $nome_team = $_SESSION['SESS_TEAM'];
 
-$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0)
 		{
-			while ($rig = mysql_fetch_array($result))
+			while ($rig = mysqli_fetch_array($result))
 			{
 				$nome[] = $rig['nome'];
 				$nr[] = $rig['nr'];
@@ -800,7 +800,7 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 				$winfortunio[] = $rig['infortunio'];
 			}
 			// TOTALE GIOCATORI
-			$totgio = mysql_num_rows($result);
+			$totgio = mysqli_num_rows($result);
 			$formula = "Formula 2";
 			$scelta_formazione = 0;
 			$ffcFres = 100;
@@ -845,14 +845,14 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 			
 			
 			// CREO ELENCO DELLE TATTICHE E MARCATURE
-			$tattica_result = mysql_query("SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
+			$tattica_result = mysqli_query($link, "SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
 			if (!$tattica_result)
 			{
-				echo 'Errore nella query bonus tattica: ' . mysql_error();
+				echo 'Errore nella query bonus tattica: ' . mysqli_error();
 				exit();
 			}
 			$conta = 1;
-			while   ($row   =   mysql_fetch_array($tattica_result))
+			while   ($row   =   mysqli_fetch_array($tattica_result))
 			{
 				$ListaTattica[$conta] = $row['t_descrizione'];
 				
@@ -869,25 +869,25 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 			else
 			{
 				// CARICO LA TATTICA E LA MARCATURA DEL TEAM
-				$tipo_result = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
+				$tipo_result = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
 				if (!$tipo_result) {
-					echo 'Errore nella query tattica: ' . mysql_error();
+					echo 'Errore nella query tattica: ' . mysqli_error();
 					exit();
 				}
-				$row   =   mysql_fetch_array($tipo_result);
+				$row   =   mysqli_fetch_array($tipo_result);
 				$TipoTattica = $row['t_tattica'];
 				$TipoMarcatura = $row['t_marcatura'];
 				$TipoBonus = $row['t_bonus'];
 			}	
 			// CARICO L'EFFICIENZA DEGLI ALLENATORI
-			$all_result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ");
+			$all_result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ");
 			if (!$all_result)
 			{
-				echo 'Errore nella query allenatore: ' . mysql_error();
+				echo 'Errore nella query allenatore: ' . mysqli_error();
 				exit();
 			}
 			
-			while ($row   =   mysql_fetch_array($all_result))
+			while ($row   =   mysqli_fetch_array($all_result))
 			{
 				$effic = (0.9 * $row['s_abi'] * $row['s_mot']) / 100 + $row['s_esp']/8;
 				switch ($row['s_descrizione'])
@@ -915,26 +915,26 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 			if (!isset($b_alleportie))	{$b_alleportie = 0;}
 			
 			// CARICO TABELLA BONUS ALLENATORE
-			$all_result = mysql_query("SELECT * FROM bonus_allenatore WHERE b_descrizione = \"$filosofia\"");
+			$all_result = mysqli_query($link, "SELECT * FROM bonus_allenatore WHERE b_descrizione = \"$filosofia\"");
 			if (!$all_result)
 			{
-				echo 'Errore nella query bonus allenatore: ' . mysql_error();
+				echo 'Errore nella query bonus allenatore: ' . mysqli_error();
 				exit();
 			}
-			$row = mysql_fetch_array($all_result);
+			$row = mysqli_fetch_array($all_result);
 			$bonus_allenatore = array($row['b_dif'],$row['b_cen'],$row['b_att']);
 			
 			// CARICO L'ALLENAMENTO DELLE TATTICHE 
-			$result_allena = mysql_query("SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
+			$result_allena = mysqli_query($link, "SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
 			if (!$result_allena)
 			{
-				echo 'Errore nella query allena tattiche: ' . mysql_error();
+				echo 'Errore nella query allena tattiche: ' . mysqli_error();
 				exit();
 			}
-			$riga_tattica = mysql_fetch_array($result_allena) ;
+			$riga_tattica = mysqli_fetch_array($result_allena) ;
 			if (count($riga_tattica != 0))
 			{	
-				$aggiorna["Nessuna"] = 70;  // abbassata da 80  a 70 perchè mi sembrava + corretto così... (da valutare ancora)
+				$aggiorna["Nessuna"] = 70;  // abbassata da 80  a 70 perchï¿½ mi sembrava + corretto cosï¿½... (da valutare ancora)
 				$aggiorna["Pressing"] = round($riga_tattica['ta_press_val']/327*100,1);
 				$aggiorna["Contropiede"] = round($riga_tattica['ta_contr_val']/327*100,1);
 				$aggiorna["Possesso palla"] = round($riga_tattica['ta_poss_val']/327*100,1);
@@ -967,15 +967,15 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 					if ($ffcCond > 100) { $ffcCond = 100; }
 					
 					// CARICO I DATI DAL CALCOLATORE
-					$calc_result = mysql_query("SELECT * FROM calcolatore WHERE formula=\"$formula\" ORDER BY ord");
-					if (!$calc_result) { echo 'Errore nella query calcolatore: ' . mysql_error(); exit(); }
+					$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE formula=\"$formula\" ORDER BY ord");
+					if (!$calc_result) { echo 'Errore nella query calcolatore: ' . mysqli_error(); exit(); }
 					
 					unset($box);
 					unset($val);
 					
 					$max = 0;
 					$ii = 1; 
-					while   ($riga   =   mysql_fetch_array($calc_result)) //step sulla tabella calcolatore
+					while   ($riga   =   mysqli_fetch_array($calc_result)) //step sulla tabella calcolatore
 					{
 						// CONTROLLA TUTTI I CASI DELLE CASELLE DESTRA CENTRO E SINISTRA, PER IL CALCOLO DEL PIEDE r, l E lr
 						switch ($ii)
@@ -1081,7 +1081,7 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 								
 				
 					$wgiocatore = array($riquadro,$box_numeri);
-					// ASSEGNO I VALORI OTTENUTI AD UN ARRAY, COSì DA NON RIPETERE LA QUERY SUL DATABASE DEL CALCOLATORE 
+					// ASSEGNO I VALORI OTTENUTI AD UN ARRAY, COSï¿½ DA NON RIPETERE LA QUERY SUL DATABASE DEL CALCOLATORE 
 					// E VELOCIZZARE LE OPERAZIONI DI CALCOLO
 					$valore_giocatore[$nr[$conta]] = $riquadro;
 					
@@ -2824,13 +2824,13 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 			// PERCENTUALE TATTICHE ALLENATE
 			echo "<span id='percentuale_auto'>";
 			
-			$result = mysql_query("SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
+			$result = mysqli_query($link, "SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
 			if (!$result)
 			{
-				echo 'Errore nella query: ' . mysql_error();
+				echo 'Errore nella query: ' . mysqli_error();
 				exit();
 			}
-			$rig = mysql_fetch_array($result) ;
+			$rig = mysqli_fetch_array($result) ;
 			
 			$righi[1] = -10;
 			$righi[2] = $rig['ta_press_val'];
@@ -3020,7 +3020,7 @@ $result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 			echo "</form>";
 		}
 		
-mysql_close($link);
+mysqli_close($link);
 ?>
 
 

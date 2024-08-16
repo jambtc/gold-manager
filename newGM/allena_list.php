@@ -40,13 +40,13 @@
 	$a_id_player[] = "";
 	$a_id_allena[] = "";
 	
-	$result = mysql_query("SELECT * FROM allena_skill WHERE id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM allena_skill WHERE id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-		echo 'Errore nella query ALLENAMENTO: ' . mysql_error();
+		echo 'Errore nella query ALLENAMENTO: ' . mysqli_error();
 	    exit();
 	}
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 		$a_id_player[] = $row['id_player'];
 		$a_id_allena[] = $row['id_allena'];
@@ -65,9 +65,9 @@
 	$ar_player_allenato = array_combine($a_id_player,$a_id_allena);
 	
 	//CARICA I GIOCATORI
-	$result = mysql_query("SELECT * FROM giocatori as g, ruoli as r WHERE g.id_team=\"$nome_team\" and g.pos=r.ruolo_desc order by r.ruolo_order");
+	$result = mysqli_query($link, "SELECT * FROM giocatori as g, ruoli as r WHERE g.id_team=\"$nome_team\" and g.pos=r.ruolo_desc order by r.ruolo_order");
 	if (!$result) {
-    	echo 'Errore nella query SELEZIONA GIOCATORI: ' . mysql_error();
+    	echo 'Errore nella query SELEZIONA GIOCATORI: ' . mysqli_error();
 	    exit();
 	}
 ?>
@@ -87,7 +87,7 @@
 </tr>
 <?php
 $counter = 0; 
-while   ($row = mysql_fetch_array($result))
+while   ($row = mysqli_fetch_array($result))
 {
 	switch ($row['pos'])
 	{
@@ -148,7 +148,7 @@ while   ($row = mysql_fetch_array($result))
 			case "Dribbling":
 				$immtal = $im_tal[5];
 				break;
-			case "Velocità":
+			case "Velocitï¿½":
 				$immtal = $im_tal[6];
 				break;
 			case "Resistenza":
@@ -160,7 +160,7 @@ while   ($row = mysql_fetch_array($result))
 			case "Cross":
 				$immtal = $im_tal[9];
 				break;
-			case "Creatività":
+			case "Creativitï¿½":
 				$immtal = $im_tal[10];
 				break;
 			case "Fiuto del goal":

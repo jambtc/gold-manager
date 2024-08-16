@@ -6,9 +6,9 @@
 	echo "<div>";
 
 	$qry = "SELECT * FROM z_iscritti ORDER BY serie";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	$quale_serie = array();
-	while ($row = mysql_fetch_array($result))
+	while ($row = mysqli_fetch_array($result))
 	{
 		$squadre[]= $row['squadra'];
 		$serie[] = $row['serie'];

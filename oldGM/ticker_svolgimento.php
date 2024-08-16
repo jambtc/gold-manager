@@ -2,8 +2,8 @@
 				
 		//CARICO LA TELECRONACA !!!
 		$qry = "SELECT * FROM z_telecronaca WHERE id_partita='$ID_PARTITA' ORDER BY prog";
-		$result = mysql_query($qry);
-		$row_telecronaca = mysql_fetch_array($result);	
+		$result = mysqli_query($link, $qry);
+		$row_telecronaca = mysqli_fetch_array($result);	
 		
 		echo "<div id='svolgimento'>";
 		echo "<fieldset style='width: 97%;'>";
@@ -54,10 +54,10 @@
 		echo "<div id='telecronaca'>";
 	
 		$qry = "SELECT * FROM z_telecronaca WHERE id_partita='$ID_PARTITA' ORDER BY prog ASC";
-		$res = mysql_query($qry);
+		$res = mysqli_query($link, $qry);
 	
 		//CARICO LA TELECRONACA
-		while ($row   =   mysql_fetch_array($res))
+		while ($row   =   mysqli_fetch_array($res))
 		{
 			$riga = $row['descri'];
 

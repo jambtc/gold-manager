@@ -51,10 +51,10 @@ function Out(quale)
 	
 	$qry = "SELECT * FROM giocatori as g, ruoli as r WHERE g.id_team=\"$nome_team\" and g.pos=r.ruolo_desc order by ".$ordina;
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
     	exit();
 	}
 
@@ -82,7 +82,7 @@ function Out(quale)
 	echo "	  <th width='22' title='Maglia'><a class='a2' href='team_list.php?ordina=nr&verso=$nuovo_ordine' target='team_list'>Nr</a></th>";
 	echo "	  <th width='180' align='left' title='Nome'><a class='a2' href='team_list.php?ordina=nome&verso=$nuovo_ordine' target='team_list'>Nome</a></th>";
 	echo "	  <th width='20' title='Settimane di contratto'><a class='a2' href='team_list.php?ordina=contratto&verso=$nuovo_ordine' target='team_list'>Contr.</a></th>";
-	echo "	  <th width='20' title='Età'><a class='a2' href='team_list.php?ordina=eta&verso=$nuovo_ordine' target='team_list'>Et&agrave;</a></th>";
+	echo "	  <th width='20' title='Etï¿½'><a class='a2' href='team_list.php?ordina=eta&verso=$nuovo_ordine' target='team_list'>Et&agrave;</a></th>";
 	echo "    <th width='30' title='Forza'><a class='a2' href='team_list.php?ordina=skill&verso=$nuovo_ordine' target='team_list'>Skill</a></th>";
 	echo "    <th width='25' title='Ruolo'><a class='a2' href='team_list.php?ordina=pos&verso=$nuovo_ordine' target='team_list'>Pos</a></th>";
 	echo "    <th width='25' title='Forma fisica'><a class='a2' href='team_list.php?ordina=forma&verso=$nuovo_ordine' target='team_list'>F.ma</a></th>";
@@ -105,7 +105,7 @@ function Out(quale)
 	echo "<tr>";
 	
 	$counter = 0; 
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 			switch ($row['pos'])
 			{
@@ -166,7 +166,7 @@ function Out(quale)
 			case "Dribbling":
 				$immtal = $im_tal[5];
 				break;
-			case "Velocità":
+			case "Velocitï¿½":
 				$immtal = $im_tal[6];
 				break;
 			case "Resistenza":
@@ -178,7 +178,7 @@ function Out(quale)
 			case "Cross":
 				$immtal = $im_tal[9];
 				break;
-			case "Creatività":
+			case "Creativitï¿½":
 				$immtal = $im_tal[10];
 				break;
 			case "Fiuto del goal":
@@ -276,7 +276,7 @@ $counter++;
 echo "<tr height='50'><td>&nbsp;</td></tr></table>";
 
 
-mysql_close($link);
+mysqli_close($link);
 
 ?>
 

@@ -4,20 +4,20 @@ require "../connect_db.php";
 
 $nome_team = $_SESSION['SESS_TEAM'];
 
-$wbox=mysql_real_escape_string(end(explode('/',$_POST['box'])));
-$wid=mysql_real_escape_string(end(explode('/',$_POST['id'])));
+$wbox=mysqli_real_escape_string(end(explode('/',$_POST['box'])));
+$wid=mysqli_real_escape_string(end(explode('/',$_POST['id'])));
 
-$controllo = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
+$controllo = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
 if (!$controllo)
 {
-   	echo 'Errore nella query tattica: ' . mysql_error();
+   	echo 'Errore nella query tattica: ' . mysqli_error();
     exit();
 }
-$row   =   mysql_fetch_array($controllo);
+$row   =   mysqli_fetch_array($controllo);
 $wform = $row['t_formazione'];
 if ($wform == "")	{	$wform = "Formazione 1"; 	}
 
-//$wform =mysql_real_escape_string(end(explode('/',$_POST['form'])));
+//$wform =mysqli_real_escape_string(end(explode('/',$_POST['form'])));
 //$wform = strtr($wform,"%20"," ");
 
 $appoggio= array('f_id_team','f_1','f_2','f_3','f_4','f_5','f_6','f_7','f_8','f_9','f_10',
@@ -37,27 +37,27 @@ if ($wid == -1)
 }
 else
 {
-	$ricerca = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id=\"$wid\" ");
+	$ricerca = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id=\"$wid\" ");
 	if (!$ricerca)
 	{
-		echo 'Errore nella query RICERCA GIOCATORI: ' . mysql_error();
+		echo 'Errore nella query RICERCA GIOCATORI: ' . mysqli_error();
 		exit();
 	}
-	$rig   =   mysql_fetch_array($ricerca);
+	$rig   =   mysqli_fetch_array($ricerca);
 	$class = "brdgioca";
 	$maglia = $rig['nr'];
 }
 echo "<input id='bt".$wbox."' name='btn' class='".$class."' value=".$maglia." type='button'>";
 
 //AGGIORNAMENTO DATABASE	
-$controllo = mysql_query("SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$wform\" ");
+$controllo = mysqli_query($link, "SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$wform\" ");
 
 if (!$controllo)
 {
-	echo 'Errore nella query: ' . mysql_error();
+	echo 'Errore nella query: ' . mysqli_error();
     exit();
 }
-$righe=mysql_num_rows($controllo);
+$righe=mysqli_num_rows($controllo);
 	
 if ($righe > 0)
 { 
@@ -67,11 +67,11 @@ if ($righe > 0)
 	
 	//echo $qry;
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 		
 	if (!$result)
 	{
-		echo 'Errore nella query aggiorna a Dx: ' . mysql_error();
+		echo 'Errore nella query aggiorna a Dx: ' . mysqli_error();
 		exit();
 	}
 }
@@ -99,13 +99,13 @@ else
 		
 	$qry = $qry1 . $qry2 . ") VALUES (" . $qry3 . ")";
 		
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-		echo 'Errore nella query inserisci a Dx: ' . mysql_error();
+		echo 'Errore nella query inserisci a Dx: ' . mysqli_error();
 		exit();
 	}
 }
 
-mysql_close($link);
+mysqli_close($link);
 ?>

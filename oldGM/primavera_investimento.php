@@ -20,12 +20,12 @@
 	
 	$team = $_SESSION['SESS_TEAM'];
 	
-	$pr_res = mysql_query("SELECT * FROM zz_config WHERE 1");
-	$row_res   =   mysql_fetch_array($pr_res);
+	$pr_res = mysqli_query($link, "SELECT * FROM zz_config WHERE 1");
+	$row_res   =   mysqli_fetch_array($pr_res);
 	$base = $row_res['prim_base'];
 	
-	$pr_con = mysql_query("SELECT * FROM members WHERE team=\"$team\" ");
-	$row_con   =   mysql_fetch_array($pr_con);
+	$pr_con = mysqli_query($link, "SELECT * FROM members WHERE team=\"$team\" ");
+	$row_con   =   mysqli_fetch_array($pr_con);
 	$prim_gio = $row_con['prim_gio'];
 	$prim_ski = $row_con['prim_ski'];
 	

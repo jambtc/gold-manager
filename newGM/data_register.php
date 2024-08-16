@@ -12,13 +12,13 @@
 	$errflag = false;
 	
 	//Connect to mysql server
-	$link = mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
+	$link = mysqli_connect(DB_HOST, DB_USER, DB_PASSWORD);
 	if(!$link) {
-		die('Failed to connect to server: ' . mysql_error());
+		die('Failed to connect to server: ' . mysqli_error());
 	}
 	
 	//Select database
-	$db = mysql_select_db(DB_DATABASE);
+	$db = mysqli_select_db(DB_DATABASE);
 	if(!$db) {
 		die("Unable to select database");
 	}
@@ -29,7 +29,7 @@
 		if(get_magic_quotes_gpc()) {
 			$str = stripslashes($str);
 		}
-		return mysql_real_escape_string($str);
+		return mysqli_real_escape_string($str);
 	}
 		
 	//Sanitize the POST values
@@ -104,13 +104,13 @@
 	//Check for duplicate login ID
 	if($login != '') {
 		$qry = "SELECT * FROM members WHERE login=\"$login\"";
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if($result) {
-			if(mysql_num_rows($result) > 0) {
-				$errmsg_arr[] = 'ID utente già registrato';
+			if(mysqli_num_rows($result) > 0) {
+				$errmsg_arr[] = 'ID utente giï¿½ registrato';
 				$errflag = true;
 			}
-			@mysql_free_result($result);
+			@mysqli_free_result($result);
 		}
 		else {
 			die("Query failed");
@@ -119,13 +119,13 @@
 	//Check for duplicate team
 	if($login != '') {
 		$qry = "SELECT * FROM members WHERE team=\"$team\"";
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if($result) {
-			if(mysql_num_rows($result) > 0) {
-				$errmsg_arr[] = 'Nome squadra già utilizzato';
+			if(mysqli_num_rows($result) > 0) {
+				$errmsg_arr[] = 'Nome squadra giï¿½ utilizzato';
 				$errflag = true;
 			}
-			@mysql_free_result($result);
+			@mysqli_free_result($result);
 		}
 		else {
 			die("Query failed");
@@ -153,13 +153,13 @@
 	
 	//CARICO LA CONFIGURAZIONE
 	$qry = "SELECT * FROM  zz_config WHERE id=1";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-   		echo 'Errore nel caricamento della configurazione: ' . mysql_error();
+   		echo 'Errore nel caricamento della configurazione: ' . mysqli_error();
    		exit();
 	}
-	$row   =   mysql_fetch_array($result);
+	$row   =   mysqli_fetch_array($result);
 	$zz_data = $row['data'];
 	$zz_giorno = $row['giorno'];
 	$zz_orario = $row['orario'];
@@ -168,10 +168,10 @@
 	
 	//CARICO LE SQUADRE ISCRITTE ALLE VARIE SERIE
 	$qry = "SELECT * FROM z_iscritti ORDER BY serie";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	$z_quale_serie = array();
 	$z_team_in_serie = array();
-	while ($row = mysql_fetch_array($result))
+	while ($row = mysqli_fetch_array($result))
 	{
 		$z_squadre[]= $row['squadra'];
 		$z_serie[] = $row['serie'];
@@ -218,10 +218,10 @@
 											squadra = \"$team\"
 									WHERE 	serie=\"$quale\" AND squadra = \"$msg\"";
 									
-		$result = @mysql_query($qry);
+		$result = @mysqli_query($link, $qry);
 		if (!$result)
 		{
-   			echo "Errore durante il salvataggio della squadra: ". mysql_error();
+   			echo "Errore durante il salvataggio della squadra: ". mysqli_error();
 	   		exit();
 		}
 		
@@ -232,11 +232,11 @@
 		$qryb = "UPDATE z_calendario	SET 	fuori = \"$team\"
 									WHERE 	serie=\"$quale\" AND fuori = \"$msg\"";								
 									
-		$resulta = @mysql_query($qrya);
-		$resultb = @mysql_query($qryb);
+		$resulta = @mysqli_query($qrya);
+		$resultb = @mysqli_query($qryb);
 		if (!$resulta or !$resultb)
 		{
-   			echo "Errore durante il salvataggio del Calendario: ". mysql_error();
+   			echo "Errore durante il salvataggio del Calendario: ". mysqli_error();
 	   		exit();
 		}
 		
@@ -244,20 +244,20 @@
 		$qry = "UPDATE z_classifica	SET 	team = \"$team\"
 									WHERE 	serie=\"$quale\" AND team = \"$msg\"";
 									
-		$result = @mysql_query($qry);
+		$result = @mysqli_query($link, $qry);
 		if (!$result )
 		{
-   			echo "Errore durante il salvataggio della Classifica: ". mysql_error();
+   			echo "Errore durante il salvataggio della Classifica: ". mysqli_error();
 	   		exit();
 		}
 	
 		// AGGIORNO I GIOCATORI CON IL NOME DELLA NUOVA SQUADRA CHE SARANNO ASSEGNATI PERTANTO AL NUOVO MEMBRO ISCRITTO
 		$qry = "UPDATE giocatori SET id_team = \"$team\" WHERE id_team = \"$msg\"";
 		
-		$result = @mysql_query($qry);
+		$result = @mysqli_query($link, $qry);
 		if (!$result)
 		{
-   			echo "Errore durante il salvataggio dei giocatori: ". mysql_error();
+   			echo "Errore durante il salvataggio dei giocatori: ". mysqli_error();
 	   		exit();
 		}
 		
@@ -276,7 +276,7 @@
 									\"$nome_utente\",\"$cognome_utente\",
 									'$data_di_nascita',\"$provincia_utente\",'0')";
 	
-		$result = @mysql_query($qry);
+		$result = @mysqli_query($link, $qry);
 		//Check whether the query was successful or not
 		if($result)
 		{
@@ -297,7 +297,7 @@
 		}
 		else
 		{
-			echo "Errore durante il salvataggio dei dati utente: ". mysql_error();
+			echo "Errore durante il salvataggio dei dati utente: ". mysqli_error();
 			die("Query failed");
 			exit;
 		}
@@ -323,11 +323,11 @@
 					\"$pd\",\"$talento\",\"$qta\",
 					\"$stipendio\",\"$valore\",\"$carattere\",9)";
 					
-			$result = mysql_query($qry);
+			$result = mysqli_query($link, $qry);
 			if (!$result)
 			{
-				echo 'Errore nella fase di creazione giocatori: ' . mysql_error();
-				echo '<br>la query è:<br>'.$qry;
+				echo 'Errore nella fase di creazione giocatori: ' . mysqli_error();
+				echo '<br>la query ï¿½:<br>'.$qry;
 				exit();
 			}
 			//echo $team." - (".$nr_maglia.") ".$nome." ".$skill." ".$eta." ".$nascita." ".$ruolo." ".$forma." ".$fresc." ".$cond." ".$esp." ".$po." ".$df." ".$cn." ".$pa." ".$rg." ".$cr." ".$tc." ".$tr." ".$pd." ".$talento." ".$carattere." ".$stipendio." ".$valore."<br>";
@@ -336,55 +336,55 @@
 		
 		
 		// LA DIVISIONE QUANDO CI SI ISCRIVE E' LA 3.
-		// la serie da creare è data dall'ultima serie + 1
+		// la serie da creare ï¿½ data dall'ultima serie + 1
 		$zz_ultima_serie ++;
 		$serie = "3.".$zz_ultima_serie;
 		
 		// seleziono i nomi propri
-		$qry_nomi = mysql_query("SELECT * FROM nomi");
-		while ($row = mysql_fetch_array($qry_nomi))
+		$qry_nomi = mysqli_query($link, "SELECT * FROM nomi");
+		while ($row = mysqli_fetch_array($qry_nomi))
 		{
 			$nomi_nome[] = $row['nome'];
 		}
 		$nomi_ultimo = count($nomi_nome)-1;
 	
 		//seleziono i cognomi di persona
-		$qry_cognomi = mysql_query("SELECT * FROM cognomi");
-		while ($row = mysql_fetch_array($qry_cognomi))
+		$qry_cognomi = mysqli_query($link, "SELECT * FROM cognomi");
+		while ($row = mysqli_fetch_array($qry_cognomi))
 		{
 			$cognomi_nome[] = $row['cognome'];
 		}
 		$cognomi_ultimo = count($cognomi_nome)-1;
 		
 		// conto l'id dei giocatori
-		$qry_contatore = mysql_query("SELECT * FROM contatore WHERE pagina = '90701'");
-		$row = mysql_fetch_array($qry_contatore);
+		$qry_contatore = mysqli_query($link, "SELECT * FROM contatore WHERE pagina = '90701'");
+		$row = mysqli_fetch_array($qry_contatore);
 		$id_giocatore = $row['visite'] +1;
 		
 		// creo array contenente il valore dei piedi
 		$ar_piedi = array("LR","R","L","R");
 		
 		//CARICO TABELLA TALENTI
-		$talenti_result = mysql_query("SELECT * FROM talenti WHERE 1");
+		$talenti_result = mysqli_query($link, "SELECT * FROM talenti WHERE 1");
 		if (!$talenti_result) 
 		{
-			echo 'Errore nella query talenti: ' . mysql_error();
+			echo 'Errore nella query talenti: ' . mysqli_error();
 			exit();
 		}
 		
-		while   ($row   =   mysql_fetch_array($talenti_result))
+		while   ($row   =   mysqli_fetch_array($talenti_result))
 		{
 			$lista_talenti[] = $row['tal_descrizione'];
 		}
 		//CARICO TABELLA CARATTERI GIOCATORI
-		$caratteri_result = mysql_query("SELECT * FROM caratteri WHERE id_carattere='giocatore'");
+		$caratteri_result = mysqli_query($link, "SELECT * FROM caratteri WHERE id_carattere='giocatore'");
 		if (!$caratteri_result) 
 		{
-			echo 'Errore nella query caratteri: ' . mysql_error();
+			echo 'Errore nella query caratteri: ' . mysqli_error();
 			exit();
 		}
 		
-		while   ($row   =   mysql_fetch_array($caratteri_result))
+		while   ($row   =   mysqli_fetch_array($caratteri_result))
 		{
 			$lista_caratteri[] = $row['descrizione'];
 		}
@@ -397,7 +397,7 @@
 		//*** COMINCIO IL CICLO DELLE 9 SQUADRE + 1 ***************************************
 		//*********************************************************************************
 		//*********************************************************************************
-		$lista_team[] = $team; // il primo della lista è sempre il team da inserire
+		$lista_team[] = $team; // il primo della lista ï¿½ sempre il team da inserire
 		$umano = 1; // inizializzo l'essere umano a 1. appena inserito lo porto a zero e tutte le altre squadre 
 					// saranno quindi cpu = 0
 		
@@ -657,7 +657,7 @@
 			$col_bottom_c = mt_rand(0,17);
 			$col_bottom_r = mt_rand(0,17);
 			
-			$result = mysql_query("INSERT INTO z_iscritti (serie,squadra,cpu,
+			$result = mysqli_query($link, "INSERT INTO z_iscritti (serie,squadra,cpu,
 											logo_top, logo_middle,logo_bottom_left,logo_bottom_center,logo_bottom_right, ) 
 											VALUES ('$serie', \"$ins_squadra\",'$umano',
 											'$col_top','$col_middle',
@@ -667,14 +667,14 @@
 		}// fine ciclo for per squadte in $lista_team
 			
 		// AGGIORNO IL CONTATORE GIOCATORI
-		$result = mysql_query("UPDATE contatore SET visite = '$id_giocatore'-1 WHERE pagina = '90701'");
+		$result = mysqli_query($link, "UPDATE contatore SET visite = '$id_giocatore'-1 WHERE pagina = '90701'");
 		
 		//aggiorno la CONFIGURAZIONE della serie
 		$qry = "UPDATE zz_config SET ultima_serie = ultima_serie +1 WHERE id=1";
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result)
 		{
-			echo "Errore nell'aggiornamento della configurazione: " . mysql_error();
+			echo "Errore nell'aggiornamento della configurazione: " . mysqli_error();
 			exit();
 		}
 	
@@ -693,13 +693,13 @@
 		// CON LA NUOVA SERIE
 		$qry = "SELECT * FROM z_iscritti WHERE serie='$serie'";
 		
-		$result = mysql_query($qry);
-		while ($row = mysql_fetch_array($result))
+		$result = mysqli_query($link, $qry);
+		while ($row = mysqli_fetch_array($result))
 		{
 			$squadre[]= $row['squadra'];
 			//CREO CLASSIFICA CON DATI A ZERO
 			$qry_cl = "INSERT INTO z_classifica (serie,team) VALUES (\"$serie\",\"$row[squadra]\")";
-			@mysql_query($qry_cl);
+			@mysqli_query($qry_cl);
 		}
 		// mischio le squadre...
 		shuffle($squadre);
@@ -737,7 +737,7 @@
 				{
 					echo $j+1," ".$trasferta[$j]." - ".$casa[$j]."<br>"; 
 					$qry = "INSERT INTO z_calendario (serie,data,ora_inizio,fuori,casa) VALUES (\"$serie\",'$dataSql','$oraInizio',\"$casa[$j]\",\"$trasferta[$j]\")";
-					@mysql_query($qry);
+					@mysqli_query($link, $qry);
 					//Inserisco in array in modo da poter sviluppare il RITORNO
 					$ritorno[] = $serie.";".$oraInizio.";".$casa[$j].";".$trasferta[$j];
 				}
@@ -748,7 +748,7 @@
 				{
 					 echo $j+1," ".$casa[$j]." - ".$trasferta[$j]."<br>"; 
 					 $qry = "INSERT INTO z_calendario (serie,data,ora_inizio,fuori,casa) VALUES (\"$serie\",'$dataSql','$oraInizio',\"$trasferta[$j]\",\"$casa[$j]\")";
-					 @mysql_query($qry);
+					 @mysqli_query($link, $qry);
 					 //Inserisco in array in modo da poter sviluppare il RITORNO
 					$ritorno[] = $serie.";".$oraInizio.";".$trasferta[$j].";".$casa[$j];
 				}
@@ -799,7 +799,7 @@
 								
 				echo $j+1," ".$squadra1." - ".$squadra2."<br>"; 
 				$qry = "INSERT INTO z_calendario (serie,data,ora_inizio,casa,fuori) VALUES (\"$serie\",'$dataSql','$oraInizio',\"$squadra1\",\"$squadra2\")";
-				@mysql_query($qry);	
+				@mysqli_query($link, $qry);	
 			}
 			$y = $y+$j-1;
 			$nextdate  = mktime (0,0,0,$m1,  $g1+7,  $a1); 
@@ -817,14 +817,14 @@
 		
 		//********************************
 		// verifico a che punto della stagione mi trovo e devo giocare le partite
-		// già superate...ed aggiornare la classifica....
+		// giï¿½ superate...ed aggiornare la classifica....
 		if ($rdatasql > $zz_data)
 		{
 			
 		}
 		else
 		{
-			// se la data è uguale 
+			// se la data ï¿½ uguale 
 			if ($rdatasql == $zz_data)
 			{
 				// verifico l'orario d iiscrizione
@@ -850,7 +850,7 @@
 										\"$nome_utente\",\"$cognome_utente\",
 										'$data_di_nascita',\"$provincia_utente\",'0')";
 		
-		$result = @mysql_query($qry);
+		$result = @mysqli_query($link, $qry);
 		//Check whether the query was successful or not
 		if($result)
 		{
@@ -870,7 +870,7 @@
 		}
 		else
 		{
-			echo "Errore durante il salvataggio dei dati utente: ". mysql_error();
+			echo "Errore durante il salvataggio dei dati utente: ". mysqli_error();
 			die("Query failed");
 			exit;
 		}

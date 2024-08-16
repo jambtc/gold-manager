@@ -26,10 +26,10 @@
 </head>
 
 <?php 
-	$result = mysql_query("SELECT * FROM staff_mercato WHERE s_id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM staff_mercato WHERE s_id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
 	echo "<table border='0'>";
@@ -46,7 +46,7 @@
 	echo "</tr>";
 
 	$wstip = 0;
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 
 	//($counter % 2 == 0) ? $class = "BGreen" : $class = "LGreen"; 
@@ -62,7 +62,7 @@
 	echo "<td> <center>$row[s_abi]" ."</td>";
 	echo "<td> <center>$row[s_esp]" ."</td>";
 	echo "<td> <center>$row[s_mot]" ."</td>";
-	echo "<td><justify>€.  $wstip</td>";
+	echo "<td><justify>ï¿½.  $wstip</td>";
 	//echo "<td> 		   $row[s_car]" ."</td>";
 	//echo "<td> 		   $row[s_fil]" ."</td>";
 	echo "<td> <center>$row[s_scadenza]" ."</td>";

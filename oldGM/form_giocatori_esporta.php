@@ -12,10 +12,10 @@
 	
 	$info = array("nr","nome","eta","skill","pos","carattere","forma","fresc","cond","esp","po","df","cn","pa","rg","cr","tc","tr","piede","tipo","qta","part","reti","gialli","rossi","stipendio","valore");
 
-	$riga_1 = array("Num.","Nominativo","Età","Skill","Ruolo","Carattere","Forma","Freschezza","Condizione","Esperienza","Parate","Difesa","Contrasti","Passaggi","Regia","Cross","Tecnica","Tiro","Piede","Talento","Livello Talento","Partite","Reti","Gialli","Rossi","Stipendio","Valore di Mercato");
+	$riga_1 = array("Num.","Nominativo","Etï¿½","Skill","Ruolo","Carattere","Forma","Freschezza","Condizione","Esperienza","Parate","Difesa","Contrasti","Passaggi","Regia","Cross","Tecnica","Tiro","Piede","Talento","Livello Talento","Partite","Reti","Gialli","Rossi","Stipendio","Valore di Mercato");
 
 	$totcampi = count($info);
-	$resdoc = mysql_query("SELECT * FROM giocatori WHERE id_team='$nome_team'");
+	$resdoc = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team='$nome_team'");
 	
 	$intest = "";
 	$riga = "";
@@ -29,7 +29,7 @@
 	}
 	echo "\n";
 	
-	while 	($row = mysql_fetch_array($resdoc))
+	while 	($row = mysqli_fetch_array($resdoc))
 	{
 		$riga = "";
 		for ($i = 0; $i < $totcampi; $i++)

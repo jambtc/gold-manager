@@ -66,7 +66,7 @@ if(!$_REQUEST['id']) die("Nessun dato trovato!");
 	
 $id=$_REQUEST['id'];
 
-$row=mysql_fetch_assoc(mysql_query("SELECT * FROM giocatori WHERE id='$id' "));
+$row=mysqli_fetch_assoc(mysqli_query($link, "SELECT * FROM giocatori WHERE id='$id' "));
 
 if(!$row) die("Nessun dato trovato!");
 

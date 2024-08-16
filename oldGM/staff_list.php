@@ -34,7 +34,7 @@ function Out(quale)
 echo "<table border='0'>";
 echo "<tr>";
 echo "<th ></th>";
-echo "<th title='Abilità'>Abi.</th>";
+echo "<th title='Abilitï¿½'>Abi.</th>";
 echo "<th title='Esperienza'>Esp.</th>";
 echo "<th title='Motivazione'>Mot.</th>";
 echo "<th title='Stipendio'>Stip.</th>";
@@ -48,7 +48,7 @@ echo "</tr>";
 $counter = 1; 
 $spesa = 0;
 $wstip = 0;
-while   ($row   =   mysql_fetch_array($result))
+while   ($row   =   mysqli_fetch_array($result))
 {
 
 	($counter % 2 == 0) ? $class = "BGreen" : $class = "LGreen"; 
@@ -65,7 +65,7 @@ while   ($row   =   mysql_fetch_array($result))
 	echo "<td> <center>$row[s_abi]</td>";
 	echo "<td> <center>$row[s_esp]</td>";
 	echo "<td> <center>$row[s_mot]</td>";
-	echo "<td><justify>€.  $wstip</td>";
+	echo "<td><justify>ï¿½.  $wstip</td>";
 	echo "<td> 		   $row[s_car]</td>";
 	echo "<td> 		   $row[s_fil]</td>";
 	if ($row['s_addestramento'] == 15)
@@ -106,7 +106,7 @@ $spesa = number_format($spesa,0,",",".");
 
 echo "<tr >";
 echo "<th colspan='4' align='right'>Spesa settimanale</th>";
-echo "<th><center>€.&nbsp;$spesa</th>";
+echo "<th><center>ï¿½.&nbsp;$spesa</th>";
 echo "</tr>";
 echo "</table>";
 

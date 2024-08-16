@@ -125,23 +125,23 @@
 	$datasql = $split_data[2] . "-" . $split_data[1] . "-" . $split_data[0]; 
 	$ip = getenv("REMOTE_ADDR"); // get the ip number of the user
 	
-	$verif = mysql_query("SELECT * FROM contatore WHERE pagina = $pagina");
-	$tcpip = mysql_query("SELECT * FROM stat_tcp WHERE tcp='$ip' AND data='$datasql' AND pagina='$pagina'");
-	$num = mysql_num_rows($verif);
-	$ripeti = mysql_num_rows($tcpip);
+	$verif = mysqli_query($link, "SELECT * FROM contatore WHERE pagina = $pagina");
+	$tcpip = mysqli_query($link, "SELECT * FROM stat_tcp WHERE tcp='$ip' AND data='$datasql' AND pagina='$pagina'");
+	$num = mysqli_num_rows($verif);
+	$ripeti = mysqli_num_rows($tcpip);
 	
 	if ($ripeti == 0)
 	{
-		mysql_query("INSERT INTO stat_tcp (data, tcp, pagina) VALUES ('$datasql', '$ip', '$pagina')");
+		mysqli_query($link, "INSERT INTO stat_tcp (data, tcp, pagina) VALUES ('$datasql', '$ip', '$pagina')");
 		if ($num == 0)
 		{ 
 			// pagina non presente nel database
 			// aggiungo la pagina nella tabella
-			mysql_query("INSERT INTO contatore (pagina, visite) VALUES ($pagina, 1)");
+			mysqli_query($link, "INSERT INTO contatore (pagina, visite) VALUES ($pagina, 1)");
 		}
 		else
 		{
-			$res = mysql_query("UPDATE contatore SET visite = visite + 1 WHERE pagina = $pagina"); 
+			$res = mysqli_query($link, "UPDATE contatore SET visite = visite + 1 WHERE pagina = $pagina"); 
 		}
 	}
 ?>

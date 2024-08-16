@@ -9,10 +9,10 @@
 	$b_viceallena = 0;
 	$b_alleportie = 0;
 	
-	$result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ORDER BY s_id_staff");
+	$result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ORDER BY s_id_staff");
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
 	

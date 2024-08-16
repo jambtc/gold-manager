@@ -8,13 +8,13 @@
 	//CARICO LA CONFIGURAZIONE
 	$qry = "SELECT * FROM  zz_config WHERE id=1";
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-   		echo 'Errore nella query: ' . mysql_error();
+   		echo 'Errore nella query: ' . mysqli_error();
    		exit();
 	}
-	$row   =   mysql_fetch_array($result);
+	$row   =   mysqli_fetch_array($result);
 		
 	$config_data = $row['data'];
 	$config_giorno = $row['giorno'];
@@ -23,9 +23,9 @@
 	
 	// CARICO GLI ISCRITTI DI TUTTE LE SERIE
 	$qry = "SELECT * FROM z_iscritti ORDER BY serie";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	$quale_serie = array();
-	while ($row = mysql_fetch_array($result))
+	while ($row = mysqli_fetch_array($result))
 	{
 		$isc_squadre[]= $row['squadra'];
 		$isc_serie[] = $row['serie'];
@@ -55,17 +55,17 @@
 					unset($ritorno);
 					
 					echo "<br><h1>Calendario della serie: ".$tipo."</h1><br>";
-					mysql_query("DELETE FROM z_calendario WHERE serie='$tipo'");
-					mysql_query("DELETE FROM z_classifica WHERE serie='$tipo'");
+					mysqli_query($link, "DELETE FROM z_calendario WHERE serie='$tipo'");
+					mysqli_query($link, "DELETE FROM z_classifica WHERE serie='$tipo'");
 
 					$qry = "SELECT * FROM z_iscritti WHERE serie='$tipo'";
-					$result = mysql_query($qry);
-					while ($row = mysql_fetch_array($result))
+					$result = mysqli_query($link, $qry);
+					while ($row = mysqli_fetch_array($result))
 					{
 						$squadre[]= $row['squadra'];
 						//CREO CLASSIFICA CON DATI A ZERO
 						$qry_cl = "INSERT INTO z_classifica (serie,team) VALUES (\"$tipo\",\"$row[squadra]\")";
-						@mysql_query($qry_cl);
+						@mysqli_query($qry_cl);
 					}
 					shuffle($squadre);
 					
@@ -102,7 +102,7 @@
 							{
 								echo $j+1," ".$trasferta[$j]." - ".$casa[$j]."<br>"; 
 								$qry = "INSERT INTO z_calendario (serie,data,ora_inizio,fuori,casa) VALUES (\"$tipo\",'$dataSql','$oraInizio',\"$casa[$j]\",\"$trasferta[$j]\")";
-								@mysql_query($qry);
+								@mysqli_query($link, $qry);
 								//Inserisco in array in modo da poter sviluppare il RITORNO
 								$ritorno[] = $tipo.";".$oraInizio.";".$casa[$j].";".$trasferta[$j];
 							}
@@ -113,7 +113,7 @@
 							{
 								 echo $j+1," ".$casa[$j]." - ".$trasferta[$j]."<br>"; 
 								 $qry = "INSERT INTO z_calendario (serie,data,ora_inizio,fuori,casa) VALUES (\"$tipo\",'$dataSql','$oraInizio',\"$trasferta[$j]\",\"$casa[$j]\")";
-								 @mysql_query($qry);
+								 @mysqli_query($link, $qry);
 								 //Inserisco in array in modo da poter sviluppare il RITORNO
 								$ritorno[] = $tipo.";".$oraInizio.";".$trasferta[$j].";".$casa[$j];
 							}
@@ -164,7 +164,7 @@
 							
 							echo $j+1," ".$squadra1." - ".$squadra2."<br>"; 
 							$qry = "INSERT INTO z_calendario (serie,data,ora_inizio,casa,fuori) VALUES (\"$tipo\",'$dataSql','$oraInizio',\"$squadra1\",\"$squadra2\")";
-							@mysql_query($qry);	
+							@mysqli_query($link, $qry);	
 						}
 						$y = $y+$j-1;
 						$nextdate  = mktime (0,0,0,$m1,  $g1+7,  $a1); 

@@ -22,14 +22,14 @@
 	$nome_utente = $_SESSION['SESS_USER'];
 	$serie = $_SESSION['SESS_SERIE'];
 
-	$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
 
-	$totale = mysql_num_rows($result);
+	$totale = mysqli_num_rows($result);
 ?>
 <body>
 <h1><font style="font-weight:bold; color:#00FFFF; font-size:18px; font-family:Verdana, Arial, Helvetica, sans-serif;">Giocatori&nbsp;(<?php echo $totale ?>)</font></h1>

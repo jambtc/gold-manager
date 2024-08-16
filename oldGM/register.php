@@ -16,8 +16,8 @@
 	$giorni = array("",1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31);
 	
 	$province[] = "";
-	$pr_result = mysql_query("SELECT * FROM province WHERE 1");
-	while   ($row   =   mysql_fetch_array($pr_result))
+	$pr_result = mysqli_query($link, "SELECT * FROM province WHERE 1");
+	while   ($row   =   mysqli_fetch_array($pr_result))
 	{
 		$province[] = $row['descrizione'];
 	}

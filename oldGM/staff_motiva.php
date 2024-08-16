@@ -25,7 +25,7 @@ function Aumenta(quanto)
 		document.getElementById('ws_sti').value = nuovo_stipendio ; 
 		
 		document.getElementById('td_motivazione').innerHTML = variazione;
-		document.getElementById('td_stipendio').innerHTML = "€. "+nuovo_stipendio;
+		document.getElementById('td_stipendio').innerHTML = "ï¿½. "+nuovo_stipendio;
 	}
 	
 }
@@ -83,11 +83,11 @@ function Licenzia(arg1)
 	$nome_team = $_SESSION['SESS_TEAM'];
 	//carico il budget
 	$qry = "SELECT * FROM members WHERE team=\"$nome_team\"";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 		
 	if($result)
 	{
-		$member = mysql_fetch_assoc($result);
+		$member = mysqli_fetch_assoc($result);
 		$budget = $member['budget'];
 	}
 	
@@ -121,14 +121,14 @@ function Licenzia(arg1)
 		<span id="motiva"> 
 		
 		<?php 
-		$result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$id\" ");
+		$result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$id\" ");
 		if (!$result)
 		{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 		}
 				
-		$row = mysql_fetch_array($result);
+		$row = mysqli_fetch_array($result);
 		$wstip = number_format($row['s_sti'],0,",",".");
 		$wstip_15 = number_format(($row['s_sti']*15),0,",",".");
 		
@@ -143,7 +143,7 @@ function Licenzia(arg1)
 		echo "<tr style='color:#0000ff;'>";
 		echo "<th align='left'>$row[s_descrizione]</th>";
 		echo "<th align='left'>$row[s_mot]</th>";
-		echo "<th align='left'>€. $wstip</th>";
+		echo "<th align='left'>ï¿½. $wstip</th>";
 		echo "</tr>";
 		echo "</table>";
 		echo "<br>";
@@ -155,7 +155,7 @@ function Licenzia(arg1)
 				if ($row['s_addestramento'] == 15)
 				{
 		?>
-					<h4>Vuoi offrire un aumento di stipendio al <font color="#FF0000"><?php echo $row['s_descrizione'];?></font>? Così facendo aumenterai la sua motivazione.</h4>
+					<h4>Vuoi offrire un aumento di stipendio al <font color="#FF0000"><?php echo $row['s_descrizione'];?></font>? Cosï¿½ facendo aumenterai la sua motivazione.</h4>
 					<HR />
 					<table border="0" cellpadding="0" style="color:#000000;">
 					<tr>
@@ -168,7 +168,7 @@ function Licenzia(arg1)
 					</tr>
 					<tr>
 						<td>Nuovo stipendio: </td>
-						<td><div id="td_stipendio">€. <?php echo $row['s_sti']; ?></div></td>
+						<td><div id="td_stipendio">ï¿½. <?php echo $row['s_sti']; ?></div></td>
 					</tr>
 					<tr>
 						<td>Motivazione:</td>
@@ -195,7 +195,7 @@ function Licenzia(arg1)
 				else
 				{
 		?>
-					<h4>Il tuo dipendente <font color="#FF0000"><?php echo $row['s_descrizione'];?></font> sta seguendo un corso di aggiornamento. Al momento il suo rendimento non è ottimale. Mancano <?php echo $row['s_addestramento']; ?> <?php if ($row['s_addestramento'] > 1) {echo "giorni";}else{echo "giorno";} ?> per tornare alla piena operatività.<br /></h4>
+					<h4>Il tuo dipendente <font color="#FF0000"><?php echo $row['s_descrizione'];?></font> sta seguendo un corso di aggiornamento. Al momento il suo rendimento non ï¿½ ottimale. Mancano <?php echo $row['s_addestramento']; ?> <?php if ($row['s_addestramento'] > 1) {echo "giorni";}else{echo "giorno";} ?> per tornare alla piena operativitï¿½.<br /></h4>
 		<?php 
 				} 
 			}
@@ -209,7 +209,7 @@ function Licenzia(arg1)
 					if ($row['s_sti']*15 <= $budget)
 					{
 		?>
-						<h4>Vuoi addestrare il tuo dipendente <font color="#FF0000"><?php echo $row['s_descrizione'];?></font> per €. <?php echo $wstip_15; ?>? Per 2 settimane non renderà al meglio.</h4>
+						<h4>Vuoi addestrare il tuo dipendente <font color="#FF0000"><?php echo $row['s_descrizione'];?></font> per ï¿½. <?php echo $wstip_15; ?>? Per 2 settimane non renderï¿½ al meglio.</h4>
 						<HR />
 						<input type="hidden" name="ws_id" value="<?php echo $id; ?>" />
 						<input type="button" name="uscita" value="Si"  class="fieldbutton" onclick="javascript:Istruisci(ws_id);"/>
@@ -227,7 +227,7 @@ function Licenzia(arg1)
 				else
 				{
 		?>
-					<h4>Il tuo dipendente <font color="#FF0000"><?php echo $row['s_descrizione'];?></font> sta già seguendo un corso di aggiornamento. Devi attendere la prossima stagione per un'altro corso.</h4>
+					<h4>Il tuo dipendente <font color="#FF0000"><?php echo $row['s_descrizione'];?></font> sta giï¿½ seguendo un corso di aggiornamento. Devi attendere la prossima stagione per un'altro corso.</h4>
 		<?php 	
 				}
 			} 

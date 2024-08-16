@@ -12,12 +12,12 @@
 	$qry_change = "UPDATE giocatori SET 	contratto='$wcont',
 											stipendio='$wstip' 
 											WHERE id_team=\"$nome_team\" AND id='$controllo'";
-	$res_change = mysql_query($qry_change);	
+	$res_change = mysqli_query($qry_change);	
 	
 	if (!$res_change)
 	{
 		echo $qry_change;
-		echo '<br>Errore nella query GIOCATORI: ' . mysql_error();
+		echo '<br>Errore nella query GIOCATORI: ' . mysqli_error();
 		exit();
 	}
 ?>

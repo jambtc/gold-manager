@@ -14,11 +14,11 @@
 	
 		$qry = "INSERT INTO istruzioni (id_team, tipologia, min, condizione, entra, esce) 
 					VALUES (\"$nome_team\",'$tipologia','$min','$cond','$entra','$esce')";
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		
 		if (!$result)
 		{
-			echo 'Errore nella query inserimento SOSTITUZIONE: ' . mysql_error();
+			echo 'Errore nella query inserimento SOSTITUZIONE: ' . mysqli_error();
 			exit();
 		}
 	}
@@ -30,13 +30,13 @@
 	
 		$qry = "INSERT INTO istruzioni (id_team, tipologia, min, condizione, regola) 
 					VALUES (\"$nome_team\",'$tipologia','$min','$cond','$regola')";
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		
 		if (!$result)
 		{
-			echo 'Errore nella query inserimento REGOLA: ' . mysql_error();
+			echo 'Errore nella query inserimento REGOLA: ' . mysqli_error();
 			exit();
 		}
 	}
-	mysql_close($link);
+	mysqli_close($link);
 ?>

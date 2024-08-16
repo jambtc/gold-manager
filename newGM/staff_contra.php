@@ -25,14 +25,14 @@
 	
 	if ($id != 0)
 	{
-		$result = mysql_query("SELECT * FROM staff_mercato WHERE s_id=\"$id\" ");
+		$result = mysqli_query($link, "SELECT * FROM staff_mercato WHERE s_id=\"$id\" ");
 		if (!$result)
 		{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 		}
 	
-		$row = mysql_fetch_array($result);
+		$row = mysqli_fetch_array($result);
 		$wstip = number_format($row['s_sti'],0,",",".");
 		$tentativi = $row['s_contrattazioni'];
 		$attivo_contra = "javascript:Contratta_Candidato(ws_id); return false;";
@@ -203,7 +203,7 @@
 		
 		echo "<tr style='color:#000000;'>";
 		echo "<th align='left'>Nuovo&nbsp;Stipendio:</th>";
-		echo "<th align='left'>€. $wstip_nuovo</th>";
+		echo "<th align='left'>ï¿½. $wstip_nuovo</th>";
 		echo "</tr>";
 		echo "<tr>";
 		echo "<td colspan=2>";

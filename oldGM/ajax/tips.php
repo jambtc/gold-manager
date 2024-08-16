@@ -26,9 +26,9 @@ if(!$_POST['id']) die("Nessun dato trovato!");
 	$quale_piede['LR'] = "Ambidestro";
 	
 
-$id=mysql_real_escape_string(end(explode('/',$_POST['id'])));
+$id=mysqli_real_escape_string(end(explode('/',$_POST['id'])));
 
-$row=mysql_fetch_assoc(mysql_query("SELECT * FROM giocatori WHERE id='$id' "));
+$row=mysqli_fetch_assoc(mysqli_query($link, "SELECT * FROM giocatori WHERE id='$id' "));
 
 if(!$row) die("Nessun dato trovato!");
 

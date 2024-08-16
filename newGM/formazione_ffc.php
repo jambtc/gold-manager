@@ -14,13 +14,13 @@
 	$ffcForm = 100;
 	$ffcCond = 100;
 	// CARICO IL CHECK DEL BONUS FORMA, FRESCHEZZA E CONDIZIONE
-	$tipo_result = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
+	$tipo_result = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
 	if (!$tipo_result)
 	{
-		echo 'Errore nella query tattica: ' . mysql_error();
+		echo 'Errore nella query tattica: ' . mysqli_error();
 		exit();
 	}
-	$row   =   mysql_fetch_array($tipo_result);
+	$row   =   mysqli_fetch_array($tipo_result);
 	$BonusFfc = $row['t_forma'];
 	$QualeFormazione = $row['t_formazione'];
 	if ($QualeFormazione == "")	{	$QualeFormazione = "Formazione 1"; 	}

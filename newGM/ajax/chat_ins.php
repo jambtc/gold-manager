@@ -10,26 +10,26 @@
 	{
 		$qry = "insert into messaggi set utente = \"$utente\", testo = \"$testo\", time = '$timestamp'";
 		
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!($result))
 		{
-			print "Chat Insert error > ".mysql_error();
+			print "Chat Insert error > ".mysqli_error();
 			exit;
 		}
 	}
 	$select = "SELECT * FROM members ";
-	$rest = mysql_query($select);
-	while   ($row   =   mysql_fetch_array($rest))
+	$rest = mysqli_query($link, $select);
+	while   ($row   =   mysqli_fetch_array($rest))
 	{
 		$avatar[$row['login']] = $row['avatar'];
 	}
 	$seleziona = "SELECT * FROM messaggi WHERE 1 ORDER BY time DESC";
-	$result_box = mysql_query($seleziona);
+	$result_box = mysqli_query($link, $seleziona);
 	if (!($result_box))
 	{
-		print "Message Printing Error > ".mysql_error();
+		print "Message Printing Error > ".mysqli_error();
 	}
-	while ($row   =   mysql_fetch_array($result_box))
+	while ($row   =   mysqli_fetch_array($result_box))
 	{
 		$Oggi = $row['time'];
 		$g1 = date("d",$Oggi);

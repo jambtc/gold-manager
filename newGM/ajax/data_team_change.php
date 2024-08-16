@@ -11,9 +11,9 @@
 	//$wstip = $_REQUEST['w_stip'];
 	
 	$qry_cerca = "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"";
-	$res_cerca = mysql_query($qry_cerca);	
+	$res_cerca = mysqli_query($qry_cerca);	
 	
-	while ($row = mysql_fetch_array($res_cerca))
+	while ($row = mysqli_fetch_array($res_cerca))
 	{
 		$player_id[] = $row['id'];
 		$player_nr[] = $row['nr'];
@@ -31,7 +31,7 @@
 	}
 	else
 	{
-		if ($controllo != $verifica[$wnr]) // se l'id è diverso vuol dire che un altro giocatore ha
+		if ($controllo != $verifica[$wnr]) // se l'id ï¿½ diverso vuol dire che un altro giocatore ha
 		{									// questo numero
 			//ERRORE! TORNA ALLA PAGINA PRECEDENTE UN CODICE ERRORE CHE VERRA' VISUALIZZATO!
 			//$_SESSION['ERR_MAGLIA'] = $wnr;
@@ -45,12 +45,12 @@
 											WHERE id_team=\"$nome_team\" AND id='$controllo'";
 		}
 	}
-	$res_change = @mysql_query($qry_change);	
+	$res_change = @mysqli_query($qry_change);	
 	
 	if (!$res_change)
 	{
 		echo $qry_change;
-		echo '<br>Errore nella query GIOCATORI: ' . mysql_error();
+		echo '<br>Errore nella query GIOCATORI: ' . mysqli_error();
 		exit();
 	}
 	echo "VERO";

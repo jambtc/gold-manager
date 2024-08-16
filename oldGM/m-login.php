@@ -15,18 +15,18 @@
 	$budget = "ERR!!";
 	
 	$qry = "SELECT * FROM members WHERE team=\"$team\"";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 		
 	if($result)
 	{
-		$member = mysql_fetch_assoc($result);
+		$member = mysqli_fetch_assoc($result);
 		$budget = $member['budget'];
 	}
 		
 	/*
 	$mesi = array(1=>'gennaio','febbraio','marzo','aprile','maggio','giugno','luglio','agosto','settembre','ottobre','novembre','dicembre');
 	$mnum = array(1=>'01','02','03','04','05','06','07','08','09','10','11','12');
-	$giorni = array('domenica','lunedì','martedì','mercoledì','giovedì','venerdì','sabato');
+	$giorni = array('domenica','lunedï¿½','martedï¿½','mercoledï¿½','giovedï¿½','venerdï¿½','sabato');
 	list($sett,$giorno,$mese,$anno) = explode('-',date('w-d-n-Y'));
 	$oggi = $giorni[$sett].' '.$giorno.' '.$mesi[$mese].' '.$anno;
 	*/
@@ -76,7 +76,7 @@
 	<?php
 		$budget = number_format($budget,0,",",".");
  
-		echo "€. ".$budget;
+		echo "ï¿½. ".$budget;
 	?>
 </div>
 </body>

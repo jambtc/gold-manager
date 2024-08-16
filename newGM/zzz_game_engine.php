@@ -51,13 +51,13 @@ function cronometro(n)
 		// LEGGO LA CONFIGURAZIONE
 		$qry = "SELECT * FROM  zz_config WHERE id=1";
 		
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result)
 		{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 		}
-		$row   =   mysql_fetch_array($result);
+		$row   =   mysqli_fetch_array($result);
 		
 		$dataAvvio = $row['data'];
 		$giornoAvvio = $row['giorno'];
@@ -68,7 +68,7 @@ function cronometro(n)
 		$giorno_allenamento = $row['giorno_allenamento'];
 		
 		echo "Adesso sono le ore: ".$oraAdesso." del giorno ".$dataIta; 
-		echo "CONFIGURAZIONE: Inizio Campionato: ".$dataAvvio.", Giorno: ".$giorni[$giornoAvvio].", Orario inizio: ".$orarioAvvio.", Squadre per Serie: ".$squadre_serie.", Base Primavera €: ".$primavera_base.", Ultima Serie: ".$ultima_serie;
+		echo "CONFIGURAZIONE: Inizio Campionato: ".$dataAvvio.", Giorno: ".$giorni[$giornoAvvio].", Orario inizio: ".$orarioAvvio.", Squadre per Serie: ".$squadre_serie.", Base Primavera ï¿½: ".$primavera_base.", Ultima Serie: ".$ultima_serie;
 		?> 
 	</fieldset>
 	
@@ -78,10 +78,10 @@ function cronometro(n)
 		$qry = "SELECT * FROM z_calendario WHERE data>='$dataSql' AND giocata=0";
 		$qry = $qry." ORDER BY data";
 	
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		$conta = 0;
 		
-		while ($row = mysql_fetch_array($result))
+		while ($row = mysqli_fetch_array($result))
 		{
 			$cal_id[] = $row['id_partita'];
 			$cal_serie[] = $row['serie'];
@@ -91,12 +91,12 @@ function cronometro(n)
 			$cal_fuori[] = $row['fuori'];
 			$conta ++;
 		}
-		// break è il numero dopo cui si deve fermare il conteggio delle prossime partite da giocare
+		// break ï¿½ il numero dopo cui si deve fermare il conteggio delle prossime partite da giocare
 		$break = $conta / (($squadre_serie-1)*2); 
-		// visto che ho ordinato per data l'array [0] contiene la prima data utile pertanto è quella con cui si deve giocare la prossima partita!!!
+		// visto che ho ordinato per data l'array [0] contiene la prima data utile pertanto ï¿½ quella con cui si deve giocare la prossima partita!!!
 		$data_prossima = $cal_data[0]; 
 		?>
-		Prossime Partite da Giocare (per un totale di n°<?php echo $break; ?>) il: <?php echo $data_prossima; ?>
+		Prossime Partite da Giocare (per un totale di nï¿½<?php echo $break; ?>) il: <?php echo $data_prossima; ?>
 	</fieldset>
 	<fieldset>
 		<legend><h1 class="h1">Game development</h1></legend>
@@ -160,14 +160,14 @@ function cronometro(n)
 						
 			// SELEZIONO SOLO I FISIOTERAPISTI
 			$qry = "SELECT * FROM staff WHERE s_id_staff=3";
-			$result = mysql_query($qry);
+			$result = mysqli_query($link, $qry);
 			if (!$result)
 			{
-				echo 'Errore nella query di selezione fISIOTERAPISTI: ' . mysql_error();
+				echo 'Errore nella query di selezione fISIOTERAPISTI: ' . mysqli_error();
 				exit();
 			}
 			// CREO ARRAY PER CIASCUNA SQUADRA CON L'EFFICIENZA DELLO STAFF - FISIOTERAPISTA
-			while ($row = mysql_fetch_array($result))
+			while ($row = mysqli_fetch_array($result))
 			{
 				$fisio_team[] = $row['s_id_team'];
 				$fisio_effic[] = (0.9 * $row['s_abi'] * $row['s_mot']) / 100 + $row['s_esp']/8;
@@ -178,11 +178,11 @@ function cronometro(n)
 
 			// SELEZIONO I GIOCATORI
 			$qry = "SELECT * FROM giocatori WHERE data_allenamento < '$dataSql'";
-			$result = mysql_query($qry);
-			$totale = mysql_num_rows($result);
+			$result = mysqli_query($link, $qry);
+			$totale = mysqli_num_rows($result);
 			if (!$result)
 			{
-				echo 'Errore nella query di selezione GIOCATORI: ' . mysql_error();
+				echo 'Errore nella query di selezione GIOCATORI: ' . mysqli_error();
 				exit();
 			}
 			// SE SONO STATI TROVATI GIOCATORI DA AGGIORNARE...
@@ -190,7 +190,7 @@ function cronometro(n)
 			
 			if ($totale != 0)
 			{
-				while ($row = mysql_fetch_array($result))
+				while ($row = mysqli_fetch_array($result))
 				{
 					$giocatore_id[] = $row['id'];
 					$giocatore_fresc[] = $row['fresc'];
@@ -232,10 +232,10 @@ function cronometro(n)
 					}
 					$qry .= "WHERE id='$xyz'";
 					
-					$result = mysql_query($qry);
+					$result = mysqli_query($link, $qry);
 					if (!$result)
 					{
-						echo 'Errore nella query di UPDATE GIOCATORI: ' . mysql_error();
+						echo 'Errore nella query di UPDATE GIOCATORI: ' . mysqli_error();
 						exit();
 					}
 				}

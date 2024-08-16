@@ -23,13 +23,13 @@
 	$serie = $_SESSION['SESS_SERIE'];
 		
 	$qry = "SELECT * FROM  zz_config WHERE id=1";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
     	exit();
 	}
-	$row   =   mysql_fetch_array($result);
+	$row   =   mysqli_fetch_array($result);
 	//$config_data = $row['data'];
 	$config_giorno = $row['giorno'];
 	//$config_orario = $row['orario'];
@@ -60,9 +60,9 @@
 	$qry = "SELECT * FROM z_calendario WHERE serie='$serie' AND data>='$dataSql' AND giocata=0";
 	$qry = $qry." ORDER BY data";
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	
-	while ($row = mysql_fetch_array($result))
+	while ($row = mysqli_fetch_array($result))
 	{
 		if ($row['casa'] == $nome_team or $row['fuori'] == $nome_team)
 		{
@@ -86,8 +86,8 @@
 	if ($casa == $nome_team)
 	{
 		$qry = "SELECT * FROM members WHERE team=\"$fuori\"";
-		$result = mysql_query($qry);
-		$row = mysql_fetch_array($result);
+		$result = mysqli_query($link, $qry);
+		$row = mysqli_fetch_array($result);
 		
 		$my_logos = $_SESSION['SESS_SX'];
 		$my_logod = $_SESSION['SESS_DX'];
@@ -98,8 +98,8 @@
 	{
 		$qry = "SELECT * FROM members WHERE team=\"$casa\"";
 		
-		$result = mysql_query($qry);
-		$row = mysql_fetch_array($result);
+		$result = mysqli_query($link, $qry);
+		$row = mysqli_fetch_array($result);
 		
 		$av_logos = $_SESSION['SESS_SX'];
 		$av_logod = $_SESSION['SESS_DX'];
@@ -163,8 +163,8 @@
 				<?php
 					$num = 0;
 					$qry = "SELECT * FROM notiziario WHERE team=\"$nome_team\" ORDER BY id DESC";
-					$res = mysql_query($qry);
-					$num = mysql_num_rows($res);
+					$res = mysqli_query($link, $qry);
+					$num = mysqli_num_rows($res);
 	
 					if ($num == 0)
 					{	
@@ -175,14 +175,14 @@
 						$a1 = date("Y",$oggi);
 						$dataSql = $a1."-".$m1."-".$g1;
 	
-						$msg = "Benvenuto $nome_utente. Ora sei il nuovo manager della squadra $nome_team.<br>Ricordati che la Dirigenza ha puntato tutto su di te per portare la squadra nella massima serie.<br>Ti è stato affidato un budget di €. 250.000 da far fruttare e 18 giocatori che dovrai allenare al meglio delle tue possibilità.<br>Ora è tutto nelle tue mani. In bocca al lupo.";
+						$msg = "Benvenuto $nome_utente. Ora sei il nuovo manager della squadra $nome_team.<br>Ricordati che la Dirigenza ha puntato tutto su di te per portare la squadra nella massima serie.<br>Ti ï¿½ stato affidato un budget di ï¿½. 250.000 da far fruttare e 18 giocatori che dovrai allenare al meglio delle tue possibilitï¿½.<br>Ora ï¿½ tutto nelle tue mani. In bocca al lupo.";
 						
 						$qry = "INSERT INTO notiziario (team, data, notizia) VALUES (\"$nome_team\", '$dataSql', \"$msg\")";
-						mysql_query($qry);
+						mysqli_query($link, $qry);
 					}
 					$qry = "SELECT * FROM notiziario WHERE team=\"$nome_team\" ORDER BY id DESC";
-					$res = mysql_query($qry);
-					while ($row   =   mysql_fetch_array($res))
+					$res = mysqli_query($link, $qry);
+					while ($row   =   mysqli_fetch_array($res))
 					{
 						$riga = $row['notizia'];
 						$dataSql = $row['data'];
@@ -217,9 +217,9 @@
 				<?php
 					$num = 0;
 					$qry = "SELECT * FROM notizie_serie WHERE g_serie=\"$serie\" ORDER BY g_id DESC";
-					$res = mysql_query($qry);
+					$res = mysqli_query($link, $qry);
 	
-					while ($row   =   mysql_fetch_array($res))
+					while ($row   =   mysqli_fetch_array($res))
 					{
 						$dachi = $row["g_team"];
 						$titolo = $row["g_titolo"];

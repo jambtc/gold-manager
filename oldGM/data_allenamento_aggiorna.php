@@ -46,13 +46,13 @@
 	}
 	
 	
-	$controllo = mysql_query("SELECT * FROM $tabella WHERE a_id_team=\"$nome_team\"");
+	$controllo = mysqli_query($link, "SELECT * FROM $tabella WHERE a_id_team=\"$nome_team\"");
 	if (!$controllo)
 	{
-		echo 'Errore nella query select $tabella: ' . mysql_error();
+		echo 'Errore nella query select $tabella: ' . mysqli_error();
 		exit();
 	}
-	$righe = mysql_num_rows($controllo);
+	$righe = mysqli_num_rows($controllo);
 	
 	if ($righe == 0)   // Se non esiste, inserisco dati a zero e data odierna!!
 	{
@@ -83,7 +83,7 @@
 	}
 	else
 	{
-		$row = mysql_fetch_array($controllo);
+		$row = mysqli_fetch_array($controllo);
 		
 		//CALCOLO DEL MAX BOX
 		for ($id=0; $id < $tot_campi; $id++)
@@ -128,14 +128,14 @@
 		exit;
 	}	
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-		echo "Errore nella query $tabella, insert=$righe " . mysql_error();
+		echo "Errore nella query $tabella, insert=$righe " . mysqli_error();
 		exit();
 	}
 	
-	mysql_close($link);
+	mysqli_close($link);
 	
 	if ($wpagina == 1)
 	{

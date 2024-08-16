@@ -35,10 +35,10 @@
 	
 	$qry = "SELECT * FROM giocatori as g, ruoli as r WHERE g.id_team=\"$nome_team\" and g.pos=r.ruolo_desc order by ".$ordina;
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
     	exit();
 	}
 
@@ -75,7 +75,7 @@
 	<th title='Settimane di contratto'>
 		<a class='a_black' href='team_list.php?ordina=contratto&verso=<?php echo $nuovo_ordine ?>' target='team_list'>Con.</a>
 	</th>
-	<th title='Età'>
+	<th title='Etï¿½'>
 		<a class='a_black' href='team_list.php?ordina=eta&verso=<?php echo $nuovo_ordine ?>' target='team_list'>Et&agrave;</a>
 	</th>
 	<th title='Forza'>
@@ -132,7 +132,7 @@
 <tr>
 <?php 
 	$counter = 0; 
-	while   ($row   =   mysql_fetch_array($result))
+	while   ($row   =   mysqli_fetch_array($result))
 	{
 			switch ($row['pos'])
 			{
@@ -193,7 +193,7 @@
 			case "Dribbling":
 				$immtal = $im_tal[5];
 				break;
-			case "Velocità":
+			case "Velocitï¿½":
 				$immtal = $im_tal[6];
 				break;
 			case "Resistenza":
@@ -205,7 +205,7 @@
 			case "Cross":
 				$immtal = $im_tal[9];
 				break;
-			case "Creatività":
+			case "Creativitï¿½":
 				$immtal = $im_tal[10];
 				break;
 			case "Fiuto del goal":
@@ -301,7 +301,7 @@
 		$counter++; 
 	}
 	echo "<tr height='50'><td>&nbsp;</td></tr></tbody></table>";
-	mysql_close($link);
+	mysqli_close($link);
 ?>
 	
 

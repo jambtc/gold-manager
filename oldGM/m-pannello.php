@@ -45,10 +45,10 @@ function crea()
 									orario='$orario',
 									squadre='$squadre' WHERE id=1";
 	
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result)
 		{
-    		echo 'Errore nella query: ' . mysql_error();
+    		echo 'Errore nella query: ' . mysqli_error();
     		exit();
 		}
 	}
@@ -56,13 +56,13 @@ function crea()
 	{
 		$qry = "SELECT * FROM  zz_config WHERE id=1";
 	
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result)
 		{
-    		echo 'Errore nella query: ' . mysql_error();
+    		echo 'Errore nella query: ' . mysqli_error();
     		exit();
 		}
-		$row   =   mysql_fetch_array($result);
+		$row   =   mysqli_fetch_array($result);
 		
 		$data = $row['data'];
 		$giorno = $row['giorno'];

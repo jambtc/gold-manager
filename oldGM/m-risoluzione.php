@@ -31,7 +31,7 @@ function getBrowserHeight()
 			$_SESSION['SESS_TIPO'];*/
 				
 		//Start session
-		session_start();
+		// session_start();
 		
 		
 		$_SESSION['SESS_ALTEZZA'] = $_GET['altezza'];
@@ -39,8 +39,8 @@ function getBrowserHeight()
 	
 		//echo 	$_SESSION['SESS_ALTEZZA']."<br>".$_SESSION['SESS_LARGHEZZA'];
 		
-		session_write_close();
-		header("location: m-index.php");
+		// session_write_close();
+		// header("location: m-index.php");
 	}
 	
 ?>

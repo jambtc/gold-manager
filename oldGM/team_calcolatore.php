@@ -22,12 +22,12 @@
 		include "connect_db.php";
 	}
 	// CARICO I DATI DEL GIOCATORE CLICCATO
-	$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id='$w_id'");
+	$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id='$w_id'");
 	if (!$result) {
-		echo 'Errore nella query giocatori: ' . mysql_error();
+		echo 'Errore nella query giocatori: ' . mysqli_error();
 		exit();
 	}
-	$row   =   mysql_fetch_array($result) ;
+	$row   =   mysqli_fetch_array($result) ;
 	
 	$wmaglia = $row['nr'];
 	$po = $row['po'];
@@ -56,12 +56,12 @@
 	$formula = "Formula 2";
 	
 	// CARICO I DATI DAL CALCOLATORE
-	$calc_result = mysql_query("SELECT * FROM calcolatore WHERE formula=\"$formula\" ORDER BY ord");
-	if (!$calc_result) { echo 'Errore nella query calcolatore totale: ' . mysql_error(); exit(); }
+	$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE formula=\"$formula\" ORDER BY ord");
+	if (!$calc_result) { echo 'Errore nella query calcolatore totale: ' . mysqli_error(); exit(); }
 	
 	$max = 0;
 	$ii = 1; 
-	while   ($riga   =   mysql_fetch_array($calc_result)) 
+	while   ($riga   =   mysqli_fetch_array($calc_result)) 
 	{
 		// CONTROLLA TUTTI I CASI DELLE CASELLE
 		switch ($ii)
@@ -439,6 +439,6 @@
 	</span>
 	";
 
-mysql_close($link);
+mysqli_close($link);
 ?>
 

@@ -14,7 +14,7 @@
 		if(get_magic_quotes_gpc()) {
 			$str = stripslashes($str);
 		}
-		return mysql_real_escape_string($str);
+		return mysqli_real_escape_string($str);
 	}
 	
 	//Sanitize the POST values
@@ -64,10 +64,10 @@
 	$qry = "INSERT INTO notizie_serie (g_serie,g_team,g_data,g_titolo,g_testo) 
 						VALUES (\"$serie\",\"$nome_team\",\"$datasql\",\"$titolo\",\"$messaggio\")";
 		
-		$result = @mysql_query($qry);
+		$result = @mysqli_query($link, $qry);
 		if (!$result)
 		{
-				echo 'Errore nella query Salvataggio messaggio: ' . mysql_error();
+				echo 'Errore nella query Salvataggio messaggio: ' . mysqli_error();
 				exit();
 		}
 		

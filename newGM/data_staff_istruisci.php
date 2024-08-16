@@ -13,15 +13,15 @@
 	$controllo = $_REQUEST['id'];
 	$nome_team = $_SESSION['SESS_TEAM'];
 	
-	$result = mysql_query("UPDATE staff SET s_addestramento = 14 WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$controllo\"");
+	$result = mysqli_query($link, "UPDATE staff SET s_addestramento = 14 WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$controllo\"");
 	
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
-	$rs2 = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$id\"");
-	$row = mysql_fetch_array($rs2);
+	$rs2 = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" AND s_id_staff=\"$id\"");
+	$row = mysqli_fetch_array($rs2);
 	
 	$dipendente = $row['s_descrizione'];
 	$wstip_15 = number_format(($row['s_sti']*15),0,",",".");
@@ -33,10 +33,10 @@
 	$a1 = date("Y",$oggi);
 	$dataSql = $a1."-".$m1."-".$g1;
 		
-	$msg = "Hai iniziato l'addestramento del tuo <b>$dipendente</b>, pagandolo <b>€. $wstip_15</b>. Non sarà al massimo della condizione per 2 settimane.";
+	$msg = "Hai iniziato l'addestramento del tuo <b>$dipendente</b>, pagandolo <b>ï¿½. $wstip_15</b>. Non sarï¿½ al massimo della condizione per 2 settimane.";
 							
 	$qry = "INSERT INTO notiziario (team, data, notizia) VALUES (\"$nome_team\", '$dataSql', \"$msg\")";
-	mysql_query($qry);
+	mysqli_query($link, $qry);
 	
 	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 	// !! aggiorna budget
@@ -46,7 +46,7 @@
 	// !! messaggio serie
 	// !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 			
-	mysql_close($link);
+	mysqli_close($link);
 ?>
 <h4>Salvataggio effettuato correttamente.</h4>
 	<table>

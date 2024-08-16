@@ -9,14 +9,14 @@
 
 	$qry = "UPDATE staff_mercato SET s_contrattazioni=$contra WHERE s_id_team=\"$nome_team\" AND s_id=$controllo ";
 	
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 	
 	if (!$result)
 	{
-    	echo 'Errore nella query STAFF Mercato: ' . mysql_error();
+    	echo 'Errore nella query STAFF Mercato: ' . mysqli_error();
 	    exit();
 	}
 				
-	mysql_close($link);
+	mysqli_close($link);
 	header("location: staff_contra.php?id=$controllo");
 ?>

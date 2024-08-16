@@ -65,13 +65,13 @@ function take(which)
 	//$immbarretta = "images/barretta.png";
 	//$immvuota = "images/barrettavuota.png";
 
-	$allenamento_result = mysql_query("SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
+	$allenamento_result = mysqli_query($link, "SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
 	if (!$allenamento_result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
-	$row = mysql_fetch_array($allenamento_result);
+	$row = mysqli_fetch_array($allenamento_result);
 
 	$conta = 2;
 	while ($conta <= 9)
@@ -391,7 +391,7 @@ function take(which)
 		 
 		if ($maxbox > 10)
 			{
-				echo "<h5>ERRORE:<br> Non puoi utilizzare più di 10 coupon alla settimana!</h5>";
+				echo "<h5>ERRORE:<br> Non puoi utilizzare piï¿½ di 10 coupon alla settimana!</h5>";
 			}
 	
 	// non mettere /form prima !!!!!

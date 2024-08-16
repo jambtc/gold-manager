@@ -20,12 +20,12 @@ $appoggio= array('f_id_team','f_1','f_2','f_3','f_4','f_5','f_6','f_7','f_8','f_
 
 
 
-$controllo = mysql_query("SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$wformazione\"");
+$controllo = mysqli_query($link, "SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$wformazione\"");
 if (!$controllo) {
- 			echo 'Errore nella query CONTROLLO: ' . mysql_error();
+ 			echo 'Errore nella query CONTROLLO: ' . mysqli_error();
 		    exit();
 }
-$righe=mysql_num_rows($controllo);
+$righe=mysqli_num_rows($controllo);
 if ($righe > 0) { 
 		$qry1 = "UPDATE formazione SET ";
 		$qry2 = "";
@@ -38,9 +38,9 @@ if ($righe > 0) {
 		$qry2 = substr($qry2,0,-2);
 		$qry = $qry1 . $qry2 . " WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$wformazione\"";
 
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result) {
-				echo 'Errore nella query azzera formazione: ' . mysql_error();
+				echo 'Errore nella query azzera formazione: ' . mysqli_error();
 				exit();
 		}
 								
@@ -61,16 +61,16 @@ if ($righe > 0) {
 
 		$qry = $qry1 . $qry2 . ") VALUES (" . $qry3 . " )";
 		//echo $qry;		
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result) {
-			echo 'Errore nella query inserisci azzera formazione: ' . mysql_error();
+			echo 'Errore nella query inserisci azzera formazione: ' . mysqli_error();
 			exit();
 		}
 		
 }
 
 
-mysql_close($link);
+mysqli_close($link);
 
 echo "<script langage=\"Javascript\">";
 echo "window.parent.frames['frame-dx'].location.href='formazione_dx.php?box=0&maglia=0&formazione=$wformazione';";

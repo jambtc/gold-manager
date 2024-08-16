@@ -17,7 +17,7 @@ function clean($str)
 	if(get_magic_quotes_gpc()) {
 		$str = stripslashes($str);
 	}
-	return mysql_real_escape_string($str);
+	return mysqli_real_escape_string($str);
 }
 
 //Start session
@@ -33,13 +33,13 @@ function clean($str)
 	$errflag = false;
 	
 	//Connect to mysql server
-	$link = mysql_connect(DB_HOST, DB_USER, DB_PASSWORD);
+	$link = mysqli_connect(DB_HOST, DB_USER, DB_PASSWORD);
 	if(!$link) {
-		die('Failed to connect to server: ' . mysql_error());
+		die('Failed to connect to server: ' . mysqli_error());
 	}
 	
 	//Select database
-	$db = mysql_select_db(DB_DATABASE);
+	$db = mysqli_select_db(DB_DATABASE);
 	if(!$db) {
 		die("Unable to select database");
 	}
@@ -64,8 +64,8 @@ function clean($str)
 
 	$query = "SELECT * FROM members WHERE login = \"".$_POST['username']."\"";
 
-	$result = mysql_query($query);
-	$row = mysql_fetch_array($result);
+	$result = mysqli_query($query);
+	$row = mysqli_fetch_array($result);
 	$user_id = $row['login'];
 	$user_mail = $row['email'];
 	
@@ -80,7 +80,7 @@ function clean($str)
 	}
 	if($row['email'] != $_POST["email"]) 
 	{
-		$errmsg_arr[] = "Il nome utente non è associato all'indirizzo eMail specificato";
+		$errmsg_arr[] = "Il nome utente non ï¿½ associato all'indirizzo eMail specificato";
 		$errflag = true;
 
 	} 	
@@ -100,10 +100,10 @@ function clean($str)
 		$random_string = rand_string(10);
 		$invio_password = $random_string;
 		$sql = "UPDATE members SET passwd = \"".md5($random_string)."\" WHERE login =\"".$user_id."\"  LIMIT 1";
-		$result = mysql_query($sql);
+		$result = mysqli_query($sql);
 		$headers ="From:administrator\r\n";
 		$subject ="Aggiornamento password";
-		$message ="La tua nuova password è: $invio_password";
+		$message ="La tua nuova password ï¿½: $invio_password";
 	
 		@mail($user_mail, $subject, $message, $headers);
 		if($result) 

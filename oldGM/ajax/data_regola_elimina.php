@@ -7,13 +7,13 @@
 	$id = $_REQUEST['id'];
 	
 	$qry = "DELETE FROM  istruzioni WHERE id='$id'";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 		
 	if (!$result)
 	{
-		echo 'Errore nella query CANCELLA REGOLA: ' . mysql_error();
+		echo 'Errore nella query CANCELLA REGOLA: ' . mysqli_error();
 		exit();
 	}
 
-	mysql_close($link);
+	mysqli_close($link);
 ?>

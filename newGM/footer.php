@@ -1,8 +1,14 @@
 <?php
-	$conta = mysql_query("SELECT * FROM members WHERE 1"); 
-	$res = mysql_query("SELECT visite,totali FROM contatore WHERE pagina = $pagina");
-	$membri = mysql_num_rows($conta);
-	$visite = mysql_fetch_assoc($res);
+	$conta = mysqli_query($link, "SELECT * FROM members WHERE 1"); 
+	$res = mysqli_query($link, "SELECT visite,totali FROM contatore WHERE pagina = $pagina");
+
+	$membri = 0;
+	$visite = 0;
+	if ($conta) $membri = mysqli_num_rows($conta);
+	if ($res) $visite = mysqli_fetch_assoc($res);
+
+	
+	
 ?>
 	<table style="color:#FFFFFF;" border="0" align="center" width='90%'>
 		<tr>

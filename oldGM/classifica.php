@@ -31,8 +31,8 @@
 				<div id='class_serie' >
 					<?php
 						$qry = "SELECT * FROM z_classifica WHERE serie='$serie' ORDER BY punti DESC,(fatti-subiti) DESC";
-						$result = mysql_query($qry);
-						while ($row = mysql_fetch_array($result))
+						$result = mysqli_query($link, $qry);
+						while ($row = mysqli_fetch_array($result))
 						{
 							$squadra[] = $row['team'];
 							$punti[] = $row['punti'];
@@ -94,13 +94,13 @@
 				<?php
 					$id_partita = array();
 					$qry = "SELECT * FROM  zz_config WHERE id=1";
-					$result = mysql_query($qry);
+					$result = mysqli_query($link, $qry);
 					if (!$result)
 					{
-				    	echo 'Errore nella query: ' . mysql_error();
+				    	echo 'Errore nella query: ' . mysqli_error();
 				    	exit();
 					}
-					$row   =   mysql_fetch_array($result);
+					$row   =   mysqli_fetch_array($result);
 					//$config_data = $row['data'];
 					$config_giorno = $row['giorno'];
 					//$config_orario = $row['orario'];
@@ -128,8 +128,8 @@
 					}
 					$qry = "SELECT * FROM z_calendario WHERE serie='$serie' AND data<='$dataSql' AND giocata=1";
 					$qry = $qry." ORDER BY data";
-					$result = mysql_query($qry);
-					while ($row = mysql_fetch_array($result))
+					$result = mysqli_query($link, $qry);
+					while ($row = mysqli_fetch_array($result))
 					{
 						$id_partita[] = $row['id_partita'];
 						$data[] = $row['data'];
@@ -191,13 +191,13 @@
 				<?php
 					$id_partita = array();
 					$qry = "SELECT * FROM  zz_config WHERE id=1";
-					$result = mysql_query($qry);
+					$result = mysqli_query($link, $qry);
 					if (!$result)
 					{
-				    	echo 'Errore nella query: ' . mysql_error();
+				    	echo 'Errore nella query: ' . mysqli_error();
 				    	exit();
 					}
-					$row   =   mysql_fetch_array($result);
+					$row   =   mysqli_fetch_array($result);
 					//$config_data = $row['data'];
 					$config_giorno = $row['giorno'];
 					//$config_orario = $row['orario'];
@@ -232,8 +232,8 @@
 					$qry = $qry." AND data>='$dataSql' AND giocata=0 ";
 					$qry = $qry." ORDER BY data";
 					
-					$result = mysql_query($qry);
-					$row = mysql_fetch_array($result);
+					$result = mysqli_query($link, $qry);
+					$row = mysqli_fetch_array($result);
 					
 					$dataBreak = $row['data'];
 					
@@ -245,7 +245,7 @@
 					$gol_casa[] = $row['gol_casa'];
 					$gol_fuori[]= $row['gol_fuori'];
 					$giocata[]= $row['giocata'];
-					while ($row = mysql_fetch_array($result))
+					while ($row = mysqli_fetch_array($result))
 					{
 						if ($dataBreak == $row['data'])
 						{
@@ -311,8 +311,8 @@
 					<?php
 						$m_squadra = array();
 						$qry = "SELECT * FROM z_marcatori WHERE serie='$serie' ORDER BY gol DESC";
-						$result = mysql_query($qry);
-						while ($row = mysql_fetch_array($result))
+						$result = mysqli_query($link, $qry);
+						while ($row = mysqli_fetch_array($result))
 						{
 							$m_squadra[] = $row['team'];
 							$m_nome[] = $row['nome'];

@@ -5,14 +5,14 @@
 	$nome_utente = $_SESSION['SESS_USER'];
 	$serie = $_SESSION['SESS_SERIE'];
 
-	$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
+	$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" ");
 	if (!$result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
 
-	$totale = mysql_num_rows($result);
+	$totale = mysqli_num_rows($result);
 ?>
 <h1 class="h1">Giocatori&nbsp;(<span id='totale_giocatori'><?php echo $totale ?></span>)</h1>
 

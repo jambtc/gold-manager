@@ -31,8 +31,8 @@
 				<div id='class_serie' >
 					<?php
 						$qry = "SELECT * FROM z_classifica WHERE serie='$serie' ORDER BY punti DESC,(fatti-subiti) DESC";
-						$result = mysql_query($qry);
-						while ($row = mysql_fetch_array($result))
+						$result = mysqli_query($link, $qry);
+						while ($row = mysqli_fetch_array($result))
 						{
 							$squadra[] = $row['team'];
 							$punti[] = $row['punti'];
@@ -91,8 +91,8 @@
 					<?php
 						$m_squadra = array();
 						$qry = "SELECT * FROM z_marcatori WHERE serie='$serie' ORDER BY gol DESC";
-						$result = mysql_query($qry);
-						while ($row = mysql_fetch_array($result))
+						$result = mysqli_query($link, $qry);
+						while ($row = mysqli_fetch_array($result))
 						{
 							$m_squadra[] = $row['team'];
 							$m_nome[] = $row['nome'];
@@ -164,8 +164,8 @@
 						}
 					}
 					$qry = "SELECT * FROM z_calendario WHERE serie='$serie' AND data='$dataSql' AND giocata=1";
-					$result = mysql_query($qry);
-					while ($row = mysql_fetch_array($result))
+					$result = mysqli_query($link, $qry);
+					while ($row = mysqli_fetch_array($result))
 					{
 						$id_partita[] = $row['id_partita'];
 						$data[] = $row['data'];
@@ -245,8 +245,8 @@
 					}
 					
 					$qry = "SELECT * FROM z_calendario WHERE serie='$serie' AND data='$dataSql' AND giocata=0";
-					$result = mysql_query($qry);
-					while ($row = mysql_fetch_array($result))
+					$result = mysqli_query($link, $qry);
+					while ($row = mysqli_fetch_array($result))
 					{
 						$id_partita[] = $row['id_partita'];
 						$data[] = $row['data'];

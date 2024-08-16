@@ -63,14 +63,14 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 	
 	if ($a == 1)
 	{
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" order by skill ");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" order by skill ");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0) {
-			while ($row = mysql_fetch_array($result)){
+			while ($row = mysqli_fetch_array($result)){
 				$nome[] = $row['nome'];
 				$forza[] = $row['skill'];
 				$valore[] = $row['valore'];
@@ -81,7 +81,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 				$condi[] = $row['cond'];
 			}
 			// TOTALE GIOCATORI
-			$totgio = mysql_num_rows($result);
+			$totgio = mysqli_num_rows($result);
 					
 			// GIOCATORE PIU' COSTOSO
 			$wcos = array($valore,$nome);
@@ -155,34 +155,34 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 						
 			echo "<tr>
 					<th height='15' align='right'>Valore rosa</th>
-					<th align='left'>€. $scazzo</th>
+					<th align='left'>ï¿½. $scazzo</th>
 				  </tr>";
 				  
 			echo "<tr>
 					<th height='15' align='right'>Stipendi da pagare</th>
-					<th align='left'>€. $spesa</th>
+					<th align='left'>ï¿½. $spesa</th>
 				  </tr>";
 	
 			echo "<tr>
-					<th height='15' align='right'>Giocatore più costoso</th>
-					<th align='left'>€. $gcos</th>
+					<th height='15' align='right'>Giocatore piï¿½ costoso</th>
+					<th align='left'>ï¿½. $gcos</th>
 					<th align='left'>$gnome</th>
 				  </tr>";
 	
 			echo "<tr>
-					<th height='15' align='right'>Giocatore più giovane</th>
+					<th height='15' align='right'>Giocatore piï¿½ giovane</th>
 					<th align='left'>$wetagiov Anni</th>
 					<th align='left'>$wgiovane</th>
 				  </tr>";
 				 
 			echo "<tr>
-					<th height='15' align='right'>Giocatore più vecchio</th>
+					<th height='15' align='right'>Giocatore piï¿½ vecchio</th>
 					<th align='left'>$wetavecc Anni</th>
 					<th align='left'>$wvecchio</th>
 				  </tr>";
 
 			echo "<tr>
-					<th height='15' align='right'>Età media</th>
+					<th height='15' align='right'>Etï¿½ media</th>
 					<th align='left'>$etamedia Anni</th>
 					<th align='left'>&nbsp;</th>
 				  </tr>";
@@ -224,21 +224,21 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 	
 	if ($a == 2)
 	{
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0) {
-			while ($row = mysql_fetch_array($result)){
+			while ($row = mysqli_fetch_array($result)){
 				$nome[] = $row['nome'];
 				$forza[] = $row['skill'];
 				$goal[] = $row['reti'];
 				$partite[] = $row['part'];
 			}
 			// TOTALE GIOCATORI
-			$totgio = mysql_num_rows($result);
+			$totgio = mysqli_num_rows($result);
 			
 			// LISTA ORDINATA PER I MIGLIORI SKILL
 			$wcos = array($forza,$nome);
@@ -313,20 +313,20 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 		}
 	}
 	if ($a == 3){
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0) {
-			while ($row = mysql_fetch_array($result)){
+			while ($row = mysqli_fetch_array($result)){
 				$nome[] = $row['nome'];
 				$valore[] = $row['valore'];
 				$stip[] = $row['stipendio'];
 			}
 			// TOTALE GIOCATORI
-			$totgio = mysql_num_rows($result);
+			$totgio = mysqli_num_rows($result);
 			
 			// LISTA ORDINATA PER I MIGLIORI valori
 			$wcos = array($valore,$nome);
@@ -364,11 +364,11 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 						echo "<tr>
 								<th>$num&deg;</th>
 								<th align='left'>$wnome</th>
-								<th align='right'>€. $wvalore</th>
+								<th align='right'>ï¿½. $wvalore</th>
 								<td>&nbsp;</td>
 								<th>$num&deg;</th>
 								<th align='left'>$wnome2</th>
-								<th align='right'>€. $wvalore2</th>
+								<th align='right'>ï¿½. $wvalore2</th>
 								
 								</tr>";
 				}
@@ -407,18 +407,18 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 		$esperienza = array(0,0,0,0);
 		$condizione = array(0,0,0,0);
 		
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query select Giocatori: ' . mysql_error();
+		    echo 'Errore nella query select Giocatori: ' . mysqli_error();
 		    exit();
 		}
 
 		// TOTALE GIOCATORI
-		$totgio = mysql_num_rows($result);
+		$totgio = mysqli_num_rows($result);
 		if ($totgio != 0)
 		{
 			$conta = 0;
-			while   ($row   =   mysql_fetch_array($result))
+			while   ($row   =   mysqli_fetch_array($result))
 			{
 				switch ($row['pos'])
 				{
@@ -449,7 +449,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 				$conta ++;
 			} // end while
 					
-			DisegnaGrafico($xx,$yy,$abilita,"Abilità - totale","generated/".$nome_team.$random."_grafico_1t.png",1);
+			DisegnaGrafico($xx,$yy,$abilita,"Abilitï¿½ - totale","generated/".$nome_team.$random."_grafico_1t.png",1);
 			DisegnaGrafico($xx,$yy,$forma,"Forma - totale","generated/".$nome_team.$random."_grafico_2t.png",1);
 			DisegnaGrafico($xx,$yy,$freschezza,"Freschezza - totale","generated/".$nome_team.$random."_grafico_3t.png",1);
 			DisegnaGrafico($xx,$yy,$condizione,"Condizione - totale","generated/".$nome_team.$random."_grafico_4t.png",1);
@@ -460,7 +460,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 			DisegnaGrafico($xx,$yy,$freschezza,"Freschezza - media","generated/".$nome_team.$random."_grafico_3m.png",$totgio);
 			DisegnaGrafico($xx,$yy,$condizione,"Condizione - media","generated/".$nome_team.$random."_grafico_4m.png",$totgio);
 			DisegnaGrafico($xx,$yy,$esperienza,"Esperienza - media","generated/".$nome_team.$random."_grafico_5m.png",$totgio);
-			DisegnaGrafico($xx,$yy,$abilita,"Abilità - media","generated/".$nome_team.$random."_grafico_1m.png",$totgio/100);
+			DisegnaGrafico($xx,$yy,$abilita,"Abilitï¿½ - media","generated/".$nome_team.$random."_grafico_1m.png",$totgio/100);
 			
 			$atletica = $random."_grafico_1";
 			
@@ -471,7 +471,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 					<td width='200'  align='left' valign='middle'>
 						<table border='0' cellpadding='0' cellspacing='0' >
 						<tr><th align='left'>
-							<input name='atletica' value='1' type='radio' onclick='javascript:check(1);' checked>Abilità
+							<input name='atletica' value='1' type='radio' onclick='javascript:check(1);' checked>Abilitï¿½
 						</th></tr>
 						
 						<tr><th align='left'>
@@ -534,16 +534,16 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 		$tecnica = array(0,0,0,0);
 		$tiro = array(0,0,0,0);
 		
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
 		// TOTALE GIOCATORI
-		$totgio = mysql_num_rows($result);
+		$totgio = mysqli_num_rows($result);
 		if ($totgio != 0) {
 			$conta = 0;
-			while   ($row   =   mysql_fetch_array($result))
+			while   ($row   =   mysqli_fetch_array($result))
 			{
 				switch ($row['pos'])
 				{
@@ -680,16 +680,16 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 		$gialli = array(0,0,0,0);
 		$rossi = array(0,0,0,0);
 		
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
 		// TOTALE GIOCATORI
-		$totgio = mysql_num_rows($result);
+		$totgio = mysqli_num_rows($result);
 		if ($totgio !=0) {
 			$conta = 0;
-			while   ($row   =   mysql_fetch_array($result))
+			while   ($row   =   mysqli_fetch_array($result))
 			{
 				switch ($row['pos'])
 				{
@@ -792,16 +792,16 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 		$stipendio = array(0,0,0,0);
 		$valore = array(0,0,0,0);
 		
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
 		// TOTALE GIOCATORI
-		$totgio = mysql_num_rows($result);
+		$totgio = mysqli_num_rows($result);
 		if ($totgio != 0) {
 			$conta = 0;
-			while   ($row   =   mysql_fetch_array($result))
+			while   ($row   =   mysqli_fetch_array($result))
 			{
 				switch ($row['pos'])
 				{
@@ -874,14 +874,14 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 	}
 	
 	if ($a == 8){
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0) {
-			while ($rig = mysql_fetch_array($result)){
+			while ($rig = mysqli_fetch_array($result)){
 				$nome[] = $rig['nome'];
 				$wskill[] = $rig['skill'];
 				$wpo[] = $rig['po'];
@@ -896,7 +896,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 				
 			}
 			// TOTALE GIOCATORI
-			$totgio = mysql_num_rows($result);
+			$totgio = mysqli_num_rows($result);
 			
 			// LISTA ORDINATA PER I MIGLIORI valori
 			$wportiere = array($wpo,$nome);
@@ -978,14 +978,14 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 	}	
 	
 	if ($a == 9){
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result) {
-		    echo 'Errore nella query select Giocatori: ' . mysql_error();
+		    echo 'Errore nella query select Giocatori: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0) {
-			while ($rig = mysql_fetch_array($result)){
+			while ($rig = mysqli_fetch_array($result)){
 				$nome[] = $rig['nome'];
 				$nr[] = $rig['nr'];
 				$wskill[] = $rig['skill'];
@@ -1003,7 +1003,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 				
 			}
 			// TOTALE GIOCATORI
-			$totgio = mysql_num_rows($result);
+			$totgio = mysqli_num_rows($result);
 			$formula = "Formula 2";
 			$xpor = "";
 			$xdfs = "";
@@ -1049,12 +1049,12 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 					$controllo = 15; // valore dell'esperienza	
 					
 					// CARICO I DATI DAL CALCOLATORE
-					$calc_result = mysql_query("SELECT * FROM calcolatore WHERE formula='$formula' ORDER BY ord");
-					if (!$calc_result) { echo 'Errore nella query calcolatore: ' . mysql_error(); exit(); }
+					$calc_result = mysqli_query($link, "SELECT * FROM calcolatore WHERE formula='$formula' ORDER BY ord");
+					if (!$calc_result) { echo 'Errore nella query calcolatore: ' . mysqli_error(); exit(); }
 					
 					$max = 0;
 					$ii = 1; 
-					while   ($riga   =   mysql_fetch_array($calc_result)) 
+					while   ($riga   =   mysqli_fetch_array($calc_result)) 
 					{
 						// CONTROLLA TUTTI I CASI DELLE CASELLE
 						switch ($ii) { 
@@ -1419,18 +1419,18 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 	
 	if ($a == 10 or $a == 11 or $a == 12 or $a == 13)
 	{
-		$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\"");
 		if (!$result)
 		{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 		}
 	
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0)
 		{
 			$conta = 0;
-			while ($rig = mysql_fetch_array($result))
+			while ($rig = mysqli_fetch_array($result))
 			{
 				$nome[] = $rig['nome'];
 				$wskill[] = $rig['skill'];
@@ -1479,7 +1479,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 					
 					case 12:	// calcia angoli
 						$quale = "battitore di calci d'angolo";
-						if ($wtalento[$conta] == "Calcio d´angolo")
+						if ($wtalento[$conta] == "Calcio dï¿½angolo")
 						{	
 							$conteggio_angoli = ($wtc[$conta]*1.3+$wcr[$conta])*(2*$wqta[$conta]);
 						}
@@ -1593,24 +1593,24 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 	
 	if ($a == 14)
 	{
-		$result = mysql_query("SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
+		$result = mysqli_query($link, "SELECT * FROM allena_tattiche WHERE a_id_team=\"$nome_team\"");
 		if (!$result)
 		{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 		}
-		$rig = mysql_fetch_array($result) ;
-		$totale = mysql_num_rows($result);
+		$rig = mysqli_fetch_array($result) ;
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0)
 		{
 			// CREO ELENCO DELLE TATTICHE E MARCATURE
-			$tattica_result = mysql_query("SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
+			$tattica_result = mysqli_query($link, "SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
 			if (!$tattica_result) {
-		    echo 'Errore nella query bonus tattica: ' . mysql_error();
+		    echo 'Errore nella query bonus tattica: ' . mysqli_error();
 		    exit();
 			}
 			$conta = 0;
-			while   ($row   =   mysql_fetch_array($tattica_result))
+			while   ($row   =   mysqli_fetch_array($tattica_result))
 			{
 				$ListaTattica[$conta] = $row['t_descrizione'];
 				$conta++;
@@ -1671,15 +1671,15 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 	
 	if ($a == 41) // statistiche staff
 	{
-		$result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ORDER BY s_id_staff");
+		$result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$nome_team\" ORDER BY s_id_staff");
 		if (!$result) {
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0)
 		{
-			while ($row = mysql_fetch_array($result))
+			while ($row = mysqli_fetch_array($result))
 			{
 				$nome[] = $row['s_descrizione'];
 				$id[] = $row['s_id_staff'];
@@ -1691,7 +1691,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 				$fil[] = $row['s_fil'];
 			}
 			// TOTALE GIOCATORI
-			$totstaff = mysql_num_rows($result);
+			$totstaff = mysqli_num_rows($result);
 					
 			echo "<div id='MsgPausa'>";
 			echo "<div  id='s_listastaff'>";
@@ -1771,17 +1771,17 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 		
 		$qry = "SELECT * FROM giocatori as g, ruoli as r WHERE g.id_team=\"$nome_team\" and g.pos=r.ruolo_desc ORDER BY r.ruolo_order";
 	
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		
 		if (!$result) 
 		{
-		    echo 'Errore nella query: ' . mysql_error();
+		    echo 'Errore nella query: ' . mysqli_error();
 		    exit();
 		}
-		$totale = mysql_num_rows($result);
+		$totale = mysqli_num_rows($result);
 		if ($totale != 0)
 		{
-			while ($row = mysql_fetch_array($result))
+			while ($row = mysqli_fetch_array($result))
 			{
 				$id[] = $row['id'];
 				$nr[] = $row['nr'];
@@ -1801,7 +1801,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 				$qta[] = $row['qta'];
 			}
 			// TOTALE GIOCATORI
-			$totgiocatori = mysql_num_rows($result);
+			$totgiocatori = mysqli_num_rows($result);
 					
 			echo "<div id='MsgPausa'>";
 			echo "<div  id='s_listagiocatori'>";
@@ -1884,7 +1884,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 					case "Dribbling":
 						$immtal = $im_tal[5];
 						break;
-					case "Velocità":
+					case "Velocitï¿½":
 						$immtal = $im_tal[6];
 						break;
 					case "Resistenza":
@@ -1896,7 +1896,7 @@ function DisegnaGrafico($x,$y,$array,$titolo,$file,$giocatori)
 					case "Cross":
 						$immtal = $im_tal[9];
 						break;
-					case "Creatività":
+					case "Creativitï¿½":
 						$immtal = $im_tal[10];
 						break;
 					case "Fiuto del goal":

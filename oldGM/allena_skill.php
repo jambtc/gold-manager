@@ -62,13 +62,13 @@ function take(which)
 	//$immbarretta = "images/barretta.png";
 	//$immvuota = "images/barrettavuota.png";
 
-	$allenamento_result = mysql_query("SELECT * FROM allena_skill WHERE a_id_team=\"$nome_team\"");
+	$allenamento_result = mysqli_query($link, "SELECT * FROM allena_skill WHERE a_id_team=\"$nome_team\"");
 	if (!$allenamento_result)
 	{
-    	echo 'Errore nella query: ' . mysql_error();
+    	echo 'Errore nella query: ' . mysqli_error();
 	    exit();
 	}
-	$row = mysql_fetch_array($allenamento_result);
+	$row = mysqli_fetch_array($allenamento_result);
 
 	$conta = 2;
 	while ($conta <= 11)
@@ -452,7 +452,7 @@ echo "
 	 echo"</table>";
 	 if ($maxbox > 15)
 		{
-			echo "<h5>ERRORE:<br> Non puoi utilizzare più di 15 coupon alla settimana!</h5>";
+			echo "<h5>ERRORE:<br> Non puoi utilizzare piï¿½ di 15 coupon alla settimana!</h5>";
 		}
 		
 

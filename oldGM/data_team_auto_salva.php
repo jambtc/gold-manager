@@ -24,13 +24,13 @@
 
 	
 	//AGGIORNAMENTO FORMAZIONE
-	$controllo = mysql_query("SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$formazione\" ");
+	$controllo = mysqli_query($link, "SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$formazione\" ");
 	if (!$controllo)
 	{
-		echo 'Errore nella query: ' . mysql_error();
+		echo 'Errore nella query: ' . mysqli_error();
 		exit();
 	}
-	$righe = mysql_num_rows($controllo);
+	$righe = mysqli_num_rows($controllo);
 		
 	if ($righe > 0)
 	{ 
@@ -46,11 +46,11 @@
 		$qry2 = substr($qry2,0,-2);
 		$qry = $qry1 . $qry2 . " WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$formazione\"";
 	
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 					
 		if (!$result)
 		{
-			echo 'Errore nella query aggiorna a Dx: ' . mysql_error();
+			echo 'Errore nella query aggiorna a Dx: ' . mysqli_error();
 			exit();
 		}
 	}
@@ -73,32 +73,32 @@
 					
 		$qry = $qry1 . $qry2 . ") VALUES (" . $qry3 . ")";
 		
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result) 
 		{
-			echo 'Errore nella query inserisci a Dx: ' . mysql_error();
+			echo 'Errore nella query inserisci a Dx: ' . mysqli_error();
 			exit();
 		}
 	}
 	
 	// AGGIORNAMENTO TATTICHE
-	$controllo = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
+	$controllo = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$nome_team\"");
 	if (!$controllo)
 	{
-    	echo 'Errore nella query tattica: ' . mysql_error();
+    	echo 'Errore nella query tattica: ' . mysqli_error();
 	    exit();
 	}
 
-	$righe = mysql_num_rows($controllo);
+	$righe = mysqli_num_rows($controllo);
 	if ($righe == 0)   // Se non esiste la tattica, inserisco!
 	{
 		$qry = "INSERT INTO tattica (t_id_team, t_tattica, t_marcatura) 
 						VALUES (\"$nome_team\",\"$tattica\",\"$marcatura\")";
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 	
 		if (!$result)
 		{
-    		echo 'Errore nella query inserimento tattica: ' . mysql_error();
+    		echo 'Errore nella query inserimento tattica: ' . mysqli_error();
 		    exit();
 		}
 	}
@@ -106,14 +106,14 @@
 	{
 		$qry = "UPDATE tattica SET  t_tattica = \"$tattica\", t_marcatura = \"$marcatura\"
 									WHERE t_id_team = \"$nome_team\"";
-		$result = mysql_query($qry);
+		$result = mysqli_query($link, $qry);
 		if (!$result)
 		{
-    		echo 'Errore nella query aggiornamento tattica: ' . mysql_error();
+    		echo 'Errore nella query aggiornamento tattica: ' . mysqli_error();
 		    exit();
 		}
 	}
-	mysql_close($link);
+	mysqli_close($link);
 	
 	header("location: team_auto_dx.php");
 ?>

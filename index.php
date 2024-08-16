@@ -1,3 +1,2 @@
-<?php 
-		include("test/wip.php");
-?>
+<?php
+	header('Location: newGM/');

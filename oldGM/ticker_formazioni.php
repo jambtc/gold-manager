@@ -15,13 +15,13 @@
 	$ID_PARTITA = $_GET['id'];
 	
 	$qry = "SELECT * FROM z_calendario WHERE id_partita='$ID_PARTITA'";
-	$result = mysql_query($qry);
-	$row_calendario = mysql_fetch_array($result);	
+	$result = mysqli_query($link, $qry);
+	$row_calendario = mysqli_fetch_array($result);	
 	
 	//CARICO I DATI DELLA PARTITA
 	$qry = "SELECT * FROM z_partita WHERE id_partita='$ID_PARTITA'";
-	$result = mysql_query($qry);
-	$row_partita = mysql_fetch_array($result);
+	$result = mysqli_query($link, $qry);
+	$row_partita = mysqli_fetch_array($result);
 	
 	// stabilisce se gioca in casa o fuori
 	if ($row_calendario['casa'] == $nome_team)
@@ -142,14 +142,14 @@
 	}
 	/*
 	// CREO ELENCO DELLE TATTICHE E MARCATURE
-	$tattica_result = mysql_query("SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
+	$tattica_result = mysqli_query($link, "SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
 	if (!$tattica_result)
 	{
-		echo 'Errore nella query bonus tattica: ' . mysql_error();
+		echo 'Errore nella query bonus tattica: ' . mysqli_error();
 		exit();
 	}
 	$conta = 1;
-	while   ($row   =   mysql_fetch_array($tattica_result)) {
+	while   ($row   =   mysqli_fetch_array($tattica_result)) {
 		$ListaTattica[$conta] = $row['t_descrizione'];
 		//array contenente bonus tattiche e marcature
 		$Bonus[$ListaTattica[$conta]] = array($row['t_id'],$row['q1'],$row['q2'],$row['q3'],$row['q4'],$row['q5'],
@@ -158,14 +158,14 @@
 	}
 	
 	// CARICO L'EFFICIENZA DEGLI ALLENATORI squadra di casa
-	$all_result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$sq_casa\" ");
+	$all_result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$sq_casa\" ");
 	if (!$all_result)
 	{
-		echo 'Errore nella query allenatore: ' . mysql_error();
+		echo 'Errore nella query allenatore: ' . mysqli_error();
 		exit();
 	}
 	
-	while ($row   =   mysql_fetch_array($all_result)){
+	while ($row   =   mysqli_fetch_array($all_result)){
 		$effic = (0.9 * $row['s_abi'] * $row['s_mot']) / 100 + $row['s_esp']/8;
 		switch ($row['s_descrizione']) {
 		case "Allenatore":
@@ -181,14 +181,14 @@
 		}
 	}
 	// CARICO L'EFFICIENZA DEGLI ALLENATORI squadra avversaria
-	$av_all_result = mysql_query("SELECT * FROM staff WHERE s_id_team=\"$sq_fuori\" ");
+	$av_all_result = mysqli_query($link, "SELECT * FROM staff WHERE s_id_team=\"$sq_fuori\" ");
 	if (!$av_all_result)
 	{
-		echo 'Errore nella query allenatore avversario: ' . mysql_error();
+		echo 'Errore nella query allenatore avversario: ' . mysqli_error();
 		exit();
 	}
 	
-	while ($av_row   =   mysql_fetch_array($av_all_result))
+	while ($av_row   =   mysqli_fetch_array($av_all_result))
 	{
 		$av_effic = (0.9 * $av_row['s_abi'] * $av_row['s_mot']) / 100 + $av_row['s_esp']/8;
 		switch ($av_row['s_descrizione'])
@@ -207,32 +207,32 @@
 	}
 	
 	// CARICO TABELLA BONUS ALLENATORE squadra casa
-	$all_result = mysql_query("SELECT * FROM bonus_allenatore WHERE b_descrizione = \"$filosofia\" ");
+	$all_result = mysqli_query($link, "SELECT * FROM bonus_allenatore WHERE b_descrizione = \"$filosofia\" ");
 	if (!$all_result) {
-		echo 'Errore nella query bonus allenatore: ' . mysql_error();
+		echo 'Errore nella query bonus allenatore: ' . mysqli_error();
 		exit();
 	}
-	$row = mysql_fetch_array($all_result);
+	$row = mysqli_fetch_array($all_result);
 	$bonus_allenatore = array($row['b_dif'],$row['b_cen'],$row['b_att']);
 	
 	// CARICO TABELLA BONUS ALLENATORE squadra avversaria
-	$av_all_result = mysql_query("SELECT * FROM bonus_allenatore WHERE b_descrizione = \"$av_filosofia\" ");
+	$av_all_result = mysqli_query($link, "SELECT * FROM bonus_allenatore WHERE b_descrizione = \"$av_filosofia\" ");
 	if (!$av_all_result)
 	{
-		echo 'Errore nella query bonus allenatore avversario: ' . mysql_error();
+		echo 'Errore nella query bonus allenatore avversario: ' . mysqli_error();
 		exit();
 	}
-	$av_row = mysql_fetch_array($av_all_result);
+	$av_row = mysqli_fetch_array($av_all_result);
 	$av_bonus_allenatore = array($av_row['b_dif'],$av_row['b_cen'],$av_row['b_att']);
 	
 	// CARICO LA TATTICA E LA MARCATURA DEL TEAM di casa
-	$tipo_result = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$sq_casa\" ");
+	$tipo_result = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$sq_casa\" ");
 	if (!$tipo_result)
 	{
-		echo 'Errore nella query tattica: ' . mysql_error();
+		echo 'Errore nella query tattica: ' . mysqli_error();
 		exit();
 	}
-	$row   =   mysql_fetch_array($tipo_result);
+	$row   =   mysqli_fetch_array($tipo_result);
 	$TipoTattica = $row['t_tattica'];
 	$TipoMarcatura = $row['t_marcatura'];
 	$TipoBonus = "SI"; //$row['t_bonus'];
@@ -244,13 +244,13 @@
 	}
 	
 	// CARICO LA TATTICA E LA MARCATURA DEL TEAM avversario
-	$av_tipo_result = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$sq_fuori\" ");
+	$av_tipo_result = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$sq_fuori\" ");
 	if (!$av_tipo_result)
 	{
-		echo 'Errore nella query tattica avversario: ' . mysql_error();
+		echo 'Errore nella query tattica avversario: ' . mysqli_error();
 		exit();
 	}
-	$av_row   =   mysql_fetch_array($av_tipo_result);
+	$av_row   =   mysqli_fetch_array($av_tipo_result);
 	$av_TipoTattica = $av_row['t_tattica'];
 	$av_TipoMarcatura = $av_row['t_marcatura'];
 	$av_TipoBonus = "SI"; //$av_row['t_bonus'];
@@ -263,13 +263,13 @@
 	*/
 	//CARICO LA FORMAZIONE DEL TEAM di casa
 	$qry = "SELECT * FROM z_formazione WHERE id_partita='$ID_PARTITA' AND f_id_team=\"$sq_casa\"";
-	$formazione_result = mysql_query($qry);
+	$formazione_result = mysqli_query($link, $qry);
 	if (!$formazione_result)
 	{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 	}
-	$row   =   mysql_fetch_array($formazione_result);
+	$row   =   mysqli_fetch_array($formazione_result);
 	$conta = 1;
 
 	while ($conta < 71) 
@@ -315,13 +315,13 @@
 	
 	//CARICO LA FORMAZIONE DEL TEAM AVVERSARIO
 	$qry = "SELECT * FROM z_formazione WHERE id_partita='$ID_PARTITA' AND f_id_team=\"$sq_fuori\"";
-	$formazione_result = mysql_query($qry);
+	$formazione_result = mysqli_query($link, $qry);
 	if (!$formazione_result)
 	{
-			echo 'Errore nella query: ' . mysql_error();
+			echo 'Errore nella query: ' . mysqli_error();
 			exit();
 	}
-	$row   =   mysql_fetch_array($formazione_result);
+	$row   =   mysqli_fetch_array($formazione_result);
 	$conta = 1;
 
 	while ($conta < 71) 

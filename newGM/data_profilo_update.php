@@ -17,7 +17,7 @@
 		if(get_magic_quotes_gpc()) {
 			$str = stripslashes($str);
 		}
-		return mysql_real_escape_string($str);
+		return mysqli_real_escape_string($str);
 	}
 	
 	//Sanitize the POST values
@@ -61,7 +61,7 @@
 							
 							WHERE login=\"$login\"";
 	
-	$result = @mysql_query($qry);
+	$result = @mysqli_query($link, $qry);
 	
 	//Check whether the query was successful or not
 	if($result) {

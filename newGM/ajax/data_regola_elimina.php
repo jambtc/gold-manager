@@ -7,11 +7,11 @@
 	$id = $_REQUEST['id'];
 	
 	$qry = "DELETE FROM  istruzioni WHERE id='$id'";
-	$result = mysql_query($qry);
+	$result = mysqli_query($link, $qry);
 		
 	if (!$result)
 	{
-		echo 'Errore nella query CANCELLA REGOLA: ' . mysql_error();
+		echo 'Errore nella query CANCELLA REGOLA: ' . mysqli_error();
 		exit();
 	}
 	
@@ -52,25 +52,25 @@ for ($x=1; $x <91; $x++)
 	$minuti[] = $x;
 }
 // CREO ELENCO DELLE CONDIZIONI
-$condi_result = mysql_query("SELECT * FROM condizioni WHERE 1 ORDER BY id");
+$condi_result = mysqli_query($link, "SELECT * FROM condizioni WHERE 1 ORDER BY id");
 if (!$condi_result) {
-    echo 'Errore nella query Condizioni: ' . mysql_error();
+    echo 'Errore nella query Condizioni: ' . mysqli_error();
     exit();
 }
-while   ($row   =   mysql_fetch_array($condi_result))
+while   ($row   =   mysqli_fetch_array($condi_result))
 {
 	$Cond_id[] = $row['id'];
 	$Cond_desc[] = $row['descrizione'];
 }
 
 // CREO ELENCO DELLE TATTICHE E MARCATURE
-$tattica_result = mysql_query("SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
+$tattica_result = mysqli_query($link, "SELECT * FROM bonus_tattica WHERE 1 ORDER BY t_id");
 if (!$tattica_result) {
-    echo 'Errore nella query bonus tattica: ' . mysql_error();
+    echo 'Errore nella query bonus tattica: ' . mysqli_error();
     exit();
 }
 $conta = 1;
-while   ($row   =   mysql_fetch_array($tattica_result))
+while   ($row   =   mysqli_fetch_array($tattica_result))
 {
 	$ListaTattica[$conta] = $row['t_descrizione'];
 	$conta++;
@@ -78,12 +78,12 @@ while   ($row   =   mysql_fetch_array($tattica_result))
 $listaRegole = array_merge($ListaTattica, $lista_impegno, $lista_fuorigioco);
 
 // CARICO LA FORMAZIONE SU CUI AGIRE
-$tipo_result = mysql_query("SELECT * FROM tattica WHERE t_id_team=\"$nome_team\" ");
+$tipo_result = mysqli_query($link, "SELECT * FROM tattica WHERE t_id_team=\"$nome_team\" ");
 if (!$tipo_result) {
-    echo 'Errore nella query tattica: ' . mysql_error();
+    echo 'Errore nella query tattica: ' . mysqli_error();
     exit();
 }
-$row   =   mysql_fetch_array($tipo_result);
+$row   =   mysqli_fetch_array($tipo_result);
 $QualeFormazione = $row['t_formazione']; 
 
 if ($QualeFormazione == "")
@@ -91,12 +91,12 @@ if ($QualeFormazione == "")
 	$QualeFormazione = "Formazione 1";
 }
 //CARICO LA FORMAZIONE SELEZIONATA DEL TEAM
-$formazione_result = mysql_query("SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$QualeFormazione\" ");
+$formazione_result = mysqli_query($link, "SELECT * FROM formazione WHERE f_id_team=\"$nome_team\" AND f_formazione=\"$QualeFormazione\" ");
 if (!$formazione_result) {
-		echo 'Errore nella query: ' . mysql_error();
+		echo 'Errore nella query: ' . mysqli_error();
 		exit();
 }
-$row   =   mysql_fetch_array($formazione_result);
+$row   =   mysqli_fetch_array($formazione_result);
 $conta = 1;
 while ($conta <70)
 {
@@ -110,15 +110,15 @@ while ($conta <70)
 
 
 // CARICO LE ISTRUZIONI
-$istruzioni_result = mysql_query("SELECT * FROM istruzioni WHERE id_team=\"$nome_team\" AND formazione=\"$QualeFormazione\" ORDER BY min");
+$istruzioni_result = mysqli_query($link, "SELECT * FROM istruzioni WHERE id_team=\"$nome_team\" AND formazione=\"$QualeFormazione\" ORDER BY min");
 if (!$istruzioni_result) {
-    echo 'Errore nella query istruzioni: ' . mysql_error();
+    echo 'Errore nella query istruzioni: ' . mysqli_error();
     exit();
 }
 
 $regola_sos = 0;
 $regola_reg = 0;
-while   ($row   =   mysql_fetch_array($istruzioni_result))
+while   ($row   =   mysqli_fetch_array($istruzioni_result))
 {
 	$id_regola[] = $row['id'];
 	$tipo_regola[] = $row['tipologia'];
@@ -155,13 +155,13 @@ foreach ($riquadro as $riga)
 {
 	if ($riga != 0)
 	{
-		$ricerca = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND nr=\"$riga\" ");
+		$ricerca = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND nr=\"$riga\" ");
 		if (!$ricerca)
 		{
-			echo 'Errore nella query RICERCA DATI GIOCATORI: ' . mysql_error();
+			echo 'Errore nella query RICERCA DATI GIOCATORI: ' . mysqli_error();
 			exit();
 		}
-		$rig   =   mysql_fetch_array($ricerca);
+		$rig   =   mysqli_fetch_array($ricerca);
 		
 		if ($conta <65)
 		{

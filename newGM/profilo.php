@@ -15,14 +15,14 @@
 $nome_team = $_SESSION['SESS_TEAM'];
 $privilegi = $_SESSION['SESS_PRIVILEGI'];
 
-$result = mysql_query("SELECT * FROM members WHERE team=\"$nome_team\"");
+$result = mysqli_query($link, "SELECT * FROM members WHERE team=\"$nome_team\"");
 if (!$result)
 {
-    echo 'Errore nella query: ' . mysql_error();
+    echo 'Errore nella query: ' . mysqli_error();
     exit();
 }
 
-$row   =   mysql_fetch_array($result);
+$row   =   mysqli_fetch_array($result);
 
 
 $IdUtente = $row['login'];
@@ -190,8 +190,8 @@ $cPwd = "";
 				if ($privilegi == 1) 
 				{
 				
-				$result = mysql_query("SELECT * FROM members WHERE 1");
-				while ($row   =   mysql_fetch_array($result))
+				$result = mysqli_query($link, "SELECT * FROM members WHERE 1");
+				while ($row   =   mysqli_fetch_array($result))
 				{	
 					$squadra[] = $row['team'];
 				}

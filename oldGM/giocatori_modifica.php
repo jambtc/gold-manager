@@ -22,7 +22,7 @@ function Vendita(arg1,arg2,arg3,arg4)
 	
 	prezzo = valore - penale_banca - penale_contratto - penale_esperienza;
    
-  	if (!(confirm("ATTENZIONE!\r\nPer la vendita del giocatore verranno effettuate queste trattenute:\r\n\r\n- incasso BANCA CENTRALE pari al 10% :  €. "+penale_banca+"\r\n- penale sulla durata del contratto          :  €. "+penale_contratto+"\r\n- penale sull'esperienza del giocatore      :  €. "+penale_esperienza+"\r\n\r\nPertanto incasserai dalla vendita :  €. "+prezzo+"\r\n\r\n\r\nConfermi la vendita al prezzo di  €. "+prezzo+" ?")))
+  	if (!(confirm("ATTENZIONE!\r\nPer la vendita del giocatore verranno effettuate queste trattenute:\r\n\r\n- incasso BANCA CENTRALE pari al 10% :  ï¿½. "+penale_banca+"\r\n- penale sulla durata del contratto          :  ï¿½. "+penale_contratto+"\r\n- penale sull'esperienza del giocatore      :  ï¿½. "+penale_esperienza+"\r\n\r\nPertanto incasserai dalla vendita :  ï¿½. "+prezzo+"\r\n\r\n\r\nConfermi la vendita al prezzo di  ï¿½. "+prezzo+" ?")))
   	{
     	return false;
 	}
@@ -87,7 +87,7 @@ function Modifica(quanto)
 	document.getElementById('wdata4').value = nuovo_contratto;
 	
 	document.getElementById('visualizza_cont').innerHTML = nuovo_contratto;
-	document.getElementById('visualizza_stip').innerHTML = "€. "+nuovo_stipendio;
+	document.getElementById('visualizza_stip').innerHTML = "ï¿½. "+nuovo_stipendio;
 	document.getElementById('puloff').style.display = "none";
 	document.getElementById('pulon').style.display = "inline";
 	
@@ -122,7 +122,7 @@ $trova = $_REQUEST['id'];
 
 if (isset($_REQUEST['err']))
 {
-	echo "<script>javascript:alert('ERRORE! Numero di maglia ($_REQUEST[err]) già assegnato!');</script>";
+	echo "<script>javascript:alert('ERRORE! Numero di maglia ($_REQUEST[err]) giï¿½ assegnato!');</script>";
 }
 
 
@@ -147,46 +147,46 @@ $im_piede = array("p_destro.png","p_sinistro.png","p_ambidestro.png");
 	$quale_ruolo['XX'] = "(XX) Jolly"; 
 
 //CARICO TABELLA RUOLI
-$ruoli_result = mysql_query("SELECT * FROM ruoli ORDER BY ruolo_order ASC");
+$ruoli_result = mysqli_query($link, "SELECT * FROM ruoli ORDER BY ruolo_order ASC");
 if (!$ruoli_result) {
-    echo 'Errore nella query ruoli: ' . mysql_error();
+    echo 'Errore nella query ruoli: ' . mysqli_error();
     exit();
 }
 $conta = 0;
-while   ($row   =   mysql_fetch_array($ruoli_result)) {
+while   ($row   =   mysqli_fetch_array($ruoli_result)) {
 	$ruolo[$conta] = $row['ruolo_desc'];
 	$conta++;
 }
 // CREO ELENCO DEI CARATTERI DEL GIOCATORE
-$caratteri_result = mysql_query("SELECT * FROM caratteri WHERE id_carattere='giocatore' ORDER BY descrizione");
+$caratteri_result = mysqli_query($link, "SELECT * FROM caratteri WHERE id_carattere='giocatore' ORDER BY descrizione");
 if (!$caratteri_result) {
-    echo 'Errore nella query caratteri: ' . mysql_error();
+    echo 'Errore nella query caratteri: ' . mysqli_error();
     exit();
 }
 $conta = 0;
-while   ($row   =   mysql_fetch_array($caratteri_result)) {
+while   ($row   =   mysqli_fetch_array($caratteri_result)) {
 	$caratteri[$conta] = $row['descrizione'];
 	$conta++;
 }
 //CARICO TABELLA TALENTI
-$talenti_result = mysql_query("SELECT * FROM talenti WHERE 1");
+$talenti_result = mysqli_query($link, "SELECT * FROM talenti WHERE 1");
 if (!$talenti_result) {
-    echo 'Errore nella query talenti: ' . mysql_error();
+    echo 'Errore nella query talenti: ' . mysqli_error();
     exit();
 }
 $conta = 0;
-while   ($row   =   mysql_fetch_array($talenti_result)) {
+while   ($row   =   mysqli_fetch_array($talenti_result)) {
 	$talento[$conta] = $row['tal_descrizione'];
 	$conta++;
 }
 
-$result = mysql_query("SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id=\"$trova\"");
+$result = mysqli_query($link, "SELECT * FROM giocatori WHERE id_team=\"$nome_team\" AND id=\"$trova\"");
 if (!$result) {
-    echo 'Errore nella query giocatori: ' . mysql_error();
+    echo 'Errore nella query giocatori: ' . mysqli_error();
     exit();
 }
-$row   =   mysql_fetch_array($result);
-mysql_close($link);
+$row   =   mysqli_fetch_array($result);
+mysqli_close($link);
 
 $mostra_ruolo = $quale_ruolo[$row['pos']];
 
@@ -210,7 +210,7 @@ switch ($row['talento'])
 			case "Dribbling":
 				$immtal = $im_tal[5];
 				break;
-			case "Velocità":
+			case "Velocitï¿½":
 				$immtal = $im_tal[6];
 				break;
 			case "Resistenza":
@@ -222,7 +222,7 @@ switch ($row['talento'])
 			case "Cross":
 				$immtal = $im_tal[9];
 				break;
-			case "Creatività":
+			case "Creativitï¿½":
 				$immtal = $im_tal[10];
 				break;
 			case "Fiuto del goal":
@@ -282,7 +282,7 @@ echo "		<fieldset id='dati_personali'>";
 echo "			<table width='100%' border='0'>";
 echo "			<tr style='font-size: 14px; color:#FFFF00; font-family:Geneva, Arial, Helvetica, sans-serif; '>
 					<th  style='background-color:#009000;' width='10' align='left'>Maglia</td>	
-					<th style='background-color:#009000;' width='10' align='left'>Età </td>
+					<th style='background-color:#009000;' width='10' align='left'>Etï¿½ </td>
 					<th style='background-color:#009000;' width='10' align='left'>Skill </td>
 					<th style='background-color:#009000;' width='40' align='left'>Carattere </td>
 					<th style='background-color:#009000;' width='10' align='left'>Ruolo </td>
@@ -340,8 +340,8 @@ echo "			<tr style='font-size: 14px; color:#FFFF00; font-family:Geneva, Arial, H
 
 echo "			<tr style='font-size: 14px; color:#0000FF; font-family:Geneva, Arial, Helvetica, sans-serif; '>
 					<td align='center'>$row[contratto]</td>	
-					<td align='center'>€. $wstip</td>	
-					<td align='center'>€. $wvalo</td>
+					<td align='center'>ï¿½. $wstip</td>	
+					<td align='center'>ï¿½. $wvalo</td>
 					
 				</tr>";
 echo "			</table>
@@ -367,7 +367,7 @@ echo "<span id='elementi_nascosti' style='display: none;'>";
 					
 					<tr>
 						<td align='center' id='visualizza_cont'>$row[contratto]</td>
-						<td align='center' id='visualizza_stip'>€. $walstip</td>
+						<td align='center' id='visualizza_stip'>ï¿½. $walstip</td>
 					<input id='wdata0' name='wdata0' type='hidden' value='$row[contratto]'>	
 					<input id='wdata1' name='wdata1' type='hidden' value='0'>	
 					<input id='wdata2' name='wdata2' type='hidden' value='$walstip'>
@@ -420,7 +420,7 @@ echo "</div>"; //FINE DEL DIV FLOAT LEFT
 echo "<div style='float:right;'>"; // inizio del div float right
 	
 echo "<span class='top-label'>";
-echo "	<span class='label-txt'>Abilità Personali</span>";
+echo "	<span class='label-txt'>Abilitï¿½ Personali</span>";
 echo "</span> ";
 echo "<div class='content-area'>";
 echo "	<img id='dati_abilita' src='images/quadrato_rounded_chiaro.png' width='100%' height='100%' />";
