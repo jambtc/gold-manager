@@ -4,6 +4,7 @@ services:
       context: .
       dockerfile: .docker/php/Dockerfile
     container_name: gold-manager-php
+    entrypoint: ['/var/www/html/.docker/php/entrypoint.sh']
     volumes:
       - .:/var/www/html
     environment:
@@ -30,6 +31,10 @@ services:
       - mariadb
       - redis
     restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - php
 
   nginx:
     image: nginx:alpine
@@ -42,6 +47,10 @@ services:
     depends_on:
       - php
     restart: unless-stopped
+    networks:
+      default:
+        aliases:
+          - nginx
 
   mariadb:
     image: mariadb:10.11
@@ -85,6 +94,7 @@ services:
       context: .
       dockerfile: .docker/php/Dockerfile
     container_name: gold-manager-queue-worker-1
+    entrypoint: ['/var/www/html/.docker/php/entrypoint.sh']
     command: ["/bin/bash", "/var/www/html/start-queue.sh"]
     volumes:
       - .:/var/www/html
@@ -112,6 +122,7 @@ services:
       context: .
       dockerfile: .docker/php/Dockerfile
     container_name: gold-manager-queue-worker-2
+    entrypoint: ['/var/www/html/.docker/php/entrypoint.sh']
     command: ["/bin/bash", "/var/www/html/start-queue.sh"]
     volumes:
       - .:/var/www/html
@@ -139,6 +150,7 @@ services:
       context: .
       dockerfile: .docker/php/Dockerfile
     container_name: gold-manager-cron
+    entrypoint: ['/var/www/html/.docker/php/entrypoint.sh']
     command: ["/bin/bash", "/var/www/html/docker/cron-entry.sh"]
     volumes:
       - .:/var/www/html
