@@ -1,0 +1,97 @@
+.fixture-replay.fixture-live .scoreboard {
+    margin-bottom: 0;
+}
+.fixture-replay.fixture-live .event-item {
+    gap: .45rem;
+    padding: .62rem .58rem;
+}
+.fixture-replay.fixture-live .event-time {
+    min-width: 2.05rem;
+}
+.fixture-replay.fixture-live .report-event-icon {
+    width: 18px;
+    height: 18px;
+    margin-right: 0;
+    font-size: 1rem;
+    flex: 0 0 18px;
+}
+.fixture-replay.fixture-live .gm-card {
+    border-color: rgba(148,163,184,.2);
+}
+.scoreboard-side-crest {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    opacity: .95;
+}
+.scoreboard-mobile-crests {
+    display: none;
+}
+#match-phase {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    white-space: nowrap;
+}
+@media (max-width: 991.98px) {
+    .scoreboard-mobile-crests {
+        display: flex;
+        justify-content: space-between;
+        margin-bottom: .6rem;
+    }
+}
+.goal-flash-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background: rgba(255, 255, 255, 0.95);
+    z-index: 99999;
+    pointer-events: none;
+    animation: goalFlash 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+}
+@keyframes goalFlash {
+    0% { opacity: 1; }
+    30% { opacity: 0.8; }
+    100% { opacity: 0; }
+}
+
+.goal-banner {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.5);
+    background: rgba(0, 0, 0, 0.9);
+    border: 3px solid #f59e0b;
+    box-shadow: 0 0 35px rgba(245, 158, 11, 0.6);
+    padding: 2.5rem 5rem;
+    border-radius: 16px;
+    z-index: 99998;
+    color: #fff;
+    text-align: center;
+    pointer-events: none;
+    opacity: 0;
+    animation: goalPopIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+@keyframes goalPopIn {
+    to {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+    }
+}
+
+.chant-bubble {
+    position: fixed;
+    font-weight: 900;
+    color: #f59e0b;
+    text-shadow: 0 0 8px rgba(0,0,0,0.8);
+    z-index: 99997;
+    pointer-events: none;
+    animation: floatUp 2s ease-out forwards;
+}
+@keyframes floatUp {
+    0% { transform: translateY(0) scale(0.8); opacity: 0; }
+    20% { opacity: 1; }
+    100% { transform: translateY(-120px) scale(1.3); opacity: 0; }
+}

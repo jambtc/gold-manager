@@ -1,0 +1,26 @@
+.gm-formations-name {
+    font-size: .85rem;
+}
+
+.gm-formations-module {
+    font-size: .75rem;
+}
+
+.gm-pitch-canvas {
+    width: 100%;
+    max-width: 280px;
+    display: block;
+    margin: 0 auto;
+    border-radius: .5rem;
+}
+
+.gm-players-list {
+    font-size: .72rem;
+    color: var(--text-secondary);
+    line-height: 1.6;
+}
+
+.gm-scorer-sheet {
+    font-size: .78rem;
+}
+
