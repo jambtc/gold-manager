@@ -15,7 +15,7 @@ declare(strict_types=1);
 
 use yii\helpers\Html;
 use app\components\PlayerAttributeHelper;
-use app\components\UiIconHelper;
+use app\components\SvgIcons;
 
 $this->title = $player->name;
 $this->params['breadcrumbs'][] = ['label' => 'Squadra', 'url' => ['/team/view']];
@@ -32,6 +32,7 @@ $footLabel = match($player->foot) {
     'LR' => 'Ambidestro',
     default => $player->foot,
 };
+$footIcon = SvgIcons::foot((string) $player->foot, 16);
 
 $pctCard = static function (string $label, int $val, string $color): string {
     $val = max(1, min(100, $val));
@@ -53,6 +54,7 @@ $freshColor = $player->freshness >= 80 ? 'var(--accent-blue)' : ($player->freshn
 $condColor = $player->condition >= 80 ? '#f97316' : ($player->condition >= 55 ? 'var(--gold)' : 'var(--accent-red)');
 $technicalAttrs = PlayerAttributeHelper::technicalAttributes($player);
 $playerTalents  = PlayerAttributeHelper::talents($player, 2);
+$playerFootIcon = SvgIcons::foot((string) $player->foot, 16);
 $trainingLogs = Yii::$app->db->createCommand(
     'SELECT week, season, stat, xp_gained, new_value, created_at
      FROM {{%training_log}}
@@ -109,9 +111,14 @@ $trainingLogs = Yii::$app->db->createCommand(
                 </div>
                 <h1 class="fw-black mb-2" style="font-size:2rem;letter-spacing:-.03em"><?= Html::encode($player->name) ?></h1>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
-                    <?= UiIconHelper::renderPositionBadge((string) $player->position, true, 11, 'font-size:.68rem;padding:.22rem .56rem;letter-spacing:.06em') ?>
+                    <span style="display:inline-flex;align-items:center;gap:.35rem;padding:.2rem .55rem;border-radius:.5rem;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.03);font-size:.72rem;font-weight:700;letter-spacing:.06em">
+                        <?= SvgIcons::position((string) $player->position, 20) ?>
+                        <span><?= Html::encode(strtoupper((string) $player->position)) ?></span>
+                    </span>
                     <span class="text-muted-gm small"><i class="bi bi-calendar3"></i> <?= $player->age ?> anni</span>
-                    <span class="text-muted-gm small"><i class="bi bi-person"></i> <?= $footLabel ?></span>
+                    <span class="text-muted-gm small" style="display:inline-flex;align-items-center;gap:.3rem">
+                        <?= $playerFootIcon ?> <?= Html::encode($footLabel) ?>
+                    </span>
                     <span class="text-muted-gm small" style="font-style:italic"><?= Html::encode(ucfirst($player->character ?? '')) ?></span>
                 </div>
             </div>
@@ -181,7 +188,7 @@ $trainingLogs = Yii::$app->db->createCommand(
                                 <div style="display:flex;justify-content:space-between;align-items:center;font-size:.72rem;margin-bottom:.15rem">
                                     <span style="color:var(--text-secondary)"><?= Html::encode($talentLabel) ?></span>
                                     <span style="display:inline-flex;align-items:center;gap:.22rem;font-weight:800;color:<?= $talentColor ?>">
-                                        <?= UiIconHelper::renderTalentTypeIcon($talentCode, 10) ?> Lv <?= $talentLevel ?>/3
+                                        <?= SvgIcons::skill($talentCode, 12) ?> Lv <?= $talentLevel ?>/3
                                     </span>
                                 </div>
                                 <div style="background:rgba(255,255,255,.12);border-radius:4px;height:5px;overflow:hidden">
@@ -206,7 +213,7 @@ $trainingLogs = Yii::$app->db->createCommand(
                 <h3 class="h5 mb-3 text-white"><i class="bi bi-person-badge text-gold me-2"></i>Info</h3>
                 <ul class="attribute-list">
                     <li><span class="text-muted-gm">Numero maglia</span> <span class="fw-bold">#<?= $player->number ?></span></li>
-                    <li><span class="text-muted-gm">Piede</span> <span class="fw-bold"><?= $footLabel ?></span></li>
+                    <li><span class="text-muted-gm">Piede</span> <span class="fw-bold" style="display:inline-flex;align-items:center;gap:.3rem"><?= $playerFootIcon ?> <?= Html::encode($footLabel) ?></span></li>
                     <li><span class="text-muted-gm">Età</span> <span class="fw-bold"><?= $player->age ?> anni</span></li>
                     <li><span class="text-muted-gm">Carattere</span> <span class="fw-bold" style="font-style:italic"><?= Html::encode(ucfirst($player->character ?? '—')) ?></span></li>
                     <?php if (($player->injury_weeks ?? 0) > 0): ?>

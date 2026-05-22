@@ -16,6 +16,7 @@ use app\components\CharacterTraitHelper;
 use app\components\FormationAutoHelper;
 use app\components\FormationRoleHelper;
 use app\components\PlayerAttributeHelper;
+use app\components\SvgIcons;
 use app\components\UiIconHelper;
 
 $this->title = 'Tattica: ' . $team->name;
@@ -248,16 +249,16 @@ SVG;
                     $currentGroup = null;
                     ?>
                     <?php
-                    // ── SIP-0032: helpers ──────────────────────────────────
+                    // ── SIP-0032 + SIP-0033 helpers ─────────────────────
                     $statBar = function (int $val, string $color): string {
                         return '<div style="background:rgba(255,255,255,.08);border-radius:2px;height:3px;overflow:hidden">'
                             . '<div style="width:' . $val . '%;height:100%;background:' . $color . ';border-radius:2px"></div>'
                             . '</div>';
                     };
-                    $skillBadge = function (string $icon, string $label): string {
-                        return '<span title="' . $label . '" style="font-size:.6rem;background:rgba(255,255,255,.07);'
-                            . 'border:1px solid rgba(255,255,255,.15);border-radius:.25rem;padding:.05rem .3rem">'
-                            . $icon . '</span>';
+                    $skillBadge = function (string $code, string $label, int $level): string {
+                        return '<span class="gm-skill-badge" title="' . Html::encode($label . ' Lv' . $level) . '" style="display:inline-flex;align-items:center;gap:.15rem;font-size:.58rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:.25rem;padding:.05rem .35rem">'
+                            . SvgIcons::skill($code, 14)
+                            . '<span style="letter-spacing:.02em">Lv' . $level . '</span></span>';
                     };
                     $suggestZone = function (\app\models\Player $p): array {
                         if ($p->skill_po > 70) return ['🥅', 'Portiere'];
@@ -266,6 +267,23 @@ SVG;
                         if ($p->skill_cr >= 58) return ['⚡', 'Ala (fascia)'];
                         if ($p->skill_tr >= 58) return ['⚽', 'Attaccante'];
                         return ['🔄', 'Jolly'];
+                    };
+                    $positionBadge = function (\app\models\Player $p): string {
+                        $label = strtoupper((string) $p->position);
+                        return '<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:700;padding:.1rem .35rem;border-radius:.4rem;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);letter-spacing:.05em">'
+                            . SvgIcons::position((string) $p->position, 16)
+                            . '<span>' . Html::encode($label) . '</span></span>';
+                    };
+                    $footBadge = function (\app\models\Player $p): string {
+                        $label = match ($p->foot) {
+                            'LR' => 'Amb',
+                            'L'  => 'Sin',
+                            'R'  => 'Des',
+                            default => strtoupper((string) $p->foot),
+                        };
+                        return '<span style="display:inline-flex;align-items:center;gap:.2rem">'
+                            . SvgIcons::foot((string) $p->foot, 14)
+                            . '<span>' . Html::encode($label) . '</span></span>';
                     };
                     ?>
                     <?php foreach ($sorted as $player):
@@ -286,8 +304,9 @@ SVG;
                         $badges = '';
                         foreach (PlayerAttributeHelper::talents($player, 2) as $talent) {
                             $badges .= $skillBadge(
-                                UiIconHelper::renderTalentTypeIcon((string) ($talent['code'] ?? ''), 10),
-                                (string) $talent['label'] . ' Lv' . (int) $talent['level']
+                                (string) ($talent['code'] ?? ''),
+                                (string) ($talent['label'] ?? ''),
+                                (int) $talent['level']
                             );
                         }
                     ?>
@@ -306,7 +325,7 @@ SVG;
                             <div style="flex:1;min-width:0">
                                 <!-- Row 1: position badge + name + check -->
                                 <div style="display:flex;align-items:center;gap:.35rem;margin-bottom:.1rem">
-                                    <?= UiIconHelper::renderPositionBadge((string) $player->position, true, 10, 'font-size:.53rem;padding:.08rem .3rem') ?>
+                                    <?= $positionBadge($player) ?>
                                     <span style="font-weight:700;font-size:.78rem;color:#fff;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?= Html::encode($player->name) ?></span>
                                     <?php if ($inFormation): ?><i class="bi bi-check-circle-fill" style="color:var(--gold);font-size:.6rem;flex-shrink:0"></i><?php endif; ?>
                                 </div>
@@ -333,7 +352,9 @@ SVG;
                                 </div>
                                 <!-- Row 3: age/foot, suggestion, badges -->
                                 <div style="display:flex;align-items:center;gap:.3rem;flex-wrap:wrap">
-                                    <span style="font-size:.6rem;color:var(--text-secondary)"><?= $player->age ?>a · <?= $player->foot === 'LR' ? 'Amb' : $player->foot ?></span>
+                                    <span style="font-size:.6rem;color:var(--text-secondary);display:inline-flex;align-items:center;gap:.3rem">
+                                        <?= $player->age ?>a · <?= $footBadge($player) ?>
+                                    </span>
                                     <?php if (!empty($player->character)): ?>
                                         <span title="<?= Html::encode(CharacterTraitHelper::matchTooltip((string) $player->character)) ?>" style="font-size:.6rem;background:rgba(255,255,255,.06);border-radius:.2rem;padding:.05rem .3rem;color:var(--text-secondary)">
                                             🧠 <?= Html::encode(CharacterTraitHelper::display((string) $player->character)) ?>
