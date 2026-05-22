@@ -225,9 +225,27 @@ SVG;
                     style="max-height:560px;scrollbar-width:thin;scrollbar-color:var(--gold) transparent;
                             border:2px dashed transparent;border-radius:.6rem;transition:border-color .15s,background .15s;padding:2px">
                     <?php
-                    $bench   = array_filter($players, fn($p) => !isset($playerInSlot[$p->id]));
-                    $onPitch = array_filter($players, fn($p) => isset($playerInSlot[$p->id]));
-                    $sorted  = array_merge(array_values($bench), array_values($onPitch));
+                    $roleGroups = [
+                        'GK' => 'Portieri',
+                        'DF' => 'Difensori',
+                        'MF' => 'Centrocampisti',
+                        'FW' => 'Attaccanti',
+                    ];
+                    $groupedPlayers = [];
+                    foreach ($players as $player) {
+                        $key = array_key_exists($player->position, $roleGroups) ? $player->position : 'OTHER';
+                        $groupedPlayers[$key][] = $player;
+                    }
+                    $sorted = [];
+                    foreach (array_keys($roleGroups) as $roleCode) {
+                        foreach ($groupedPlayers[$roleCode] ?? [] as $p) {
+                            $sorted[] = $p;
+                        }
+                    }
+                    foreach ($groupedPlayers['OTHER'] ?? [] as $p) {
+                        $sorted[] = $p;
+                    }
+                    $currentGroup = null;
                     ?>
                     <?php
                     // ── SIP-0032: helpers ──────────────────────────────────
@@ -251,6 +269,14 @@ SVG;
                     };
                     ?>
                     <?php foreach ($sorted as $player):
+                        $groupKey = array_key_exists($player->position, $roleGroups) ? $player->position : 'OTHER';
+                        if ($groupKey !== $currentGroup) {
+                            $currentGroup = $groupKey;
+                            $groupLabel = $groupKey === 'OTHER' ? 'Altri ruoli' : $roleGroups[$groupKey];
+                            echo '<div class="text-muted-gm mt-2 mb-1" style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase">'
+                                . \yii\helpers\Html::encode($groupLabel)
+                                . '</div>';
+                        }
                         $inFormation = isset($playerInSlot[$player->id]);
                         $formColor   = $player->form >= 80 ? 'var(--accent-green)' : ($player->form >= 55 ? 'var(--gold)' : 'var(--accent-red)');
                         $freshColor  = $player->freshness >= 80 ? 'var(--accent-blue)' : ($player->freshness >= 55 ? 'var(--gold)' : 'var(--accent-red)');
