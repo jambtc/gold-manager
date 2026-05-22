@@ -290,19 +290,37 @@ class EconomyController extends Controller
             )->queryAll();
             $staffMod = 1.0;
             $headCoachEff = 0.0;
+            $assistantCoachEff = 0.0;
+            $gkCoachEff = 0.0;
             $fitnessCoachEff = 0.0;
+            $doctorEff = 0.0;
             foreach ($staffRows as $s) {
-                if (in_array($s['role'], ['head_coach', 'assistant_coach', 'fitness_coach'], true)) {
-                    $staffMod += (float)$s['efficiency'] / 1000;
+                $role = (string) ($s['role'] ?? '');
+                $eff  = max(0.0, (float) ($s['efficiency'] ?? 0));
+                if (in_array($role, ['head_coach', 'assistant_coach', 'fitness_coach'], true)) {
+                    $staffMod += $eff / 1000;
                 }
-                if (($s['role'] ?? '') === 'head_coach') {
-                    $headCoachEff = max($headCoachEff, (float) $s['efficiency']);
-                }
-                if (($s['role'] ?? '') === 'fitness_coach') {
-                    $fitnessCoachEff = max($fitnessCoachEff, (float) $s['efficiency']);
+                switch ($role) {
+                    case Staff::ROLE_HEAD_COACH:
+                        $headCoachEff = max($headCoachEff, $eff);
+                        break;
+                    case Staff::ROLE_ASSISTANT_COACH:
+                        $assistantCoachEff = max($assistantCoachEff, $eff);
+                        break;
+                    case Staff::ROLE_GOALKEEPING_COACH:
+                        $gkCoachEff = max($gkCoachEff, $eff);
+                        break;
+                    case Staff::ROLE_FITNESS_COACH:
+                        $fitnessCoachEff = max($fitnessCoachEff, $eff);
+                        break;
+                    case Staff::ROLE_DOCTOR:
+                        $doctorEff = max($doctorEff, $eff);
+                        break;
                 }
             }
             $tacticalStaffMod = 1 + (($headCoachEff * 0.10) / 100);
+            $assistantSkillMod = 1 + (($assistantCoachEff * 0.05) / 100);
+            $gkSkillMod = 1 + (($gkCoachEff * 0.15) / 100);
 
             // Tactical LEVEL progression/decay from daily training plan.
             $tacticChanged = false;
@@ -456,10 +474,14 @@ class EconomyController extends Controller
                     if ($teamCaptainAura > 1.0 && !$isCaptain) {
                         $charMod *= $teamCaptainAura;
                     }
-                    $xpGained = ($pts / 100) * 10 * $ageMod * $charMod * $staffMod * $dailyScale;
+                    $skillMod = $assistantSkillMod;
+                    if ($stat === 'skill_po') {
+                        $skillMod *= $gkSkillMod;
+                    }
+                    $xpGained = ($pts / 100) * 10 * $ageMod * $charMod * $staffMod * $skillMod * $dailyScale;
 
                     if ($pts > 0) {
-                        $prob = ($pts / 100) * 0.08 * $ageMod * $charMod * $staffMod * $dailyScale;
+                        $prob = ($pts / 100) * 0.08 * $ageMod * $charMod * $staffMod * $skillMod * $dailyScale;
                         if (mt_rand(1, 10000) <= (int)($prob * 10000)) {
                             $player->$stat = min(99, $player->$stat + 1);
                             $changed = true;
@@ -547,6 +569,10 @@ class EconomyController extends Controller
                         'created_at' => $now,
                     ])->execute();
                 }
+                if ($fitnessCoachEff > 0) {
+                    $player->freshness = min(100, (int) $player->freshness + 1);
+                    $changed = true;
+                }
 
                 // SIP-0039: match-week penalty on heavy load
                 if ($matchSoon && $totalLoad > 60) {
@@ -607,9 +633,21 @@ class EconomyController extends Controller
     public function actionApplyWeeklyRecovery(): int
     {
         $injured = Player::find()->where(['>', 'injury_weeks', 0])->all();
+        $doctorEff = Yii::$app->db->createCommand(
+            'SELECT team_id, MAX(efficiency) AS eff FROM {{%staff}} WHERE role=:role GROUP BY team_id',
+            [':role' => Staff::ROLE_DOCTOR]
+        )->queryAll();
+        $doctorMap = [];
+        foreach ($doctorEff as $row) {
+            $doctorMap[(int) $row['team_id']] = max(0.0, (float) ($row['eff'] ?? 0));
+        }
 
         foreach ($injured as $player) {
-            $player->injury_weeks = max(0, $player->injury_weeks - 1);
+            $reduction = 1;
+            if ($player->team_id && isset($doctorMap[$player->team_id])) {
+                $reduction = 2;
+            }
+            $player->injury_weeks = max(0, $player->injury_weeks - $reduction);
             if ($player->injury_weeks === 0) {
                 $player->injury_type = null;
                 $player->condition   = 50;

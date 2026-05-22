@@ -19,7 +19,8 @@ $roleLabel = static function (string $role): string {
         Staff::ROLE_HEAD_COACH => 'Allenatore',
         Staff::ROLE_ASSISTANT_COACH => 'Vice',
         Staff::ROLE_GOALKEEPING_COACH => 'All. Portieri',
-        Staff::ROLE_FITNESS_COACH => 'Preparatore',
+        Staff::ROLE_DOCTOR => 'Medico',
+        Staff::ROLE_FITNESS_COACH => 'Fisioterapista',
         Staff::ROLE_SCOUT => 'Scout',
         default => $role,
     };
@@ -29,6 +30,7 @@ $roleIcon = static function (string $role): string {
         Staff::ROLE_HEAD_COACH => 'bi-person-walking',
         Staff::ROLE_ASSISTANT_COACH => 'bi-person-lines-fill',
         Staff::ROLE_GOALKEEPING_COACH => 'bi-shield-check',
+        Staff::ROLE_DOCTOR => 'bi-hospital',
         Staff::ROLE_FITNESS_COACH => 'bi-heart-pulse',
         Staff::ROLE_SCOUT => 'bi-search',
         default => 'bi-person-badge',
@@ -40,6 +42,18 @@ $dotAttempts = static function (int $n): string {
     return $full . $empty;
 };
 $staffWages = (int) array_sum(array_map(static fn($s) => (int) $s->salary, $staff));
+$staffByRole = [];
+foreach ($staff as $member) {
+    $staffByRole[$member->role] = $member;
+}
+$orderedRoles = [
+    Staff::ROLE_HEAD_COACH,
+    Staff::ROLE_ASSISTANT_COACH,
+    Staff::ROLE_GOALKEEPING_COACH,
+    Staff::ROLE_DOCTOR,
+    Staff::ROLE_FITNESS_COACH,
+    Staff::ROLE_SCOUT,
+];
 ?>
 
 <div class="staff-view">
@@ -74,26 +88,32 @@ $staffWages = (int) array_sum(array_map(static fn($s) => (int) $s->salary, $staf
 
     <div class="tab-content">
         <div class="tab-pane fade show active" id="current" role="tabpanel" aria-labelledby="current-tab">
-            <?php if (empty($staff)): ?>
-                <div class="gm-card text-muted-gm">Nessun membro staff attivo.</div>
-            <?php else: ?>
-                <div class="row g-3">
-                    <?php foreach ($staff as $member): ?>
-                        <div class="col-lg-6">
-                            <div class="gm-card h-100">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <div class="fw-bold text-white">
-                                            <i class="bi <?= $roleIcon((string) $member->role) ?> text-gold me-1"></i>
-                                            <?= Html::encode((string) $member->name) ?>
-                                        </div>
-                                        <div class="text-muted-gm small"><?= Html::encode($roleLabel((string) $member->role)) ?></div>
+            <div class="row g-3">
+                <?php foreach ($orderedRoles as $role):
+                    $member = $staffByRole[$role] ?? null;
+                ?>
+                    <div class="col-lg-6">
+                        <div class="gm-card h-100">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <div class="fw-bold text-white">
+                                        <i class="bi <?= $roleIcon($role) ?> text-gold me-1"></i>
+                                        <?= Html::encode($roleLabel($role)) ?>
                                     </div>
-                                    <div class="text-end">
-                                        <div class="text-gold fw-bold">Eff. <?= (int) $member->efficiency ?></div>
-                                        <div class="text-muted-gm" style="font-size:.72rem">Fine: S<?= (int) $member->contract_ends ?></div>
+                                    <div class="text-muted-gm small">
+                                        <?= $member ? Html::encode((string) $member->name) : 'Nessuno' ?>
                                     </div>
                                 </div>
+                                <div class="text-end">
+                                    <?php if ($member): ?>
+                                        <div class="text-gold fw-bold">Eff. <?= (int) $member->efficiency ?></div>
+                                        <div class="text-muted-gm" style="font-size:.72rem">Fine: S<?= (int) $member->contract_ends ?></div>
+                                    <?php else: ?>
+                                        <div class="text-muted-gm small">Nessun contratto</div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                            <?php if ($member): ?>
                                 <div class="small text-muted-gm mb-3">
                                     Abilità <?= (int) $member->ability ?> · Motivazione <?= (int) $member->motivation ?> · Esperienza <?= (int) $member->experience ?>
                                 </div>
@@ -110,11 +130,14 @@ $staffWages = (int) array_sum(array_map(static fn($s) => (int) $s->salary, $staf
                                         </button>
                                     <?= Html::endForm() ?>
                                 </div>
-                            </div>
+                            <?php else: ?>
+                                <div class="text-muted-gm small mb-3">Assegna un <?= strtolower($roleLabel($role)) ?> dal mercato.</div>
+                                <a class="btn btn-outline-gold btn-sm" data-bs-toggle="tab" href="#market" role="tab">Vai al mercato</a>
+                            <?php endif; ?>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         </div>
 
         <div class="tab-pane fade" id="market" role="tabpanel" aria-labelledby="market-tab">

@@ -30,6 +30,7 @@ class Staff extends ActiveRecord
     const ROLE_ASSISTANT_COACH   = 'assistant_coach';
     const ROLE_GOALKEEPING_COACH = 'goalkeeping_coach';
     const ROLE_FITNESS_COACH     = 'fitness_coach';
+    const ROLE_DOCTOR            = 'doctor';
     const ROLE_SCOUT             = 'scout';
 
     public static function tableName(): string { return '{{%staff}}'; }
@@ -46,7 +47,8 @@ class Staff extends ActiveRecord
             [['specialisation'], 'string', 'max' => 20],
             [['role'], 'in', 'range' => [
                 self::ROLE_HEAD_COACH, self::ROLE_ASSISTANT_COACH,
-                self::ROLE_GOALKEEPING_COACH, self::ROLE_FITNESS_COACH, self::ROLE_SCOUT,
+                self::ROLE_GOALKEEPING_COACH, self::ROLE_FITNESS_COACH,
+                self::ROLE_DOCTOR, self::ROLE_SCOUT,
             ]],
         ];
     }
@@ -67,6 +69,7 @@ class Staff extends ActiveRecord
             'salary'      => 'Salary (€/season)',
             'efficiency'  => 'Efficiency',
             'specialisation' => 'Specialisation',
+            'role'        => 'Role',
         ];
     }
 

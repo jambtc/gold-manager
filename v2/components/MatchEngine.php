@@ -10,6 +10,7 @@ use app\models\MatchEvent;
 use app\models\MatchState;
 use app\models\Player;
 use app\models\Standing;
+use app\models\Staff;
 use Yii;
 use yii\base\Component;
 
@@ -1271,40 +1272,47 @@ class MatchEngine extends Component
 
     protected function applyStaffBonus(array $totals, int $teamId): array
     {
-        $staff = Yii::$app->db->createCommand(
+        $rows = Yii::$app->db->createCommand(
             'SELECT role, efficiency, specialisation FROM {{%staff}} WHERE team_id=:t',
             [':t' => $teamId]
         )->queryAll();
 
-        $bCoach = 0.0; $bVice = 0.0; $bGk = 0.0;
-        $spec   = ['def' => 0.33, 'mid' => 0.33, 'att' => 0.33];
+        $coachBonus = 0.0;
+        $assistantBonus = 0.0;
+        $gkBonus = 0.0;
+        $spec = ['def' => 0.33, 'mid' => 0.33, 'att' => 0.33];
 
-        foreach ($staff as $s) {
-            $eff = (float) $s['efficiency'];
-            switch ($s['role'] ?? '') {
-                case 'coach':
-                    $bCoach = 0.30 * $eff;
-                    $spec = match($s['specialisation'] ?? 'equilibrato') {
+        foreach ($rows as $row) {
+            $role = (string) ($row['role'] ?? '');
+            $eff  = max(0.0, (float) ($row['efficiency'] ?? 0));
+            switch ($role) {
+                case Staff::ROLE_HEAD_COACH:
+                    $coachBonus = max($coachBonus, 0.30 * $eff);
+                    $spec = match ($row['specialisation'] ?? 'equilibrato') {
                         'difensivista' => ['def' => 0.6, 'mid' => 0.3, 'att' => 0.1],
                         'offensivista' => ['def' => 0.1, 'mid' => 0.3, 'att' => 0.6],
-                        default        => ['def' => 0.33,'mid' => 0.33,'att' => 0.33],
+                        default        => ['def' => 0.33, 'mid' => 0.33, 'att' => 0.33],
                     };
                     break;
-                case 'assistant': $bVice  = $eff / 30.3; break;
-                case 'goalkeeper': $bGk   = 0.035 * $eff; break;
+                case Staff::ROLE_ASSISTANT_COACH:
+                    $assistantBonus = max($assistantBonus, $eff / 30.3);
+                    break;
+                case Staff::ROLE_GOALKEEPING_COACH:
+                    $gkBonus = max($gkBonus, 0.035 * $eff);
+                    break;
             }
         }
 
-        if ($bCoach > 0 || $bVice > 0 || $bGk > 0) {
-            $mult = fn(float $bonus) => 1 + $bonus / 100;
-            $totals['po'] = (int)($totals['po'] * $mult($bVice + $bGk));
-            $totals['df'] = (int)($totals['df'] * $mult($bVice + $bCoach * $spec['def']));
-            $totals['cn'] = (int)($totals['cn'] * $mult($bVice + $bCoach * $spec['mid']));
-            $totals['rg'] = (int)($totals['rg'] * $mult($bVice + $bCoach * $spec['mid']));
-            $totals['pa'] = (int)($totals['pa'] * $mult($bVice + $bCoach * $spec['mid']));
-            $totals['cr'] = (int)($totals['cr'] * $mult($bVice + $bCoach * $spec['att']));
-            $totals['tc'] = (int)($totals['tc'] * $mult($bVice + $bCoach * $spec['att']));
-            $totals['tr'] = (int)($totals['tr'] * $mult($bVice + $bCoach * $spec['att']));
+        if ($coachBonus > 0 || $assistantBonus > 0 || $gkBonus > 0) {
+            $mult = static fn(float $bonus): float => 1 + $bonus / 100;
+            $totals['po'] = (int) round($totals['po'] * $mult($assistantBonus + $gkBonus));
+            $totals['df'] = (int) round($totals['df'] * $mult($assistantBonus + $coachBonus * $spec['def']));
+            $totals['cn'] = (int) round($totals['cn'] * $mult($assistantBonus + $coachBonus * $spec['mid']));
+            $totals['rg'] = (int) round($totals['rg'] * $mult($assistantBonus + $coachBonus * $spec['mid']));
+            $totals['pa'] = (int) round($totals['pa'] * $mult($assistantBonus + $coachBonus * $spec['mid']));
+            $totals['cr'] = (int) round($totals['cr'] * $mult($assistantBonus + $coachBonus * $spec['att']));
+            $totals['tc'] = (int) round($totals['tc'] * $mult($assistantBonus + $coachBonus * $spec['att']));
+            $totals['tr'] = (int) round($totals['tr'] * $mult($assistantBonus + $coachBonus * $spec['att']));
         }
 
         return $totals;
