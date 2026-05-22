@@ -65,46 +65,27 @@ Contains:
 - Ranking updates
 
 ### Persistence layer
-
 Contains:
-
 - ActiveRecord models
 - Repositories
 - Migrations
 - Query abstractions
 
+### Real-time Engine Layer (v2.1+)
+- **Go Worker**: Handles tick-by-tick simulation in background.
+- **SSE Hub**: Broadcasts events to clients without DB polling.
+- **Command Channel**: Consumes `match_command` table to apply live manager actions.
+- **Traits Engine**: Applies player character modifiers (Grintoso, etc.) in Go.
+
+### World Persistence & Expansion
+- **Hierarchical Leagues**: Tiers (A/B/C) and Groups (1, 2, 3...) for infinite scaling.
+- **Dynamic Seeder**: Automatically generates new league groups on demand.
+
 ## Domain modules
-
-- Users
-- Teams
-- Players
-- Competitions
-- Seasons
-- Fixtures
-- Matches
-- Standings
-- Market
-- Finance
-- Stadium
-- Training
-- Notifications
-- Administration
-
-## Coding conventions
-
-- Strict typing whenever possible
-- PHPDoc required
-- Thin controllers
-- Reusable services
-- No business logic inside views
-- Docker-first development
-- Feature-driven development
+... (omitted) ...
 
 ## Long term goals
-
-- Multiplayer support
-- Match simulation engine
-- AI-controlled teams
+- Multiplayer support (Shared World)
+- Advanced AI-controlled teams
 - Mobile application
-- Real-time notifications
-- WebSocket live matches
+- Native WebSocket support (as alternative to SSE)
