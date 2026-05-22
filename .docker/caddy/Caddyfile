@@ -1,0 +1,19 @@
+:80 {
+	encode zstd gzip
+
+	# SSE live match stream → Go worker
+	handle /stream/* {
+		reverse_proxy worker-go:8080
+	}
+
+	# Ollama LLM API (richiede auth in produzione)
+	handle /ollama/* {
+		uri strip_prefix /ollama
+		reverse_proxy ollama:11434
+	}
+
+	# Tutto il resto → PHP via nginx
+	handle {
+		reverse_proxy nginx:80
+	}
+}

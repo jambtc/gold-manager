@@ -1,0 +1,7 @@
+runtime/logs/
+runtime/locks/
+v2/runtime/
+.env.local
+.env
+.env.*
+!.env.example

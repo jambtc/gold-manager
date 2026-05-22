@@ -1,16 +1,218 @@
-version: '3.8'
-
 services:
-  web:
-    build: .
-    image: php74-app
-    container_name: gold-manager
-    ports:
-      - "8000:80"
+  php:
+    build:
+      context: .
+      dockerfile: .docker/php/Dockerfile
+    container_name: gold-manager-php
     volumes:
       - .:/var/www/html
     environment:
-      PHP_ERROR_REPORTING: E_ALL & ~E_DEPRECATED & ~E_STRICT
-    network_mode: "bridge"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - DB_HOST=mariadb
+      - DB_NAME=gold_manager
+      - DB_USER=gm_user
+      - DB_PASSWORD=secret
+      - GM_TEST_TIME_TRAVEL=${GM_TEST_TIME_TRAVEL:-0}
+      - GM_TRANSFER_ALWAYS_OPEN=${GM_TRANSFER_ALWAYS_OPEN:-1}
+      - GM_LLM_ENABLED=${GM_LLM_ENABLED:-1}
+      - GM_LLM_MATCH_ENRICH_ENABLED=${GM_LLM_MATCH_ENRICH_ENABLED:-1}
+      - GM_LLM_PREMATCH_ENABLED=${GM_LLM_PREMATCH_ENABLED:-1}
+      - GM_COMMENTARY_STREAM_ENABLED=${GM_COMMENTARY_STREAM_ENABLED:-1}
+      - GM_SUSPENSE_ENABLED=${GM_SUSPENSE_ENABLED:-1}
+      - GM_SUSPENSE_DELAY_MS=${GM_SUSPENSE_DELAY_MS:-3200}
+      - GM_TEMPLATE_STREAM_CHUNK_MS=${GM_TEMPLATE_STREAM_CHUNK_MS:-150}
+      - GM_TEMPLATE_STREAM_MODE=${GM_TEMPLATE_STREAM_MODE:-clause}
+      - GM_MAX_FRIENDLIES_PER_WEEK=${GM_MAX_FRIENDLIES_PER_WEEK:-1000}
+      - GM_ENABLE_FRIENDLY_START_NOW=${GM_ENABLE_FRIENDLY_START_NOW:-1}
+      - GM_LEAGUE_MATCH_DAYS=${GM_LEAGUE_MATCH_DAYS:-3,6}
+      - GM_FRIENDLY_SLOT_DOW=${GM_FRIENDLY_SLOT_DOW:-4}
+      - GM_FRIENDLY_SLOT_HOUR=${GM_FRIENDLY_SLOT_HOUR:-15}
+    depends_on:
+      - mariadb
+      - redis
+    restart: unless-stopped
+
+  nginx:
+    image: nginx:alpine
+    container_name: gold-manager-nginx
+    expose:
+      - "80"
+    volumes:
+      - .:/var/www/html
+      - ./.docker/nginx/conf.d:/etc/nginx/conf.d
+    depends_on:
+      - php
+    restart: unless-stopped
+
+  mariadb:
+    image: mariadb:10.11
+    container_name: gold-manager-db
+    command: >
+      --wait_timeout=28800
+      --interactive_timeout=28800
+      --net_read_timeout=60
+      --net_write_timeout=60
+    environment:
+      - MYSQL_ROOT_PASSWORD=root_secret
+      - MYSQL_DATABASE=gold_manager
+      - MYSQL_USER=gm_user
+      - MYSQL_PASSWORD=secret
+    volumes:
+      - db-data:/var/lib/mysql
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    container_name: gold-manager-redis
+    restart: unless-stopped
+
+  web-gateway:
+    image: caddy:2-alpine
+    container_name: gold-manager-web-gateway
+    volumes:
+      - ./.docker/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    ports:
+      - "30203:80"
+    depends_on:
+      - nginx
+      - worker-go
+      - ollama
+    restart: unless-stopped
+
+  worker-queue:
+    build:
+      context: .
+      dockerfile: .docker/php/Dockerfile
+    container_name: gold-manager-queue-worker-1
+    command: ["/bin/bash", "/var/www/html/start-queue.sh"]
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=mariadb
+      - DB_NAME=gold_manager
+      - DB_USER=gm_user
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - GM_TRANSFER_ALWAYS_OPEN=${GM_TRANSFER_ALWAYS_OPEN:-1}
+      - GM_LLM_ENABLED=${GM_LLM_ENABLED:-1}
+      - GM_LLM_MATCH_ENRICH_ENABLED=${GM_LLM_MATCH_ENRICH_ENABLED:-1}
+      - GM_LLM_PREMATCH_ENABLED=${GM_LLM_PREMATCH_ENABLED:-1}
+      - GM_MAX_FRIENDLIES_PER_WEEK=${GM_MAX_FRIENDLIES_PER_WEEK:-1000}
+      - GM_LEAGUE_MATCH_DAYS=${GM_LEAGUE_MATCH_DAYS:-3,6}
+      - GM_FRIENDLY_SLOT_DOW=${GM_FRIENDLY_SLOT_DOW:-4}
+      - GM_FRIENDLY_SLOT_HOUR=${GM_FRIENDLY_SLOT_HOUR:-15}
+    depends_on:
+      - mariadb
+      - redis
+    restart: unless-stopped
+
+  worker-queue-2:
+    build:
+      context: .
+      dockerfile: .docker/php/Dockerfile
+    container_name: gold-manager-queue-worker-2
+    command: ["/bin/bash", "/var/www/html/start-queue.sh"]
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=mariadb
+      - DB_NAME=gold_manager
+      - DB_USER=gm_user
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - GM_TRANSFER_ALWAYS_OPEN=${GM_TRANSFER_ALWAYS_OPEN:-1}
+      - GM_LLM_ENABLED=${GM_LLM_ENABLED:-1}
+      - GM_LLM_MATCH_ENRICH_ENABLED=${GM_LLM_MATCH_ENRICH_ENABLED:-1}
+      - GM_LLM_PREMATCH_ENABLED=${GM_LLM_PREMATCH_ENABLED:-1}
+      - GM_MAX_FRIENDLIES_PER_WEEK=${GM_MAX_FRIENDLIES_PER_WEEK:-1000}
+      - GM_LEAGUE_MATCH_DAYS=${GM_LEAGUE_MATCH_DAYS:-3,6}
+      - GM_FRIENDLY_SLOT_DOW=${GM_FRIENDLY_SLOT_DOW:-4}
+      - GM_FRIENDLY_SLOT_HOUR=${GM_FRIENDLY_SLOT_HOUR:-15}
+    depends_on:
+      - mariadb
+      - redis
+    restart: unless-stopped
+
+  cron:
+    build:
+      context: .
+      dockerfile: .docker/php/Dockerfile
+    container_name: gold-manager-cron
+    command: ["/bin/bash", "/var/www/html/docker/cron-entry.sh"]
+    volumes:
+      - .:/var/www/html
+    environment:
+      - DB_HOST=mariadb
+      - DB_NAME=gold_manager
+      - DB_USER=gm_user
+      - DB_PASSWORD=secret
+      - REDIS_HOST=redis
+      - GM_TRANSFER_ALWAYS_OPEN=${GM_TRANSFER_ALWAYS_OPEN:-1}
+      - GM_LLM_ENABLED=${GM_LLM_ENABLED:-1}
+      - GM_MAX_FRIENDLIES_PER_WEEK=${GM_MAX_FRIENDLIES_PER_WEEK:-1000}
+      - GM_LEAGUE_MATCH_DAYS=${GM_LEAGUE_MATCH_DAYS:-3,6}
+      - GM_FRIENDLY_SLOT_DOW=${GM_FRIENDLY_SLOT_DOW:-4}
+      - GM_FRIENDLY_SLOT_HOUR=${GM_FRIENDLY_SLOT_HOUR:-15}
+      - CRON_TZ=${CRON_TZ:-Europe/Rome}
+      - CRON_ENABLED=${CRON_ENABLED:-1}
+      - CRON_ENABLE_PAY_WAGES=${CRON_ENABLE_PAY_WAGES:-1}
+      - CRON_ENABLE_WEEKLY_RECOVERY=${CRON_ENABLE_WEEKLY_RECOVERY:-1}
+      - CRON_ENABLE_RUN_FIXTURES=${CRON_ENABLE_RUN_FIXTURES:-1}
+      - CRON_ENABLE_REFRESH_CPU_FORMATIONS=${CRON_ENABLE_REFRESH_CPU_FORMATIONS:-1}
+      - CRON_ENABLE_DAILY_TRAINING=${CRON_ENABLE_DAILY_TRAINING:-1}
+      - CRON_PAY_WAGES_SCHEDULE=${CRON_PAY_WAGES_SCHEDULE:-0 0 * * *}
+      - CRON_WEEKLY_RECOVERY_SCHEDULE=${CRON_WEEKLY_RECOVERY_SCHEDULE:-0 1 * * 1}
+      - CRON_DAILY_TRAINING_SCHEDULE=${CRON_DAILY_TRAINING_SCHEDULE:-0 2 * * *}
+      - CRON_REFRESH_CPU_FORMATIONS_SCHEDULE=${CRON_REFRESH_CPU_FORMATIONS_SCHEDULE:-0 0 * * *}
+      - CRON_RUN_FIXTURES_SCHEDULE=${CRON_RUN_FIXTURES_SCHEDULE:-*/5 * * * *}
+    depends_on:
+      - mariadb
+      - redis
+    restart: unless-stopped
+
+  worker-go:
+    build:
+      context: .
+      dockerfile: .docker/worker-go/Dockerfile
+    container_name: gold-manager-worker-go
+    environment:
+      - DB_HOST=mariadb
+      - DB_NAME=gold_manager
+      - DB_USER=gm_user
+      - DB_PASSWORD=secret
+      - GM_PREMATCH_SECONDS=${GM_PREMATCH_SECONDS:-15}
+      - GM_LLM_ENABLED=${GM_LLM_ENABLED:-1}
+      - GM_LLM_MATCH_ENRICH_ENABLED=${GM_LLM_MATCH_ENRICH_ENABLED:-1}
+      - GM_LLM_PREMATCH_ENABLED=${GM_LLM_PREMATCH_ENABLED:-1}
+      - GM_COMMENTARY_STREAM_ENABLED=${GM_COMMENTARY_STREAM_ENABLED:-1}
+      - GM_TEMPLATE_STREAM_CHUNK_MS=${GM_TEMPLATE_STREAM_CHUNK_MS:-150}
+      - GM_TEMPLATE_STREAM_MODE=${GM_TEMPLATE_STREAM_MODE:-clause}
+    depends_on:
+      - mariadb
+    expose:
+      - "8080"
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: gold-manager-ollama
+    volumes:
+      - ollama_data:/root/.ollama
+    expose:
+      - "11434"
+    restart: unless-stopped
+    # Per GPU: decommentare il blocco deploy qui sotto
+    # deploy:
+    #   resources:
+    #     reservations:
+    #       devices:
+    #         - driver: nvidia
+    #           count: all
+    #           capabilities: [gpu]
+
+volumes:
+  db-data:
+  caddy_data:
+  caddy_config:
+  ollama_data:

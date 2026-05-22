@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT="$(git rev-parse --show-toplevel)"
+cd "${ROOT}"
+
+echo "[pre-push] engine parity check..."
+bash v2/scripts/check-engine-parity-pre-push.sh
+echo "[pre-push] ok."
+
