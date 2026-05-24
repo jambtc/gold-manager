@@ -16,6 +16,8 @@ class FixtureLiveReplayAsset extends AssetBundle
     public $js = [
         'bundles/fixture/live-replay-common.js',
     ];
+    public $cssOptions = ['appendTimestamp' => true];
+    public $jsOptions = ['appendTimestamp' => true];
     public $depends = [
         AppAsset::class,
     ];
