@@ -14,7 +14,7 @@
         var row = Math.floor((zoneNum - 1) / 7);
         var x = (col + 0.5) / 7 * (width - 24) + 12;
         var viewerSide = cfg && (cfg.viewerSide === 'home' || cfg.viewerSide === 'away') ? cfg.viewerSide : null;
-        var shouldInvert = viewerSide ? (side === viewerSide) : (side === 'home');
+        var shouldInvert = viewerSide ? (side !== viewerSide) : (side === 'home');
         var ratio = (row + 0.5) / 9;
         var y = shouldInvert
             ? (1 - ratio) * (height - 24) + 12
@@ -22,50 +22,146 @@
         return { x: x, y: y };
     }
 
+    function compactName(fullName) {
+        var clean = String(fullName || '').trim();
+        if (!clean) {
+            return '—';
+        }
+        var parts = clean.split(/\s+/);
+        if (parts.length === 1) {
+            return parts[0];
+        }
+        var firstInitial = parts[0].charAt(0).toUpperCase();
+        var lastName = parts[parts.length - 1];
+        return firstInitial + '. ' + lastName;
+    }
+
     function drawPlayer(ctx, x, y, player, colorL, colorR) {
         var p = player || {};
-        var radius = 12;
         var alpha = p.subbed_off ? 0.35 : 1.0;
 
-        var grad = ctx.createRadialGradient(x - 3, y - 3, 1, x, y, radius);
-        grad.addColorStop(0, colorL || '#2563eb');
-        grad.addColorStop(1, colorR || '#1e40af');
+        var viewW = 44;
+        var viewH = 52;
+        var scale = 0.5; // matches 22x26px jersey
+        var shadowRx = 13 * scale;
+        var shadowRy = 1.5 * scale;
+
+        ctx.save();
         ctx.globalAlpha = alpha;
+        ctx.translate(x - (viewW * scale) / 2, y - (viewH * scale) / 2);
+        ctx.scale(scale, scale);
+
+        // Shadow
+        ctx.fillStyle = 'rgba(0,0,0,0.35)';
         ctx.beginPath();
-        ctx.arc(x, y, radius, 0, Math.PI * 2);
-        ctx.fillStyle = grad;
+        ctx.ellipse(22, 51, 13, 1.5, 0, 0, Math.PI * 2);
         ctx.fill();
 
+        // Gradient
+        var grad = ctx.createLinearGradient(0, 0, viewW, viewH);
+        grad.addColorStop(0, colorL || '#1d4ed8');
+        grad.addColorStop(1, colorR || '#0f2f8f');
+
+        ctx.fillStyle = grad;
+        ctx.strokeStyle = 'rgba(0,0,0,0.25)';
+        ctx.lineWidth = 0.6;
+
+        // Left sleeve
+        ctx.beginPath();
+        ctx.moveTo(1, 11);
+        ctx.lineTo(4, 22);
+        ctx.lineTo(15, 19);
+        ctx.lineTo(13, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Right sleeve
+        ctx.beginPath();
+        ctx.moveTo(43, 11);
+        ctx.lineTo(40, 22);
+        ctx.lineTo(29, 19);
+        ctx.lineTo(31, 6);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        // Body
+        ctx.beginPath();
+        ctx.moveTo(13, 6);
+        ctx.lineTo(15, 19);
+        ctx.lineTo(12, 48);
+        ctx.lineTo(32, 48);
+        ctx.lineTo(29, 19);
+        ctx.lineTo(31, 6);
+        ctx.quadraticCurveTo(26, 10, 22, 10);
+        ctx.quadraticCurveTo(18, 10, 13, 6);
+        ctx.closePath();
+        ctx.fill();
         if (p.injured) {
             ctx.strokeStyle = '#ef4444';
-            ctx.lineWidth = 2;
-            ctx.stroke();
         } else if (p.is_captain) {
             ctx.strokeStyle = '#f59e0b';
-            ctx.lineWidth = 2;
-            ctx.stroke();
         } else {
-            ctx.strokeStyle = 'rgba(255,255,255,.4)';
-            ctx.lineWidth = 1;
-            ctx.stroke();
+            ctx.strokeStyle = 'rgba(0,0,0,0.25)';
         }
+        ctx.stroke();
 
+        // Collar
+        ctx.beginPath();
+        ctx.fillStyle = colorR || '#b45309';
+        ctx.moveTo(17, 5);
+        ctx.lineTo(22, 13);
+        ctx.lineTo(27, 5);
+        ctx.lineTo(17, 5);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(0,0,0,0.4)';
+        ctx.lineWidth = 0.8;
+        ctx.stroke();
+
+        // Number
         ctx.fillStyle = '#fff';
-        ctx.font = 'bold 9px system-ui';
+        ctx.font = '900 11px system-ui, -apple-system, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText(p.number || '', x, y);
+        ctx.shadowColor = 'rgba(0,0,0,0.5)';
+        ctx.shadowBlur = 2;
+        ctx.fillText(p.number || '', 22, 35);
+        ctx.shadowBlur = 0;
 
-        if (p.is_captain) {
-            ctx.font = '8px system-ui';
-            ctx.fillText('C', x + radius - 2, y - radius + 2);
-        }
+        ctx.restore();
 
-        ctx.font = '8px system-ui';
-        ctx.fillStyle = p.subbed_off ? 'rgba(255,255,255,.3)' : '#fff';
-        var name = (String(p.name || '').trim() || '—').split(' ').pop().substring(0, 8);
-        ctx.fillText(name, x, y + radius + 7);
-        ctx.globalAlpha = 1.0;
+        // Name label (outside scaled context)
+        var name = compactName(p.name).substring(0, 16);
+        var metrics = ctx.measureText(name);
+        var padX = 6;
+        var boxW = metrics.width + padX * 2;
+        var boxH = 12;
+        var boxX = x - boxW / 2;
+        var boxY = y + (viewH * scale) / 2 + 6;
+        var nameGrad = ctx.createLinearGradient(boxX, boxY, boxX, boxY + boxH);
+        nameGrad.addColorStop(0, '#123b99');
+        nameGrad.addColorStop(1, '#0b2565');
+        ctx.fillStyle = nameGrad;
+        var r = 2;
+        ctx.beginPath();
+        ctx.moveTo(boxX + r, boxY);
+        ctx.lineTo(boxX + boxW - r, boxY);
+        ctx.quadraticCurveTo(boxX + boxW, boxY, boxX + boxW, boxY + r);
+        ctx.lineTo(boxX + boxW, boxY + boxH - r);
+        ctx.quadraticCurveTo(boxX + boxW, boxY + boxH, boxX + boxW - r, boxY + boxH);
+        ctx.lineTo(boxX + r, boxY + boxH);
+        ctx.quadraticCurveTo(boxX, boxY + boxH, boxX, boxY + boxH - r);
+        ctx.lineTo(boxX, boxY + r);
+        ctx.quadraticCurveTo(boxX, boxY, boxX + r, boxY);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = p.subbed_off ? 'rgba(255,255,255,.35)' : '#ffffff';
+        ctx.font = 'bold 8px system-ui';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(name, x, boxY + boxH / 2 + 0.5);
     }
 
     function drawPitch(ctx, width, height) {
@@ -133,10 +229,10 @@
                 return;
             }
             var names = byPos[pos].map(function (player) {
-                var surname = (String(player.name || '').trim() || '—').split(' ').pop();
+                var label = compactName(player.name);
                 return player.subbed_off
-                    ? '<span style="opacity:.4;text-decoration:line-through">' + surname + '</span>'
-                    : surname;
+                    ? '<span style="opacity:.4;text-decoration:line-through">' + label + '</span>'
+                    : label;
             }).join(', ');
             html += '<span style="color:var(--gold);font-weight:700">' + posLabels[pos] + ':</span> ' + names + '<br>';
         });
