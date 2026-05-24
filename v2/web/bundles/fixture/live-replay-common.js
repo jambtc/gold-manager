@@ -5,7 +5,7 @@
         return id ? document.getElementById(id) : null;
     }
 
-    function zoneToXY(zone, side, width, height) {
+    function zoneToXY(zone, side, width, height, cfg) {
         var zoneNum = parseInt(zone, 10);
         if (!zoneNum || zoneNum < 1) {
             zoneNum = 1;
@@ -13,9 +13,12 @@
         var col = (zoneNum - 1) % 7;
         var row = Math.floor((zoneNum - 1) / 7);
         var x = (col + 0.5) / 7 * (width - 24) + 12;
-        var y = side === 'home'
-            ? (1 - (row + 0.5) / 9) * (height - 24) + 12
-            : ((row + 0.5) / 9) * (height - 24) + 12;
+        var viewerSide = cfg && (cfg.viewerSide === 'home' || cfg.viewerSide === 'away') ? cfg.viewerSide : null;
+        var shouldInvert = viewerSide ? (side === viewerSide) : (side === 'home');
+        var ratio = (row + 0.5) / 9;
+        var y = shouldInvert
+            ? (1 - ratio) * (height - 24) + 12
+            : ratio * (height - 24) + 12;
         return { x: x, y: y };
     }
 
@@ -113,7 +116,7 @@
 
         var players = Array.isArray(model.players) ? model.players : [];
         players.forEach(function (player) {
-            var pos = zoneToXY(player.zone, side, width, height);
+            var pos = zoneToXY(player.zone, side, width, height, cfg);
             drawPlayer(ctx, pos.x, pos.y, player, model.color_left, model.color_right);
         });
 
@@ -172,8 +175,12 @@
             tabBtnCronacaId: 'tab-btn-cronaca',
             tabBtnFormazioniId: 'tab-btn-formazioni',
             autoLoad: true,
-            withTabSwitcher: false
+            withTabSwitcher: false,
+            viewerSide: null
         }, config || {});
+        if (cfg.viewerSide !== 'home' && cfg.viewerSide !== 'away') {
+            cfg.viewerSide = null;
+        }
 
         var formationsLoaded = false;
 

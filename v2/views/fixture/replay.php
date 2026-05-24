@@ -270,12 +270,14 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
 </div>
 
 <?php
+$viewerSide = $userSide ?? null;
 $formationsUrl = Url::to(['fixture/formations', 'fixtureId' => $fixture->id]);
 $this->registerJs(
     'window.GM_REPLAY_CONFIG = ' . Json::htmlEncode([
         'fixtureId' => (int)$fixture->id,
         'events' => $jsEvents,
         'formationsUrl' => $formationsUrl,
+        'viewerSide' => $viewerSide,
     ]) . ';',
     View::POS_HEAD,
     'gm-replay-config'

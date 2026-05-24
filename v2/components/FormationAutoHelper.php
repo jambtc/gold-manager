@@ -12,45 +12,96 @@ use Yii;
 
 class FormationAutoHelper
 {
-    /** @var array<string, array<int, array{zone:int, role:string}>> */
-    private const MODULE_TEMPLATE = [
-        '4-4-2' => [
-            ['zone' => 60, 'role' => 'GK'],
-            ['zone' => 51, 'role' => 'DF'], ['zone' => 52, 'role' => 'DF'], ['zone' => 54, 'role' => 'DF'], ['zone' => 55, 'role' => 'DF'],
-            ['zone' => 37, 'role' => 'MF'], ['zone' => 38, 'role' => 'MF'], ['zone' => 40, 'role' => 'MF'], ['zone' => 41, 'role' => 'MF'],
-            ['zone' => 17, 'role' => 'FW'], ['zone' => 19, 'role' => 'FW'],
-        ],
-        '4-3-3' => [
-            ['zone' => 60, 'role' => 'GK'],
-            ['zone' => 51, 'role' => 'DF'], ['zone' => 52, 'role' => 'DF'], ['zone' => 54, 'role' => 'DF'], ['zone' => 55, 'role' => 'DF'],
-            ['zone' => 37, 'role' => 'MF'], ['zone' => 39, 'role' => 'MF'], ['zone' => 41, 'role' => 'MF'],
-            ['zone' => 16, 'role' => 'FW'], ['zone' => 18, 'role' => 'FW'], ['zone' => 20, 'role' => 'FW'],
-        ],
-        '3-5-2' => [
-            ['zone' => 60, 'role' => 'GK'],
-            ['zone' => 51, 'role' => 'DF'], ['zone' => 53, 'role' => 'DF'], ['zone' => 55, 'role' => 'DF'],
-            ['zone' => 30, 'role' => 'MF'], ['zone' => 37, 'role' => 'MF'], ['zone' => 39, 'role' => 'MF'], ['zone' => 41, 'role' => 'MF'], ['zone' => 48, 'role' => 'MF'],
-            ['zone' => 17, 'role' => 'FW'], ['zone' => 19, 'role' => 'FW'],
-        ],
-        '5-3-2' => [
-            ['zone' => 60, 'role' => 'GK'],
-            ['zone' => 50, 'role' => 'DF'], ['zone' => 51, 'role' => 'DF'], ['zone' => 53, 'role' => 'DF'], ['zone' => 55, 'role' => 'DF'], ['zone' => 56, 'role' => 'DF'],
-            ['zone' => 37, 'role' => 'MF'], ['zone' => 39, 'role' => 'MF'], ['zone' => 41, 'role' => 'MF'],
-            ['zone' => 17, 'role' => 'FW'], ['zone' => 19, 'role' => 'FW'],
-        ],
-        '4-2-3-1' => [
-            ['zone' => 60, 'role' => 'GK'],
-            ['zone' => 51, 'role' => 'DF'], ['zone' => 52, 'role' => 'DF'], ['zone' => 54, 'role' => 'DF'], ['zone' => 55, 'role' => 'DF'],
-            ['zone' => 38, 'role' => 'MF'], ['zone' => 40, 'role' => 'MF'],
-            ['zone' => 23, 'role' => 'MF'], ['zone' => 25, 'role' => 'MF'], ['zone' => 27, 'role' => 'MF'],
-            ['zone' => 18, 'role' => 'FW'],
-        ],
-    ];
+    /** @var array<string, array<int, array{zone:int, role:string}>>|null */
+    private static ?array $moduleTemplateCache = null;
+
+    /**
+     * Return row/column based module templates (7 columns × 9 rows pitch).
+     * Rows: 1 = attacco, 9 = porta difesa.
+     */
+    private static function moduleTemplate(): array
+    {
+        if (self::$moduleTemplateCache !== null) {
+            return self::$moduleTemplateCache;
+        }
+
+        $z = static fn(int $row, int $col): int => self::zone($row, $col);
+
+        self::$moduleTemplateCache = [
+            '4-4-2' => [
+                ['zone' => $z(9, 4), 'role' => 'GK'],
+                ['zone' => $z(8, 2), 'role' => 'DF'],
+                ['zone' => $z(8, 3), 'role' => 'DF'],
+                ['zone' => $z(8, 5), 'role' => 'DF'],
+                ['zone' => $z(8, 6), 'role' => 'DF'],
+                ['zone' => $z(6, 2), 'role' => 'MF'],
+                ['zone' => $z(6, 3), 'role' => 'MF'],
+                ['zone' => $z(6, 5), 'role' => 'MF'],
+                ['zone' => $z(6, 6), 'role' => 'MF'],
+                ['zone' => $z(3, 3), 'role' => 'FW'],
+                ['zone' => $z(3, 5), 'role' => 'FW'],
+            ],
+            '4-3-3' => [
+                ['zone' => $z(9, 4), 'role' => 'GK'],
+                ['zone' => $z(8, 2), 'role' => 'DF'],
+                ['zone' => $z(8, 3), 'role' => 'DF'],
+                ['zone' => $z(8, 5), 'role' => 'DF'],
+                ['zone' => $z(8, 6), 'role' => 'DF'],
+                ['zone' => $z(6, 2), 'role' => 'MF'],
+                ['zone' => $z(6, 4), 'role' => 'MF'],
+                ['zone' => $z(6, 6), 'role' => 'MF'],
+                ['zone' => $z(4, 2), 'role' => 'FW'],
+                ['zone' => $z(3, 4), 'role' => 'FW'],
+                ['zone' => $z(4, 6), 'role' => 'FW'],
+            ],
+            '3-5-2' => [
+                ['zone' => $z(9, 4), 'role' => 'GK'],
+                ['zone' => $z(8, 2), 'role' => 'DF'],
+                ['zone' => $z(8, 4), 'role' => 'DF'],
+                ['zone' => $z(8, 6), 'role' => 'DF'],
+                ['zone' => $z(6, 1), 'role' => 'MF'],
+                ['zone' => $z(6, 3), 'role' => 'MF'],
+                ['zone' => $z(5, 4), 'role' => 'MF'],
+                ['zone' => $z(6, 5), 'role' => 'MF'],
+                ['zone' => $z(6, 7), 'role' => 'MF'],
+                ['zone' => $z(4, 3), 'role' => 'FW'],
+                ['zone' => $z(4, 5), 'role' => 'FW'],
+            ],
+            '5-3-2' => [
+                ['zone' => $z(9, 4), 'role' => 'GK'],
+                ['zone' => $z(8, 1), 'role' => 'DF'],
+                ['zone' => $z(8, 3), 'role' => 'DF'],
+                ['zone' => $z(8, 4), 'role' => 'DF'],
+                ['zone' => $z(8, 5), 'role' => 'DF'],
+                ['zone' => $z(8, 7), 'role' => 'DF'],
+                ['zone' => $z(6, 3), 'role' => 'MF'],
+                ['zone' => $z(6, 4), 'role' => 'MF'],
+                ['zone' => $z(6, 5), 'role' => 'MF'],
+                ['zone' => $z(4, 3), 'role' => 'FW'],
+                ['zone' => $z(4, 5), 'role' => 'FW'],
+            ],
+            '4-2-3-1' => [
+                ['zone' => $z(9, 4), 'role' => 'GK'],
+                ['zone' => $z(8, 2), 'role' => 'DF'],
+                ['zone' => $z(8, 3), 'role' => 'DF'],
+                ['zone' => $z(8, 5), 'role' => 'DF'],
+                ['zone' => $z(8, 6), 'role' => 'DF'],
+                ['zone' => $z(7, 3), 'role' => 'MF'],
+                ['zone' => $z(7, 5), 'role' => 'MF'],
+                ['zone' => $z(5, 2), 'role' => 'MF'],
+                ['zone' => $z(5, 4), 'role' => 'MF'],
+                ['zone' => $z(5, 6), 'role' => 'MF'],
+                ['zone' => $z(3, 4), 'role' => 'FW'],
+            ],
+        ];
+
+        return self::$moduleTemplateCache;
+    }
 
     /** @return string[] */
     public static function moduleOptions(): array
     {
-        return array_keys(self::MODULE_TEMPLATE);
+        return array_keys(self::moduleTemplate());
     }
 
     /** @return string[] */
@@ -62,7 +113,7 @@ class FormationAutoHelper
     public static function normalizeModule(string $module): string
     {
         $module = trim($module);
-        return isset(self::MODULE_TEMPLATE[$module]) ? $module : '4-4-2';
+        return isset(self::moduleTemplate()[$module]) ? $module : '4-4-2';
     }
 
     public static function normalizeTactic(string $tactic): string
@@ -104,14 +155,15 @@ class FormationAutoHelper
         $marking = $this->normalizeMarking($marking);
         $offsideTrap = $offsideTrap > 0 ? 1 : 0;
         $trainedTactic = $this->normalizeTrainedTactic($trainedTactic);
-        $slotsTemplate = self::MODULE_TEMPLATE[$module];
+        $slotsTemplate = self::moduleTemplate()[$module];
 
         $players = Player::find()
             ->where(['team_id' => $team->id])
             ->orderBy(['general_skill' => SORT_DESC, 'position' => SORT_ASC, 'id' => SORT_ASC])
             ->all();
+        $totalPlayers = count($players);
 
-        if (empty($players)) {
+        if ($totalPlayers === 0) {
             FormationSlot::deleteAll(['formation_id' => $formation->id]);
             $formation->name = 'Auto ' . $module;
             $formation->tactic = $tactic;
@@ -119,7 +171,13 @@ class FormationAutoHelper
             $formation->offside_trap = $offsideTrap;
             $formation->trained_tactic = $trainedTactic;
             $formation->save(false, ['name', 'tactic', 'marking', 'offside_trap', 'trained_tactic', 'updated_at']);
-            return ['assigned' => 0, 'module' => $module, 'tactic' => $tactic];
+            return [
+                'assigned' => 0,
+                'module' => $module,
+                'tactic' => $tactic,
+                'total_players' => 0,
+                'missing' => 11,
+            ];
         }
 
         $tacticTraining = $this->loadTacticTraining($team->id);
@@ -183,7 +241,15 @@ class FormationAutoHelper
             throw $e;
         }
 
-        return ['assigned' => count($assignments), 'module' => $module, 'tactic' => $tactic];
+        $assigned = count($assignments);
+
+        return [
+            'assigned' => $assigned,
+            'module' => $module,
+            'tactic' => $tactic,
+            'total_players' => $totalPlayers,
+            'missing' => max(0, 11 - $assigned),
+        ];
     }
 
     private function roleFitScore(Player $player, string $role): float
@@ -256,5 +322,12 @@ class FormationAutoHelper
             'catenaccio' => (int) ($row['catenaccio'] ?? 0),
             'fuorigioco' => (int) ($row['fuorigioco'] ?? 0),
         ];
+    }
+
+    private static function zone(int $row, int $col): int
+    {
+        $row = max(1, min(9, $row));
+        $col = max(1, min(7, $col));
+        return (($row - 1) * 7) + $col;
     }
 }

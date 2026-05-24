@@ -147,11 +147,32 @@ class FormationController extends Controller
         try {
             $helper = new FormationAutoHelper();
             $result = $helper->autoAssign($formation, $team, $module, $tactic, $marking, $offsideTrap, $trainedTactic);
+
+            if (($result['total_players'] ?? 0) === 0) {
+                return $this->asJson([
+                    'success' => false,
+                    'message' => 'Auto-formazione non disponibile: rosa vuota.',
+                ]);
+            }
+
+            $warning = null;
+            $missing = (int) ($result['missing'] ?? 0);
+            if ($missing > 0) {
+                $warning = sprintf(
+                    'Auto-formazione completata ma solo %d/11 slot sono stati riempiti (rosa attuale: %d). Mancano %d giocatori: completa manualmente o firma nuovi elementi.',
+                    (int) $result['assigned'],
+                    (int) ($result['total_players'] ?? 0),
+                    $missing
+                );
+            }
+
             return $this->asJson([
                 'success' => true,
                 'assigned' => $result['assigned'],
                 'module' => $result['module'],
                 'tactic' => $result['tactic'],
+                'warning' => $warning,
+                'total_players' => $result['total_players'] ?? 0,
             ]);
         } catch (\Throwable $e) {
             Yii::error('Formation auto-assign failed: ' . $e->getMessage(), __METHOD__);

@@ -6,6 +6,7 @@
     var fixtureId = String(cfg.fixtureId || qs.get('id') || '');
     var EVENTS = Array.isArray(cfg.events) ? cfg.events : [];
     var FORMATIONS_URL = String(cfg.formationsUrl || (fixtureId ? ('/fixture/formations?fixtureId=' + encodeURIComponent(fixtureId)) : ''));
+    var VIEWER_SIDE = cfg.viewerSide || null;
     var icons = {
         goal: '⚽', gk_save: '🧤', near_miss: '💨', substitution: '🔄',
         tactic_change: '📋', half_time: '🔔', full_time: '🏁',
@@ -46,7 +47,8 @@
         window.GMFixtureFormationUi.init({
             formationsUrl: FORMATIONS_URL,
             withTabSwitcher: false,
-            autoLoad: true
+            autoLoad: true,
+            viewerSide: VIEWER_SIDE
         });
     }
 

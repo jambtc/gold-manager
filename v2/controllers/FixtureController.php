@@ -68,15 +68,14 @@ class FixtureController extends Controller
 
         $allFixtures = $query->all();
 
-        // Group by matchday (week bucket: Mon-Sun)
+        // Group by matchday (calendar date)
         $rounds = [];
         foreach ($allFixtures as $f) {
-            // Use ISO week as round key: YYYY-Www
-            $weekKey = date('o-W', $f->match_date);
-            $rounds[$weekKey][] = $f;
+            $dayKey = date('Y-m-d', $f->match_date);
+            $rounds[$dayKey][] = $f;
         }
+        ksort($rounds);
         $roundKeys = array_keys($rounds);
-        sort($roundKeys);
 
         // Select current round
         if ($round <= 0 || $round > count($roundKeys)) {
@@ -198,12 +197,28 @@ class FixtureController extends Controller
             $state->phase = strtolower($state->phase); // Go worker may write uppercase
         }
 
+        $userSide = null;
+        /** @var \app\models\User|null $identity */
+        $identity = Yii::$app->user->identity;
+        $isAdmin  = $identity && $identity->isAdmin();
+        if (!$isAdmin && !Yii::$app->user->isGuest) {
+            $userTeam = Team::findOne(['user_id' => Yii::$app->user->id]);
+            if ($userTeam) {
+                if ((int)$fixture->home_team_id === (int)$userTeam->id) {
+                    $userSide = 'home';
+                } elseif ((int)$fixture->away_team_id === (int)$userTeam->id) {
+                    $userSide = 'away';
+                }
+            }
+        }
+
         return $this->render('replay', [
             'fixture' => $fixture,
             'existingEvents'  => $existingEvents,
             'state'          => $state,
             'homeStrength'   => FixtureViewHelper::computeStrength($fixture->homeTeam),
             'awayStrength'   => FixtureViewHelper::computeStrength($fixture->awayTeam),
+            'userSide'       => $userSide,
         ]);
     }
 

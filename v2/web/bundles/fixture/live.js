@@ -1524,7 +1524,8 @@
         window.GMFixtureFormationUi.init({
             formationsUrl: FORMATIONS_URL,
             withTabSwitcher: false,
-            autoLoad: true
+            autoLoad: true,
+            viewerSide: USER_SIDE
         });
     }
 }());

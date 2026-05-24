@@ -37,6 +37,7 @@ class FixtureSeeder
         $kickoffBase ??= $this->nextSaturday();
 
         $pairs  = $this->roundRobin($teams);   // first leg
+        $pairs  = $this->enforceHomeAwayBalance($pairs);
         $rounds = count($pairs);               // N-1 rounds
 
         $roundDates = $this->buildRoundDates($rounds * 2, $kickoffBase);
@@ -47,7 +48,7 @@ class FixtureSeeder
             $this->insertRound($matches, $competition->id, $matchDate);
         }
 
-        // Second leg: reverse home/away
+        // Second leg: reverse home/away based on balanced first leg
         foreach ($pairs as $round => $matches) {
             $matchDate = $roundDates[$rounds + $round] ?? ($kickoffBase + (($rounds + $round) * $roundSpacing));
             $reversed  = array_map(fn($m) => [$m[1], $m[0]], $matches);
@@ -200,5 +201,67 @@ class FixtureSeeder
         }
 
         return $dayStart + (((7 - $baseDow) + $days[0]) * 86400);
+    }
+
+    /**
+     * Attempts to alternate home/away assignments round by round.
+     *
+     * @param array<int, array<int, array{0:?Team,1:?Team}>> $rounds
+     * @return array
+     */
+    private function enforceHomeAwayBalance(array $rounds): array
+    {
+        $lastVenue = [];
+
+        foreach ($rounds as $roundIndex => $matches) {
+            foreach ($matches as $matchIndex => $pair) {
+                [$home, $away] = $pair;
+                if (!$home || !$away) {
+                    continue;
+                }
+                $homeId = (int) $home->id;
+                $awayId = (int) $away->id;
+
+                $currentPenalty = max(
+                    $this->projectedStreak($lastVenue[$homeId] ?? null, 'home'),
+                    $this->projectedStreak($lastVenue[$awayId] ?? null, 'away')
+                );
+                $swapPenalty = max(
+                    $this->projectedStreak($lastVenue[$homeId] ?? null, 'away'),
+                    $this->projectedStreak($lastVenue[$awayId] ?? null, 'home')
+                );
+
+                if ($swapPenalty < $currentPenalty) {
+                    [$home, $away] = [$away, $home];
+                    $rounds[$roundIndex][$matchIndex] = [$home, $away];
+                    $homeId = (int) $home->id;
+                    $awayId = (int) $away->id;
+                }
+
+                $lastVenue[$homeId] = $this->updatedStreak($lastVenue[$homeId] ?? null, 'home');
+                $lastVenue[$awayId] = $this->updatedStreak($lastVenue[$awayId] ?? null, 'away');
+            }
+        }
+
+        return $rounds;
+    }
+
+    private function projectedStreak(?array $last, string $nextVenue): int
+    {
+        if (!$last || ($last['venue'] ?? null) !== $nextVenue) {
+            return 1;
+        }
+        return (int)($last['count'] ?? 0) + 1;
+    }
+
+    private function updatedStreak(?array $last, string $venue): array
+    {
+        if ($last && ($last['venue'] ?? null) === $venue) {
+            $count = (int)($last['count'] ?? 0) + 1;
+        } else {
+            $count = 1;
+        }
+
+        return ['venue' => $venue, 'count' => $count];
     }
 }

@@ -535,6 +535,7 @@ SVG;
                                     <i class="bi bi-magic me-1"></i> Auto formazione
                                 </button>
                             </div>
+                            <div id="auto-assign-alert" style="display:none;margin-top:.75rem;font-size:.72rem;border-radius:.5rem;padding:.55rem .7rem;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:var(--gold)"></div>
                         </div>
 
                         <div class="p-3 rounded-3" style="background:rgba(255,255,255,.03);border:1px solid var(--border)">
@@ -599,6 +600,24 @@ window._gm = {
         corner   : $cornerRoleId,
     },
 };
+
+(function() {
+    try {
+        var storedWarning = window.sessionStorage.getItem('formationAutoWarning');
+        if (storedWarning) {
+            var warningBox = document.getElementById('auto-assign-alert');
+            if (warningBox) {
+                warningBox.textContent = storedWarning;
+                warningBox.style.display = 'block';
+            } else {
+                alert(storedWarning);
+            }
+            window.sessionStorage.removeItem('formationAutoWarning');
+        }
+    } catch (err) {
+        console.warn('formation warning restore failed', err);
+    }
+})();
 
 /* ── Core save ───────────────────────────────────────────────── */
 window.saveSlot = function(zoneId, playerId, cb) {
@@ -776,6 +795,11 @@ window.autoAssignFormation = function() {
         if (!data.success) {
             alert(data.message || 'Errore auto formazione');
             return;
+        }
+        if (data.warning) {
+            try { window.sessionStorage.setItem('formationAutoWarning', data.warning); } catch (err) {}
+        } else {
+            try { window.sessionStorage.removeItem('formationAutoWarning'); } catch (err) {}
         }
         window.location.reload();
     })
