@@ -42,6 +42,12 @@ func MatchTraitScalar(character string, isLosing bool, isHome bool) float64 {
 		return 1.00
 	case "ambizioso":
 		return 1.05
+	case "introverso":
+		// Legacy-oriented behavior: lower performance away from home.
+		if isHome {
+			return 1.00
+		}
+		return 0.95
 	case "razionale":
 		if isHome {
 			return 1.00

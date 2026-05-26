@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -49,6 +50,24 @@ type commentaryMeta struct {
 	Minute    int
 	TeamSide  string
 	Source    string
+}
+
+func halfTimePauseTicks() int {
+	raw := strings.TrimSpace(os.Getenv("GM_HALF_TIME_TICKS"))
+	if raw == "" {
+		return 15
+	}
+	parsed, err := strconv.Atoi(raw)
+	if err != nil {
+		return 15
+	}
+	if parsed < 1 {
+		return 1
+	}
+	if parsed > 120 {
+		return 120
+	}
+	return parsed
 }
 
 func (e *MatchEngine) broadcast(fixtureID int, payload streamPayload) {
@@ -317,9 +336,10 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 
 	// Half-time
 	if state.Phase == "HALF_TIME" {
+		pauseTicks := halfTimePauseTicks()
 		state.HalfTimeTicks++
 		e.DB.Exec("UPDATE match_state SET half_time_ticks = ? WHERE fixture_id = ?", state.HalfTimeTicks, fixtureID)
-		if state.HalfTimeTicks < 15 {
+		if state.HalfTimeTicks < pauseTicks {
 			return nil
 		}
 		state.Phase = "SECOND_HALF"
