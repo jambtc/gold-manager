@@ -318,9 +318,9 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// Half-time
 	if state.Phase == "HALF_TIME" {
 		state.HalfTimeTicks++
+		e.DB.Exec("UPDATE match_state SET half_time_ticks = ? WHERE fixture_id = ?", state.HalfTimeTicks, fixtureID)
 		if state.HalfTimeTicks < 15 {
-			_, err = e.DB.Exec("UPDATE match_state SET half_time_ticks = ? WHERE fixture_id = ?", state.HalfTimeTicks, fixtureID)
-			return err
+			return nil
 		}
 		state.Phase = "SECOND_HALF"
 		state.CurrentMinute = 46
@@ -349,12 +349,13 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 
 	if state.CurrentMinute == 45 && state.Phase != "HALF_TIME" {
 		state.Phase = "HALF_TIME"
+		state.HalfTimeTicks = 0
 		log.Printf("[MATCH %d] --- HALF TIME ---", fixtureID)
 		tx, err := e.DB.Begin()
 		if err != nil {
 			return err
 		}
-		if _, err = tx.Exec("UPDATE match_state SET phase = 'HALF_TIME', current_minute = 45 WHERE fixture_id = ?", fixtureID); err != nil {
+		if _, err = tx.Exec("UPDATE match_state SET phase = 'HALF_TIME', current_minute = 45, half_time_ticks = 0 WHERE fixture_id = ?", fixtureID); err != nil {
 			tx.Rollback()
 			return err
 		}
@@ -391,8 +392,10 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// SIP-0037: team trait bonus (average of active XI traits)
 	homeLosing := state.HomeScore < state.AwayScore
 	awayLosing := state.AwayScore < state.HomeScore
-	homeBonus := e.teamTraitBonus(fixtureID, "home", homeLosing, true)
-	awayBonus := e.teamTraitBonus(fixtureID, "away", awayLosing, false)
+	homeTraits := e.teamTraitsProfile(fixtureID, "home", homeLosing, true)
+	awayTraits := e.teamTraitsProfile(fixtureID, "away", awayLosing, false)
+	homeBonus := homeTraits.Bonus
+	awayBonus := awayTraits.Bonus
 
 	chance := rand.Float64() * 100.0
 
@@ -657,10 +660,10 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	}
 
 	// Cards check (~1.5% per team per tick)
-	e.resolveGoCards(fixtureID, state.CurrentMinute)
+	e.resolveGoCards(fixtureID, state.CurrentMinute, homeTraits, awayTraits)
 
 	// Injury check (~0.05% per team per tick)
-	e.resolveGoInjury(fixtureID, state.CurrentMinute)
+	e.resolveGoInjury(fixtureID, state.CurrentMinute, homeTraits, awayTraits)
 
 	// Pending substitutions from match_command table
 	e.processMatchCommands(fixtureID, state.CurrentMinute)
@@ -694,9 +697,17 @@ func (e *MatchEngine) generateCorner(fixtureID int, side string, minute int) {
 	e.broadcastEvent(fixtureID, evID, minute, "corner", side, desc, 0, 0, "")
 }
 
-func (e *MatchEngine) resolveGoCards(fixtureID, minute int) {
-	for _, side := range []string{"home", "away"} {
-		if rand.Float64() > 0.015 { // ~1.5% per team
+func (e *MatchEngine) resolveGoCards(fixtureID, minute int, homeTraits, awayTraits teamTraitProfile) {
+	teams := map[string]teamTraitProfile{"home": homeTraits, "away": awayTraits}
+	for side, traits := range teams {
+		baseChance := 0.015 * traits.DisciplineScalar
+		if baseChance < 0.005 {
+			baseChance = 0.005
+		}
+		if baseChance > 0.04 {
+			baseChance = 0.04
+		}
+		if rand.Float64() > baseChance {
 			continue
 		}
 		playerID, playerName := e.randomPlayerIDName(fixtureID, side, "")
@@ -742,16 +753,78 @@ func (e *MatchEngine) resolveGoCards(fixtureID, minute int) {
 	}
 }
 
-func (e *MatchEngine) resolveGoInjury(fixtureID, minute int) {
-	for _, side := range []string{"home", "away"} {
-		if rand.Float64() > 0.0005 { // ~0.05%
-			continue
+func (e *MatchEngine) resolveGoInjury(fixtureID, minute int, homeTraits, awayTraits teamTraitProfile) {
+	teams := map[string]teamTraitProfile{"home": homeTraits, "away": awayTraits}
+	for side, traits := range teams {
+		baseChance := 0.0005 * traits.InjuryScalar
+		if baseChance < 0.0001 {
+			baseChance = 0.0001
+		}
+		if baseChance > 0.0015 {
+			baseChance = 0.0015
 		}
 		playerID, playerName := e.randomPlayerIDName(fixtureID, side, "")
 		if playerID == 0 {
 			continue
 		}
+		vit := e.playerVitals(playerID)
+		fatigueScalar := 1.0
+		if vit.Freshness > 0 {
+			switch {
+			case vit.Freshness < 40:
+				fatigueScalar *= 1.8
+			case vit.Freshness < 60:
+				fatigueScalar *= 1.3
+			case vit.Freshness > 85:
+				fatigueScalar *= 0.8
+			}
+		}
+		if vit.Condition > 0 {
+			switch {
+			case vit.Condition < 50:
+				fatigueScalar *= 1.6
+			case vit.Condition < 65:
+				fatigueScalar *= 1.2
+			case vit.Condition > 85:
+				fatigueScalar *= 0.85
+			}
+		}
+		if vit.Form > 0 {
+			switch {
+			case vit.Form < 50:
+				fatigueScalar *= 1.15
+			case vit.Form > 80:
+				fatigueScalar *= 0.9
+			}
+		}
+		chance := baseChance * fatigueScalar
+		if rand.Float64() > chance {
+			continue
+		}
 		weeks := rand.Intn(4) + 1 // 1-4 weeks
+		if traits.InjuryScalar <= 0.85 && weeks > 1 {
+			weeks--
+		}
+		if traits.InjuryScalar >= 1.20 && weeks < 4 {
+			weeks++
+		}
+		if vit.Condition > 0 {
+			switch {
+			case vit.Condition < 40 && weeks < 4:
+				weeks++
+			case vit.Condition > 85 && weeks > 1:
+				weeks--
+			}
+		}
+		if vit.Freshness > 85 && weeks > 1 {
+			weeks--
+		}
+		if weeks < 1 {
+			weeks = 1
+		}
+		if weeks > 4 {
+			weeks = 4
+		}
 		injType := []string{"lieve", "medio", "grave"}[min(weeks/2, 2)]
 		_, _ = e.DB.Exec("UPDATE player SET injury_weeks = ?, injury_type = ?, condition = 0 WHERE id = ? AND injury_weeks = 0",
 			weeks, injType, playerID)
@@ -782,6 +855,16 @@ func min(a, b int) int {
 		return a
 	}
 	return b
+}
+
+func clampFloat(v, min, max float64) float64 {
+	if v < min {
+		return min
+	}
+	if v > max {
+		return max
+	}
+	return v
 }
 
 func (e *MatchEngine) processMatchCommands(fixtureID, minute int) {
@@ -1084,10 +1167,34 @@ func (e *MatchEngine) teamID(fixtureID int, side string) (int, error) {
 	return teamID, err
 }
 
-func (e *MatchEngine) teamTraitBonus(fixtureID int, side string, isLosing bool, isHome bool) float64 {
+type teamTraitProfile struct {
+	Bonus            float64
+	DisciplineScalar float64
+	InjuryScalar     float64
+	HasCarismatico   bool
+}
+
+type playerVitals struct {
+	Freshness int `db:"freshness"`
+	Condition int `db:"condition"`
+	Form      int `db:"form"`
+}
+
+func (e *MatchEngine) playerVitals(playerID int) playerVitals {
+	var vit playerVitals
+	_ = e.DB.Get(&vit, "SELECT freshness, condition, form FROM player WHERE id = ?", playerID)
+	return vit
+}
+
+func (e *MatchEngine) teamTraitsProfile(fixtureID int, side string, isLosing bool, isHome bool) teamTraitProfile {
+	profile := teamTraitProfile{
+		Bonus:            1.0,
+		DisciplineScalar: 1.0,
+		InjuryScalar:     1.0,
+	}
 	teamID, err := e.teamID(fixtureID, side)
 	if err != nil || teamID <= 0 {
-		return 1.0
+		return profile
 	}
 
 	type traitRow struct {
@@ -1111,34 +1218,38 @@ func (e *MatchEngine) teamTraitBonus(fixtureID int, side string, isLosing bool, 
 			LIMIT 11
 		`, teamID)
 		if err != nil || len(rows) == 0 {
-			return 1.0
+			return profile
 		}
 	}
 
 	total := 0.0
 	count := 0
-	hasCarismatico := false
 	for _, row := range rows {
 		total += MatchTraitScalar(row.Character, isLosing, isHome)
 		count++
-		if normalizeTrait(row.Character) == "carismatico" {
-			hasCarismatico = true
+		switch normalizeTrait(row.Character) {
+		case "carismatico":
+			profile.HasCarismatico = true
+			profile.Bonus *= 1.01
+		case "corretto":
+			profile.DisciplineScalar *= 0.70
+		case "grintoso":
+			profile.DisciplineScalar *= 1.05
+		case "irrequieto":
+			profile.DisciplineScalar *= 1.15
+		case "diligente":
+			profile.InjuryScalar *= 0.90
+		case "costante":
+			profile.InjuryScalar *= 0.95
 		}
 	}
-	if count <= 0 {
-		return 1.0
+	if count > 0 {
+		avg := total / float64(count)
+		profile.Bonus = clampFloat(avg*profile.Bonus, 0.80, 1.25)
 	}
-	avg := total / float64(count)
-	if hasCarismatico {
-		avg *= 1.01
-	}
-	if avg < 0.80 {
-		return 0.80
-	}
-	if avg > 1.25 {
-		return 1.25
-	}
-	return avg
+	profile.DisciplineScalar = clampFloat(profile.DisciplineScalar, 0.50, 1.50)
+	profile.InjuryScalar = clampFloat(profile.InjuryScalar, 0.60, 1.40)
+	return profile
 }
 
 func (e *MatchEngine) ProcessCommand(fixtureID int, state *models.MatchState, cmd models.MatchCommand) {

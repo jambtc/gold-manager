@@ -185,6 +185,11 @@
         }
 
         el.textContent = 'LIVE: ' + label;
+        var banner = document.getElementById('half-time-banner');
+        if (mode === 'HALF_TIME' && banner) {
+            banner.classList.remove('d-none');
+            if (countdown) { countdown.textContent = '15'; }
+        }
         el.style.borderColor = 'var(--border)';
         el.style.background = 'rgba(255,255,255,.04)';
         el.style.color = 'var(--text-secondary)';
@@ -213,6 +218,12 @@
             el.style.color = '#fcd34d';
             return;
         }
+        if (mode === 'HALF_TIME') {
+            el.style.borderColor = 'rgba(59,130,246,.6)';
+            el.style.background = 'rgba(59,130,246,.18)';
+            el.style.color = '#bfdbfe';
+            return;
+        }
         if (mode === 'RETRY') {
             el.style.borderColor = 'rgba(239,68,68,.5)';
             el.style.background = 'rgba(239,68,68,.12)';
@@ -233,6 +244,22 @@
         if (style === 'ultra_defensive') return 'Difensivo';
         if (style === 'all_out_attack') return 'Offensivo';
         return 'Bilanciato';
+    }
+
+    function updateHalfTimeUi(state) {
+        var banner = document.getElementById('half-time-banner');
+        var countdown = document.getElementById('half-time-countdown');
+        var phase = normalizePhase(state && state.phase);
+        if (phase !== 'half_time') {
+            if (banner) banner.classList.add('d-none');
+            return;
+        }
+        if (banner) banner.classList.remove('d-none');
+        if (countdown) {
+            var ticks = Number(state && state.half_time_ticks || 0);
+            var remaining = Math.max(0, 15 - ticks);
+            countdown.textContent = String(remaining);
+        }
     }
 
     function markingLabel(marking) {
@@ -337,6 +364,8 @@
 
     function setPhaseLabel(phase) {
         var el = document.getElementById('match-phase');
+        var banner = document.getElementById('half-time-banner');
+        var countdown = document.getElementById('half-time-countdown');
         var normalized = normalizePhase(phase);
 
         if (!el || !normalized) {
@@ -344,6 +373,14 @@
         }
 
         el.textContent = PHASE_LABELS[normalized] || String(normalized).replace(/_/g, ' ').toUpperCase();
+        if (banner) {
+            if (normalized === 'half_time') {
+                banner.classList.remove('d-none');
+                if (countdown) { countdown.textContent = '15'; }
+            } else {
+                banner.classList.add('d-none');
+            }
+        }
     }
 
     function normalizePhase(phase) {
@@ -352,6 +389,13 @@
         }
 
         return String(phase).trim().toLowerCase();
+    }
+
+    function updateHalfTimeCountdown(ticks) {
+        var countdown = document.getElementById('half-time-countdown');
+        if (!countdown) { return; }
+        var remaining = Math.max(0, 15 - (Number(ticks) || 0));
+        countdown.textContent = String(remaining);
     }
 
     function pauseTimers() {
@@ -767,6 +811,7 @@
 
             log.insertBefore(buildItem(ev, false), log.firstChild);
             setPhaseLabel('half_time');
+            updateHalfTimeUi({ phase: 'half_time', half_time_ticks: 0 });
 
             var htBanner = showBroadcast(
                 '📊',
@@ -783,7 +828,16 @@
                 suspenseLock = false;
                 resumeTimers();
             }, 25000);
+            return false;
+        }
 
+            return false;
+        }
+
+        if (ev.type === 'second_half_start') {
+            log.insertBefore(buildItem(ev, false), log.firstChild);
+            setPhaseLabel('second_half');
+            updateHalfTimeUi({ phase: 'second_half', half_time_ticks: 15 });
             return false;
         }
 
@@ -1000,6 +1054,9 @@
             else phase = 'finished';
         }
         setPhaseLabel(phase);
+        if (normalizePhase(phase) === 'half_time') {
+            updateHalfTimeUi(payload);
+        }
 
         if (payload.phase && normalizePhase(payload.phase) === 'finished') {
             backendFinished = true;

@@ -147,7 +147,13 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
     </div><!-- /row 1 -->
 
     <!-- ── Row 2: cronaca + formazioni ───────────────────── -->
-    <div class="row g-4">
+    <div id="half-time-banner" class="d-none gm-card text-center mb-3" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);padding:.8rem;border-radius:.6rem">
+    <div class="fw-bold" style="color:#bfdbfe;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase">Intervallo</div>
+    <div class="text-white" style="font-size:1.6rem;font-weight:900"><span id="half-time-countdown">15</span>s</div>
+    <div class="text-muted-gm" style="font-size:.7rem">Puoi inviare comandi ora, verranno applicati all'inizio del 2° tempo</div>
+</div>
+
+<div class="row g-4">
         <!-- Cronaca col-4 -->
         <div class="col-lg-4" id="tab-cronaca-panel">
             <div class="gm-card h-100">
