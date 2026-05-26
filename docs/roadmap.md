@@ -95,6 +95,7 @@
 - [x] Manager friendly match (SIP-0030) — con aggiornamento stat giocatori
 - [x] Notification system per promozione/retrocessione
 - [x] Tabellino marcatori in live/replay/dettaglio fixture (SIP-0063)
+- [x] CPU AI behavior: transfer/staff/training/friendly/tattiche/sub automatiche (SIP-0051)
 
 ## Phase 9 - Formation UX & Legacy Data 📋
 

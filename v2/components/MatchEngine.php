@@ -1508,6 +1508,7 @@ class MatchEngine extends Component
     protected function applyPendingActions(Fixture $fixture, MatchState $state, int $min): array
     {
         $events = [];
+        $this->queueCpuLiveActions($fixture, $state, $min);
         foreach (['home', 'away'] as $side) {
             $field = "pending_{$side}_actions";
             $actions = json_decode($state->$field ?? '[]', true);
@@ -1551,6 +1552,207 @@ class MatchEngine extends Component
             $state->$field = json_encode($remaining);
         }
         return $events;
+    }
+
+    private function queueCpuLiveActions(Fixture $fixture, MatchState $state, int $min): void
+    {
+        foreach (['home', 'away'] as $side) {
+            $team = $side === 'home' ? $fixture->homeTeam : $fixture->awayTeam;
+            if (!$team || (int) ($team->is_cpu ?? 0) !== 1) {
+                continue;
+            }
+
+            $field = "pending_{$side}_actions";
+            $actions = json_decode((string) ($state->$field ?? '[]'), true);
+            if (!is_array($actions)) {
+                $actions = [];
+            }
+
+            if ($this->cpuShouldQueueTacticChange($actions, $min)) {
+                $actions[] = $this->buildCpuTacticChangeAction($state, $side, $min);
+            }
+
+            if ($this->cpuShouldQueueSubstitution($actions, $state, $side, $min)) {
+                $subAction = $this->buildCpuSubstitutionAction($state, $side, $min);
+                if ($subAction !== null) {
+                    $actions[] = $subAction;
+                }
+            }
+
+            $state->$field = json_encode($actions);
+        }
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $actions
+     */
+    private function cpuShouldQueueTacticChange(array $actions, int $min): bool
+    {
+        if ($min < 30 || ($min % 10) !== 0) {
+            return false;
+        }
+        foreach ($actions as $action) {
+            if (($action['type'] ?? '') === 'tactic_change') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private function buildCpuTacticChangeAction(MatchState $state, string $side, int $min): array
+    {
+        $diff = $side === 'home'
+            ? ((int) $state->home_score - (int) $state->away_score)
+            : ((int) $state->away_score - (int) $state->home_score);
+
+        $tactic = 'balanced';
+        $marking = 'zone';
+        $offsideTrap = 1;
+        $trainedTactic = 'possesso';
+
+        if ($diff <= -2 && $min >= 55) {
+            $tactic = 'all_out_attack';
+            $marking = 'man';
+            $offsideTrap = 1;
+            $trainedTactic = 'pressing';
+        } elseif ($diff <= -1 && $min >= 70) {
+            $tactic = 'all_out_attack';
+            $marking = 'man';
+            $offsideTrap = 1;
+            $trainedTactic = 'contropiede';
+        } elseif ($diff >= 2 && $min >= 60) {
+            $tactic = 'ultra_defensive';
+            $marking = 'zone';
+            $offsideTrap = 0;
+            $trainedTactic = 'catenaccio';
+        } elseif ($diff === 0 && $min >= 80) {
+            $tactic = 'balanced';
+            $marking = 'zone';
+            $offsideTrap = 1;
+            $trainedTactic = 'calci_piazzati';
+        }
+
+        return [
+            'type' => 'tactic_change',
+            'tactic' => $tactic,
+            'marking' => $marking,
+            'offside_trap' => $offsideTrap,
+            'trained_tactic' => $trainedTactic,
+            'cpu_auto' => 1,
+        ];
+    }
+
+    /**
+     * @param array<int,array<string,mixed>> $actions
+     */
+    private function cpuShouldQueueSubstitution(array $actions, MatchState $state, string $side, int $min): bool
+    {
+        if (!in_array($min, [46, 60, 75], true)) {
+            return false;
+        }
+        $subsField = "{$side}_subs_used";
+        if ((int) ($state->$subsField ?? 0) >= 3) {
+            return false;
+        }
+        foreach ($actions as $action) {
+            if (($action['type'] ?? '') === 'substitution') {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * @return array<string,mixed>|null
+     */
+    private function buildCpuSubstitutionAction(MatchState $state, string $side, int $min): ?array
+    {
+        $formField = "{$side}_formation_id";
+        $formationId = (int) ($state->$formField ?? 0);
+        if ($formationId <= 0) {
+            return null;
+        }
+
+        $formation = Formation::find()->where(['id' => $formationId])->with('slots.player')->one();
+        if (!$formation) {
+            return null;
+        }
+
+        $starters = [];
+        $bench = [];
+        foreach ($formation->slots as $slot) {
+            $player = $slot->player;
+            if (!$player) {
+                continue;
+            }
+            if ((int) ($slot->zone ?? 0) > 63) {
+                $bench[] = $player;
+            } else {
+                $starters[] = $player;
+            }
+        }
+        if (empty($starters) || empty($bench)) {
+            return null;
+        }
+
+        $freshnessThreshold = $min >= 75 ? 66 : ($min >= 60 ? 58 : 52);
+        usort($starters, static function (Player $a, Player $b): int {
+            $fa = (int) ($a->freshness ?? 0);
+            $fb = (int) ($b->freshness ?? 0);
+            if ($fa !== $fb) {
+                return $fa <=> $fb;
+            }
+            return ((int) ($a->form ?? 0)) <=> ((int) ($b->form ?? 0));
+        });
+
+        $outPlayer = null;
+        foreach ($starters as $candidate) {
+            if ((int) ($candidate->injury_weeks ?? 0) > 0) {
+                continue;
+            }
+            if ((int) ($candidate->freshness ?? 0) <= $freshnessThreshold) {
+                $outPlayer = $candidate;
+                break;
+            }
+        }
+        if ($outPlayer === null) {
+            return null;
+        }
+
+        $samePosBench = array_values(array_filter($bench, static function (Player $p) use ($outPlayer): bool {
+            return (string) ($p->position ?? '') === (string) ($outPlayer->position ?? '');
+        }));
+        $pool = !empty($samePosBench) ? $samePosBench : $bench;
+        usort($pool, static function (Player $a, Player $b): int {
+            $ga = (int) ($a->general_skill ?? 0);
+            $gb = (int) ($b->general_skill ?? 0);
+            if ($ga !== $gb) {
+                return $gb <=> $ga;
+            }
+            return ((int) ($b->freshness ?? 0)) <=> ((int) ($a->freshness ?? 0));
+        });
+
+        $inPlayer = null;
+        foreach ($pool as $candidate) {
+            if ((int) ($candidate->injury_weeks ?? 0) > 0) {
+                continue;
+            }
+            if ((int) ($candidate->condition ?? 0) < 30) {
+                continue;
+            }
+            $inPlayer = $candidate;
+            break;
+        }
+        if ($inPlayer === null) {
+            return null;
+        }
+
+        return [
+            'type' => 'substitution',
+            'out' => (int) $outPlayer->id,
+            'in' => (int) $inPlayer->id,
+            'cpu_auto' => 1,
+        ];
     }
 
     protected function performSubstitution(MatchState $state, string $side, int $outId, int $inId): void

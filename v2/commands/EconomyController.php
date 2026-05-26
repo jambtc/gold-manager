@@ -8,6 +8,7 @@ use app\components\seeders\FixtureSeeder;
 use app\components\CharacterTraitHelper;
 use app\components\FriendlyChallengeService;
 use app\components\PlayerAttributeHelper;
+use app\components\TransferWindowService;
 use app\components\seeders\PlayerSeeder;
 use app\components\WorldData;
 use app\components\WorldSeeder;
@@ -18,6 +19,7 @@ use app\models\Contract;
 use app\models\Fixture;
 use app\models\Formation;
 use app\models\FormationSlot;
+use app\models\FriendlyChallenge;
 use app\models\NewsItem;
 use app\models\Player;
 use app\models\PlayerPool;
@@ -30,6 +32,7 @@ use app\models\Sponsor;
 use app\models\Team;
 use app\models\TeamSponsor;
 use app\models\Transfer;
+use app\models\TransferOffer;
 use Yii;
 use yii\console\Controller;
 use yii\console\ExitCode;
@@ -166,9 +169,15 @@ class EconomyController extends Controller
 
         ['generated' => $generated, 'pool' => $poolCount] = $this->maintainPlayerPool(50);
         $cpuFilled = $this->maintainCpuRostersFromPool(18);
+        $cpuTransfers = $this->runCpuTransferMarketCycle();
+        $cpuStaffHired = $this->runCpuStaffHiringCycle();
+        $cpuFriendlies = $this->runCpuFriendlyBehavior();
         $staffRestocked = $this->restockStaffMarketForManagers();
         $this->stdout("🌱 Pool giovani: +{$generated}, totale {$poolCount}\n");
         $this->stdout("🤖 Roster CPU reintegrati: {$cpuFilled}\n");
+        $this->stdout("🤖 Mercato CPU: offerte {$cpuTransfers['offersHandled']} · acquisti {$cpuTransfers['bought']} · cessioni {$cpuTransfers['listed']}\n");
+        $this->stdout("🤖 Staff CPU: assunzioni {$cpuStaffHired}\n");
+        $this->stdout("🤖 Amichevoli CPU: lanciate {$cpuFriendlies['initiated']} · accettate {$cpuFriendlies['accepted']} · rifiutate {$cpuFriendlies['declined']}\n");
         $this->stdout("🧑‍💼 Staff market restock: {$staffRestocked}\n");
 
         return ExitCode::OK;
@@ -247,6 +256,11 @@ class EconomyController extends Controller
             'alloc_tc' => 'skill_tc', 'alloc_tr' => 'skill_tr',
         ];
         $tacticFields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco','calci_piazzati'];
+
+        $cpuTrainingRebalanced = $this->rebalanceCpuTrainingAllocations($season, $now);
+        if ($cpuTrainingRebalanced > 0) {
+            $this->stdout("🤖 Training CPU auto-bilanciato: {$cpuTrainingRebalanced} squadre\n");
+        }
 
         $teams = Team::find()->all();
 
@@ -1036,6 +1050,788 @@ class EconomyController extends Controller
         }
 
         return $filled;
+    }
+
+    private function rebalanceCpuTrainingAllocations(int $season, int $now): int
+    {
+        $cpuTeams = Team::find()->where(['is_cpu' => 1])->all();
+        $updated = 0;
+
+        foreach ($cpuTeams as $team) {
+            $players = Player::find()->where(['team_id' => (int) $team->id])->all();
+            if (empty($players)) {
+                continue;
+            }
+
+            $skillPlan = $this->buildCpuSkillTrainingPlan((int) $team->id, $players);
+            $tacticPlan = $this->buildCpuTacticTrainingPlan((int) $team->id, $season);
+
+            Yii::$app->db->createCommand()->upsert('{{%training_skill}}', array_merge([
+                'team_id' => (int) $team->id,
+                'season' => $season,
+                'updated_at' => $now,
+            ], $skillPlan), array_merge($skillPlan, [
+                'updated_at' => $now,
+            ]))->execute();
+
+            Yii::$app->db->createCommand()->upsert('{{%training_tactic_plan}}', array_merge([
+                'team_id' => (int) $team->id,
+                'season' => $season,
+                'updated_at' => $now,
+            ], $tacticPlan), array_merge($tacticPlan, [
+                'updated_at' => $now,
+            ]))->execute();
+
+            $updated++;
+        }
+
+        return $updated;
+    }
+
+    /**
+     * @param Player[] $players
+     * @return array<string,int>
+     */
+    private function buildCpuSkillTrainingPlan(int $teamId, array $players): array
+    {
+        $statMap = [
+            'alloc_po' => 'skill_po',
+            'alloc_df' => 'skill_df',
+            'alloc_cn' => 'skill_cn',
+            'alloc_pa' => 'skill_pa',
+            'alloc_rg' => 'skill_rg',
+            'alloc_cr' => 'skill_cr',
+            'alloc_tc' => 'skill_tc',
+            'alloc_tr' => 'skill_tr',
+        ];
+        $weights = [];
+
+        foreach ($statMap as $alloc => $stat) {
+            $sum = 0;
+            foreach ($players as $p) {
+                $sum += (int) ($p->{$stat} ?? 0);
+            }
+            $avg = (int) round($sum / max(1, count($players)));
+            $weights[$alloc] = max(1, 105 - $avg);
+        }
+
+        $sumForm = 0;
+        $sumCond = 0;
+        foreach ($players as $p) {
+            $sumForm += (int) ($p->form ?? 0);
+            $sumCond += (int) ($p->condition ?? 0);
+        }
+        $avgForm = (int) round($sumForm / max(1, count($players)));
+        $avgCond = (int) round($sumCond / max(1, count($players)));
+        $weights['alloc_forma'] = max(4, 100 - $avgForm);
+        $weights['alloc_cond'] = max(4, 100 - $avgCond);
+
+        $needed = $this->cpuNeededPosition((int) $teamId);
+        if ($needed !== null) {
+            if ($needed === 'GK') {
+                $weights['alloc_po'] += 24;
+            } elseif ($needed === 'DF') {
+                $weights['alloc_df'] += 14;
+                $weights['alloc_cn'] += 10;
+            } elseif ($needed === 'MF') {
+                $weights['alloc_cn'] += 12;
+                $weights['alloc_pa'] += 12;
+                $weights['alloc_rg'] += 8;
+            } elseif ($needed === 'FW') {
+                $weights['alloc_tr'] += 14;
+                $weights['alloc_tc'] += 12;
+                $weights['alloc_cr'] += 10;
+            }
+        }
+
+        return $this->normalizeToTotal($weights, 100);
+    }
+
+    /**
+     * @return array<string,int>
+     */
+    private function buildCpuTacticTrainingPlan(int $teamId, int $season): array
+    {
+        $fields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco','calci_piazzati'];
+        $row = Yii::$app->db->createCommand(
+            'SELECT * FROM {{%training_tactic}} WHERE team_id=:t AND season=:s',
+            [':t' => $teamId, ':s' => $season]
+        )->queryOne();
+        if (!$row) {
+            $row = [
+                'pressing' => 30, 'contropiede' => 20, 'possesso' => 40, 'palla_bassa' => 30,
+                'lancio_lungo' => 20, 'catenaccio' => 20, 'fuorigioco' => 10, 'calci_piazzati' => 30,
+            ];
+        }
+
+        $weights = [];
+        foreach ($fields as $field) {
+            $value = max(0, min(100, (int) ($row[$field] ?? 0)));
+            $weights[$field] = max(1, 110 - $value);
+        }
+
+        $formation = Formation::find()->where(['team_id' => $teamId, 'is_active' => 1])->one();
+        $style = (string) ($formation->tactic ?? 'balanced');
+        if ($style === 'all_out_attack') {
+            $weights['pressing'] += 10;
+            $weights['contropiede'] += 10;
+            $weights['possesso'] += 8;
+        } elseif ($style === 'ultra_defensive') {
+            $weights['catenaccio'] += 12;
+            $weights['fuorigioco'] += 8;
+            $weights['calci_piazzati'] += 8;
+        } else {
+            $weights['possesso'] += 8;
+            $weights['palla_bassa'] += 8;
+        }
+
+        return $this->normalizeToTotal($weights, 100);
+    }
+
+    private function cpuNeededPosition(int $teamId): ?string
+    {
+        $desired = ['GK' => 2, 'DF' => 6, 'MF' => 6, 'FW' => 4];
+        $rows = Player::find()
+            ->select(['position', 'COUNT(*) AS c'])
+            ->where(['team_id' => $teamId])
+            ->groupBy(['position'])
+            ->asArray()
+            ->all();
+        $have = ['GK' => 0, 'DF' => 0, 'MF' => 0, 'FW' => 0];
+        foreach ($rows as $row) {
+            $pos = strtoupper((string) ($row['position'] ?? ''));
+            if (isset($have[$pos])) {
+                $have[$pos] = (int) $row['c'];
+            }
+        }
+        foreach (['GK', 'DF', 'MF', 'FW'] as $pos) {
+            if ($have[$pos] < $desired[$pos]) {
+                return $pos;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param array<string,int|float> $weights
+     * @return array<string,int>
+     */
+    private function normalizeToTotal(array $weights, int $total): array
+    {
+        $total = max(1, $total);
+        $sum = 0.0;
+        foreach ($weights as $w) {
+            $sum += max(0.0, (float) $w);
+        }
+
+        if ($sum <= 0.0) {
+            $keys = array_keys($weights);
+            $base = intdiv($total, max(1, count($keys)));
+            $rem = $total - ($base * count($keys));
+            $out = [];
+            foreach ($keys as $i => $k) {
+                $out[$k] = $base + ($i < $rem ? 1 : 0);
+            }
+            return $out;
+        }
+
+        $floors = [];
+        $fracs = [];
+        $acc = 0;
+        foreach ($weights as $k => $w) {
+            $raw = (max(0.0, (float) $w) / $sum) * $total;
+            $floor = (int) floor($raw);
+            $floors[$k] = $floor;
+            $fracs[$k] = $raw - $floor;
+            $acc += $floor;
+        }
+        $remaining = $total - $acc;
+        arsort($fracs);
+        foreach (array_keys($fracs) as $k) {
+            if ($remaining <= 0) {
+                break;
+            }
+            $floors[$k]++;
+            $remaining--;
+        }
+
+        return $floors;
+    }
+
+    /**
+     * @return array{offersHandled:int,bought:int,listed:int}
+     */
+    private function runCpuTransferMarketCycle(): array
+    {
+        $now = time();
+        $season = $this->currentSeasonForGeneration();
+        $offersHandled = 0;
+        $listed = 0;
+        $bought = 0;
+
+        $cpuTeams = Team::find()->where(['is_cpu' => 1])->all();
+        foreach ($cpuTeams as $team) {
+            if (!TransferWindowService::isOpen($now, (int) $team->id)) {
+                continue;
+            }
+
+            $offersHandled += $this->cpuRespondToPendingOffers($team, $season, $now);
+            $listed += $this->cpuListSurplusPlayer($team, $now);
+
+            if ($this->cpuTrySignFromPool($team, $season)) {
+                $bought++;
+            } elseif ($this->cpuTryBuyListedPlayer($team, $season)) {
+                $bought++;
+            }
+        }
+
+        return [
+            'offersHandled' => $offersHandled,
+            'bought' => $bought,
+            'listed' => $listed,
+        ];
+    }
+
+    private function cpuRespondToPendingOffers(Team $team, int $season, int $now): int
+    {
+        $handled = 0;
+        $valuator = Yii::$app->has('playerValuator')
+            ? Yii::$app->get('playerValuator')
+            : new \app\components\PlayerValuator();
+
+        $offers = TransferOffer::find()
+            ->where([
+                'to_team_id' => (int) $team->id,
+                'status' => TransferOffer::STATUS_PENDING,
+            ])
+            ->andWhere(['>', 'expires_at', $now])
+            ->with(['transfer', 'player'])
+            ->orderBy(['created_at' => SORT_ASC, 'id' => SORT_ASC])
+            ->all();
+
+        foreach ($offers as $offer) {
+            $transfer = $offer->transfer;
+            if (!$transfer || !in_array((string) $transfer->status, [Transfer::STATUS_LISTED, Transfer::STATUS_BID_MADE], true)) {
+                $offer->status = TransferOffer::STATUS_REJECTED;
+                $offer->save(false, ['status', 'updated_at']);
+                $handled++;
+                continue;
+            }
+
+            $player = $offer->player ?: Player::findOne((int) $offer->player_id);
+            if (!$player || (int) $player->team_id !== (int) $team->id) {
+                $offer->status = TransferOffer::STATUS_REJECTED;
+                $offer->save(false, ['status', 'updated_at']);
+                $handled++;
+                continue;
+            }
+
+            $market = max(1, (int) $valuator->marketValue($player));
+            $asking = max(1, (int) ($transfer->asking_fee ?: $transfer->fee ?: $market));
+            $offered = max(0, (int) $offer->offered_fee);
+            $acceptThreshold = max((int) round($asking * 0.85), (int) round($market * 0.80));
+            $rejectThreshold = (int) round($market * 0.70);
+
+            if ($offered >= $acceptThreshold) {
+                $buyer = Team::findOne((int) $offer->from_team_id);
+                if (!$buyer || (int) $buyer->budget < $offered) {
+                    $offer->status = TransferOffer::STATUS_REJECTED;
+                    $offer->save(false, ['status', 'updated_at']);
+                    $handled++;
+                    continue;
+                }
+
+                $offer->status = TransferOffer::STATUS_ACCEPTED;
+                $offer->save(false, ['status', 'updated_at']);
+                TransferOffer::updateAll(
+                    ['status' => TransferOffer::STATUS_REJECTED, 'updated_at' => $now],
+                    [
+                        'and',
+                        ['transfer_id' => (int) $transfer->id],
+                        ['status' => TransferOffer::STATUS_PENDING],
+                        ['!=', 'id', (int) $offer->id],
+                    ]
+                );
+
+                $transfer->to_team_id = (int) $buyer->id;
+                $transfer->offered_by_team = (int) $buyer->id;
+                $transfer->fee = $offered;
+                $transfer->status = Transfer::STATUS_ACCEPTED;
+                if ($transfer->transfer_type === Transfer::TYPE_LOAN && !$transfer->loan_return_season) {
+                    $transfer->loan_return_season = $season + 1;
+                }
+                $transfer->save(false);
+                $transfer->complete($season);
+                $handled++;
+                continue;
+            }
+
+            if ($offered <= $rejectThreshold || ((int) $offer->expires_at - $now) < 86400) {
+                $offer->status = TransferOffer::STATUS_REJECTED;
+                $offer->save(false, ['status', 'updated_at']);
+                $handled++;
+            }
+        }
+
+        return $handled;
+    }
+
+    private function cpuListSurplusPlayer(Team $team, int $now): int
+    {
+        $players = Player::find()->where(['team_id' => (int) $team->id])->all();
+        if (empty($players)) {
+            return 0;
+        }
+        $rosterCount = count($players);
+        $budgetStress = (int) $team->budget < ((int) $team->totalWageBill() * 4);
+        if ($rosterCount <= 22 && !$budgetStress) {
+            return 0;
+        }
+
+        $listedPlayerIds = Transfer::find()
+            ->select('player_id')
+            ->where([
+                'from_team_id' => (int) $team->id,
+                'status' => [Transfer::STATUS_LISTED, Transfer::STATUS_BID_MADE],
+            ])
+            ->column();
+        $listedMap = array_fill_keys(array_map('intval', $listedPlayerIds), true);
+
+        $counts = ['GK' => 0, 'DF' => 0, 'MF' => 0, 'FW' => 0];
+        foreach ($players as $p) {
+            $pos = strtoupper((string) ($p->position ?? ''));
+            if (isset($counts[$pos])) {
+                $counts[$pos]++;
+            }
+        }
+        $minKeep = ['GK' => 2, 'DF' => 5, 'MF' => 5, 'FW' => 3];
+
+        $candidates = [];
+        foreach ($players as $p) {
+            $pid = (int) $p->id;
+            if (isset($listedMap[$pid])) {
+                continue;
+            }
+            $pos = strtoupper((string) ($p->position ?? ''));
+            if (isset($minKeep[$pos]) && $counts[$pos] <= $minKeep[$pos]) {
+                continue;
+            }
+            $candidates[] = $p;
+        }
+        if (empty($candidates)) {
+            return 0;
+        }
+
+        usort($candidates, static function (Player $a, Player $b): int {
+            $sa = (int) ($a->general_skill ?? 0);
+            $sb = (int) ($b->general_skill ?? 0);
+            if ($sa !== $sb) {
+                return $sa <=> $sb;
+            }
+            $aa = (int) ($a->age ?? 0);
+            $ab = (int) ($b->age ?? 0);
+            if ($aa !== $ab) {
+                return $ab <=> $aa;
+            }
+            return ((int) ($a->form ?? 0)) <=> ((int) ($b->form ?? 0));
+        });
+        $player = $candidates[0];
+
+        $valuator = Yii::$app->has('playerValuator')
+            ? Yii::$app->get('playerValuator')
+            : new \app\components\PlayerValuator();
+        $market = max(10000, (int) $valuator->marketValue($player));
+        $asking = max(10000, (int) round($market * 0.90, -3));
+
+        $transfer = new Transfer();
+        $transfer->player_id = (int) $player->id;
+        $transfer->from_team_id = (int) $team->id;
+        $transfer->fee = $asking;
+        $transfer->asking_fee = $asking;
+        $transfer->proposed_salary = max(10000, (int) $valuator->suggestedSalary($player));
+        $transfer->status = Transfer::STATUS_LISTED;
+        $transfer->transfer_type = Transfer::TYPE_SALE;
+        $transfer->loan_return_season = null;
+        $transfer->listed_at = $now;
+        $transfer->save(false);
+
+        return 1;
+    }
+
+    private function cpuTrySignFromPool(Team $team, int $season): bool
+    {
+        $players = Player::find()->where(['team_id' => (int) $team->id])->all();
+        $rosterCount = count($players);
+        if ($rosterCount >= 20) {
+            return false;
+        }
+
+        $position = $this->cpuNeededPosition((int) $team->id) ?? $this->pickNeededPositionForCpu((int) $team->id);
+        $pool = PlayerPool::findBestForPosition($position);
+        if (!$pool || !$pool->player) {
+            return false;
+        }
+        $player = $pool->player;
+        if ($player->team_id !== null) {
+            $pool->delete();
+            return false;
+        }
+
+        $fee = max(0, (int) $pool->asking_fee);
+        if ((int) $team->budget < $fee && $rosterCount >= 18) {
+            return false;
+        }
+
+        $player->team_id = (int) $team->id;
+        $player->save(false);
+
+        $contract = new Contract();
+        $contract->player_id = (int) $player->id;
+        $contract->team_id = (int) $team->id;
+        $contract->salary = (int) max(10000, (int) $pool->salary_ask);
+        $contract->season_start = $season;
+        $contract->season_end = $season + 2;
+        $contract->status = Contract::STATUS_ACTIVE;
+        $contract->save(false);
+
+        if ($fee > 0) {
+            $team->budget = max(0, (int) $team->budget - $fee);
+            $team->save(false, ['budget']);
+        }
+
+        $pool->delete();
+        return true;
+    }
+
+    private function cpuTryBuyListedPlayer(Team $team, int $season): bool
+    {
+        $players = Player::find()->where(['team_id' => (int) $team->id])->all();
+        if (count($players) >= 21) {
+            return false;
+        }
+
+        $position = $this->cpuNeededPosition((int) $team->id) ?? $this->pickNeededPositionForCpu((int) $team->id);
+        $target = Transfer::find()
+            ->alias('t')
+            ->innerJoin(['p' => Player::tableName()], 'p.id = t.player_id')
+            ->where([
+                't.status' => Transfer::STATUS_LISTED,
+                't.transfer_type' => [Transfer::TYPE_SALE, Transfer::TYPE_LOAN],
+                'p.position' => $position,
+            ])
+            ->andWhere(['!=', 't.from_team_id', (int) $team->id])
+            ->orderBy(['t.asking_fee' => SORT_ASC, 'p.general_skill' => SORT_DESC, 't.id' => SORT_ASC])
+            ->limit(5)
+            ->all();
+
+        if (empty($target)) {
+            return false;
+        }
+
+        foreach ($target as $transfer) {
+            $fee = max(0, (int) ($transfer->asking_fee ?: $transfer->fee));
+            if ($fee <= 0) {
+                continue;
+            }
+            if ($fee > (int) $team->budget) {
+                continue;
+            }
+            if ($fee > (int) round((int) $team->budget * 0.35) && count($players) >= 18) {
+                continue;
+            }
+
+            $transfer->to_team_id = (int) $team->id;
+            $transfer->offered_by_team = (int) $team->id;
+            $transfer->fee = $fee;
+            $transfer->status = Transfer::STATUS_ACCEPTED;
+            if ($transfer->transfer_type === Transfer::TYPE_LOAN && !$transfer->loan_return_season) {
+                $transfer->loan_return_season = $season + 1;
+            }
+            $transfer->save(false);
+
+            return (bool) $transfer->complete($season);
+        }
+
+        return false;
+    }
+
+    private function runCpuStaffHiringCycle(): int
+    {
+        $season = $this->currentSeasonForGeneration();
+        $now = time();
+        $hired = 0;
+        $requiredRoles = [
+            Staff::ROLE_HEAD_COACH,
+            Staff::ROLE_ASSISTANT_COACH,
+            Staff::ROLE_GOALKEEPING_COACH,
+            Staff::ROLE_FITNESS_COACH,
+            Staff::ROLE_DOCTOR,
+        ];
+        $roleBaseSalary = [
+            Staff::ROLE_HEAD_COACH => 85000,
+            Staff::ROLE_ASSISTANT_COACH => 45000,
+            Staff::ROLE_GOALKEEPING_COACH => 50000,
+            Staff::ROLE_FITNESS_COACH => 36000,
+            Staff::ROLE_DOCTOR => 42000,
+        ];
+
+        $cpuTeams = Team::find()->where(['is_cpu' => 1])->all();
+        foreach ($cpuTeams as $team) {
+            $wageBill = max(1, (int) $team->totalWageBill());
+            if ((int) $team->budget < ($wageBill * 4)) {
+                continue;
+            }
+
+            foreach ($requiredRoles as $role) {
+                $exists = Staff::find()->where(['team_id' => (int) $team->id, 'role' => $role])->exists();
+                if ($exists) {
+                    continue;
+                }
+
+                $ability = random_int(38, 88);
+                $experience = random_int(8, 42);
+                $motivation = random_int(58, 98);
+                $salaryBase = (int) ($roleBaseSalary[$role] ?? 35000);
+                $salary = max(24000, (int) round($salaryBase * ($ability / 55)));
+
+                $staff = new Staff();
+                $staff->team_id = (int) $team->id;
+                $staff->name = WorldData::randomFirstName() . ' ' . WorldData::randomLastName();
+                $staff->role = $role;
+                $staff->ability = $ability;
+                $staff->experience = $experience;
+                $staff->age = max(30, min(69, $experience + random_int(22, 31)));
+                $staff->motivation = $motivation;
+                $staff->contract_ends = $season + random_int(1, 3) - 1;
+                $staff->salary = $salary;
+                $staff->specialisation = $this->staffRoleSpecialisation($role);
+                $staff->recomputeEfficiency();
+                $staff->created_at = $now;
+                $staff->updated_at = $now;
+                if ($staff->save(false)) {
+                    $hired++;
+                }
+            }
+        }
+
+        return $hired;
+    }
+
+    private function staffRoleSpecialisation(string $role): string
+    {
+        return match ($role) {
+            Staff::ROLE_HEAD_COACH => 'tattica',
+            Staff::ROLE_FITNESS_COACH => 'fisico',
+            Staff::ROLE_GOALKEEPING_COACH => 'portieri',
+            Staff::ROLE_SCOUT => 'scouting',
+            Staff::ROLE_DOCTOR => 'medico',
+            default => 'equilibrato',
+        };
+    }
+
+    /**
+     * @return array{initiated:int,accepted:int,declined:int}
+     */
+    private function runCpuFriendlyBehavior(): array
+    {
+        $now = time();
+        ['accepted' => $accepted, 'declined' => $declined] = $this->processCpuPendingFriendlyChallenges($now);
+        $initiated = $this->cpuInitiateFriendlyChallenges($now);
+
+        return [
+            'initiated' => $initiated,
+            'accepted' => $accepted,
+            'declined' => $declined,
+        ];
+    }
+
+    /**
+     * @return array{accepted:int,declined:int}
+     */
+    private function processCpuPendingFriendlyChallenges(int $now): array
+    {
+        $accepted = 0;
+        $declined = 0;
+
+        $pending = FriendlyChallenge::find()
+            ->alias('fc')
+            ->innerJoin(Team::tableName() . ' t', 't.id = fc.challenged_id')
+            ->where(['fc.status' => FriendlyChallenge::STATUS_PENDING, 't.is_cpu' => 1])
+            ->with(['challenger.players', 'challenged.players'])
+            ->orderBy(['fc.created_at' => SORT_ASC, 'fc.id' => SORT_ASC])
+            ->all();
+
+        foreach ($pending as $challenge) {
+            $challenger = $challenge->challenger;
+            $challenged = $challenge->challenged;
+            if (!$challenger || !$challenged) {
+                $challenge->status = FriendlyChallenge::STATUS_DECLINED;
+                $challenge->decline_reason = 'Invito non valido';
+                $challenge->responded_at = $now;
+                $challenge->save(false, ['status', 'decline_reason', 'responded_at']);
+                $declined++;
+                continue;
+            }
+
+            if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $challenger->id, (int) $challenge->proposed_at, (int) $challenge->id)) {
+                $challenge->status = FriendlyChallenge::STATUS_DECLINED;
+                $challenge->decline_reason = 'Abbiamo già un’amichevole questa settimana';
+                $challenge->responded_at = $now;
+                $challenge->save(false, ['status', 'decline_reason', 'responded_at']);
+                $declined++;
+                continue;
+            }
+
+            ['accept' => $canAccept, 'reason' => $reason] = $this->cpuFriendlyDecision($challenged, (int) $challenge->proposed_at, (int) $challenge->id);
+            if (!$canAccept) {
+                $challenge->status = FriendlyChallenge::STATUS_DECLINED;
+                $challenge->decline_reason = $reason;
+                $challenge->responded_at = $now;
+                $challenge->save(false, ['status', 'decline_reason', 'responded_at']);
+                $declined++;
+
+                if ($challenger->user_id) {
+                    NewsService::create(
+                        (int) $challenger->user_id,
+                        NewsItem::CAT_FRIENDLY,
+                        '-',
+                        $challenged->name . ' ha declinato l’amichevole',
+                        $reason,
+                        Yii::$app->urlManager->createUrl(['/friendly/index'])
+                    );
+                }
+                continue;
+            }
+
+            $fixture = FriendlyChallengeService::createFixtureForChallenge($challenge);
+            $challenge->status = FriendlyChallenge::STATUS_ACCEPTED;
+            $challenge->fixture_id = (int) $fixture->id;
+            $challenge->responded_at = $now;
+            $challenge->save(false, ['status', 'fixture_id', 'responded_at']);
+            $accepted++;
+
+            if ($challenger->user_id) {
+                NewsService::create(
+                    (int) $challenger->user_id,
+                    NewsItem::CAT_FRIENDLY,
+                    '+',
+                    $challenged->name . ' ha accettato l’amichevole',
+                    sprintf('Partita programmata per %s.', date('d/m H:i', (int) $challenge->proposed_at)),
+                    Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id]),
+                    1
+                );
+            }
+        }
+
+        return ['accepted' => $accepted, 'declined' => $declined];
+    }
+
+    /**
+     * @return array{accept:bool,reason:string}
+     */
+    private function cpuFriendlyDecision(Team $team, int $proposedAt, ?int $excludeChallengeId = null): array
+    {
+        if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $team->id, $proposedAt, $excludeChallengeId)) {
+            return ['accept' => false, 'reason' => 'Abbiamo già un’amichevole questa settimana'];
+        }
+
+        $avgFreshness = FriendlyChallengeService::averageFreshness($team);
+        if ($avgFreshness < 70.0) {
+            return ['accept' => false, 'reason' => 'I nostri giocatori hanno bisogno di riposo'];
+        }
+
+        $acceptChance = 82;
+        if ($avgFreshness < 75.0) {
+            $acceptChance = 68;
+        } elseif ($avgFreshness >= 88.0) {
+            $acceptChance = 90;
+        }
+
+        if (random_int(1, 100) > $acceptChance) {
+            return ['accept' => false, 'reason' => 'Preferiamo concentrarci sul campionato'];
+        }
+
+        return ['accept' => true, 'reason' => ''];
+    }
+
+    private function cpuInitiateFriendlyChallenges(int $now): int
+    {
+        $chanceRaw = trim((string) getenv('GM_CPU_FRIENDLY_INIT_CHANCE'));
+        $chance = 30;
+        if ($chanceRaw !== '' && is_numeric($chanceRaw)) {
+            $chance = max(0, min(100, (int) $chanceRaw));
+        }
+
+        $slot = FriendlyChallengeService::nextFriendlySlot($now);
+        $humanTeams = Team::find()
+            ->where(['is_cpu' => 0])
+            ->andWhere(['not', ['user_id' => null]])
+            ->all();
+        if (empty($humanTeams)) {
+            return 0;
+        }
+
+        $cpuTeams = Team::find()->where(['is_cpu' => 1])->all();
+        $initiated = 0;
+
+        foreach ($cpuTeams as $cpuTeam) {
+            if (random_int(1, 100) > $chance) {
+                continue;
+            }
+            if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $cpuTeam->id, $slot)) {
+                continue;
+            }
+
+            $candidates = [];
+            foreach ($humanTeams as $human) {
+                if ((int) $human->id === (int) $cpuTeam->id) {
+                    continue;
+                }
+                if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $human->id, $slot)) {
+                    continue;
+                }
+                $dup = FriendlyChallenge::find()
+                    ->where([
+                        'challenger_id' => (int) $cpuTeam->id,
+                        'challenged_id' => (int) $human->id,
+                        'status' => FriendlyChallenge::STATUS_PENDING,
+                        'proposed_at' => $slot,
+                    ])
+                    ->exists();
+                if ($dup) {
+                    continue;
+                }
+                $candidates[] = $human;
+            }
+
+            if (empty($candidates)) {
+                continue;
+            }
+            $target = $candidates[array_rand($candidates)];
+
+            $challenge = new FriendlyChallenge();
+            $challenge->challenger_id = (int) $cpuTeam->id;
+            $challenge->challenged_id = (int) $target->id;
+            $challenge->status = FriendlyChallenge::STATUS_PENDING;
+            $challenge->proposed_at = $slot;
+            $challenge->created_at = $now;
+            if ($challenge->save(false)) {
+                $initiated++;
+                if ($target->user_id) {
+                    NewsService::create(
+                        (int) $target->user_id,
+                        NewsItem::CAT_FRIENDLY,
+                        'I',
+                        'Invito amichevole ricevuto',
+                        sprintf('%s ti sfida per %s.', $cpuTeam->name, date('d/m H:i', $slot)),
+                        Yii::$app->urlManager->createUrl(['/friendly/index']),
+                        1
+                    );
+                }
+            }
+        }
+
+        return $initiated;
     }
 
     private function pickNeededPositionForCpu(int $teamId): string

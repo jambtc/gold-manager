@@ -831,9 +831,6 @@
             return false;
         }
 
-            return false;
-        }
-
         if (ev.type === 'second_half_start') {
             log.insertBefore(buildItem(ev, false), log.firstChild);
             setPhaseLabel('second_half');
@@ -876,12 +873,6 @@
                 }
             }, 18000);
 
-            return false;
-        }
-
-        if (ev.type === 'second_half_start') {
-            log.insertBefore(buildItem(ev, false), log.firstChild);
-            setPhaseLabel('second_half');
             return false;
         }
 
