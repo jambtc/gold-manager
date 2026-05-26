@@ -109,10 +109,15 @@
 
 - [x] Staff v2 base: efficiency, specialisation, hire/fire UI (SIP-0035 partial)
 - [x] Training System UI: slider fisici (10 skill) + slider tattici (8 tattiche) (SIP-0036 partial)
+- [x] Training system E2E (controller alias, budget 100, daily apply, tactic plan persistence) (SIP-0036)
 - [x] Character Traits completi: effetti in partita + effetti in allenamento (SIP-0037)
 - [x] Tactical Philosophy: pressing, possesso, lancio lungo, catenaccio, fuorigioco (SIP-0038)
 - [x] Ciclo settimanale: fisico vs tattico, staff amplification, fatica, penalità match-week (SIP-0039)
 - [x] Training progress charts: snapshot settimanali, delta badges, top improvers (SIP-0061)
+
+## Live UX Follow-up ✅
+
+- [x] Live substitution UI (panchina modal, roster endpoint, dual write MatchState+MatchCommand) (SIP-0043)
 
 ## Phase 11 - Injuries & Discipline ✅
 

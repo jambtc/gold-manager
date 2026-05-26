@@ -31,7 +31,13 @@ class TrainingController extends Controller
             ],
             'verbs' => [
                 'class'   => VerbFilter::class,
-                'actions' => ['save-skill' => ['post'], 'save-tactic' => ['post']],
+                'actions' => [
+                    'save-skill' => ['post'],
+                    'save-tactic' => ['post'],
+                    // SIP-0036 legacy aliases
+                    'skill' => ['post'],
+                    'tactic' => ['post'],
+                ],
             ],
         ];
     }
@@ -196,6 +202,14 @@ class TrainingController extends Controller
         return $this->redirect(['index']);
     }
 
+    /**
+     * SIP-0036 legacy alias: POST /training/skill.
+     */
+    public function actionSkill(): Response
+    {
+        return $this->actionSaveSkill();
+    }
+
     public function actionSaveTactic(): Response
     {
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
@@ -223,6 +237,14 @@ class TrainingController extends Controller
         }
         Yii::$app->session->setFlash('success', 'Piano allenamento tattico aggiornato.');
         return $this->redirect(['index', 'tab' => 'tattico']);
+    }
+
+    /**
+     * SIP-0036 legacy alias: POST /training/tactic.
+     */
+    public function actionTactic(): Response
+    {
+        return $this->actionSaveTactic();
     }
 
     private function computeStaffBonus(int $teamId): array
