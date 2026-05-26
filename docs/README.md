@@ -71,16 +71,16 @@ git config core.hooksPath .githooks
 | SIP-0029 | Admin Panel and Platform Governance | Accepted (Implemented) |
 | SIP-0030 | Manager Friendly Matches and Transfer Windows | Deferred (Backlog) |
 | SIP-0031 | Dynamic Commentary Enhancements and Visual Goal Celebrations | Accepted (Implemented) |
-| SIP-0032 | Formation View Enhancement: Skill Bars and Position Hints | Deferred (Backlog) |
-| SIP-0033 | SVG Skill and Position Icon System | Deferred (Backlog) |
+| SIP-0032 | Formation View Enhancement: Skill Bars and Position Hints | Accepted (Implemented) |
+| SIP-0033 | SVG Skill and Position Icon System | Accepted (Implemented) |
 | SIP-0034 | Italian Name Database (Legacy Import) | Accepted (Implemented) |
-| SIP-0035 | Staff Management v2: Roles, Contracts and Match Bonus | Deferred (Backlog) |
-| SIP-0036 | Player Training System: Skill and Tactical Weekly Training | Deferred (Backlog) |
-| SIP-0037 | Character Traits: Match and Training Effects | Deferred (Backlog) |
-| SIP-0038 | Game Style and Tactical Philosophy | Deferred (Backlog) |
-| SIP-0039 | Physical and Tactical Training Balance plus Staff Amplification | Deferred (Backlog) |
-| SIP-0040 | Injury System (Infortuni) | Deferred (Backlog) |
-| SIP-0041 | Cards System (Cartellini Gialli e Rossi) | Deferred (Backlog) |
+| SIP-0035 | Staff Management v2: Roles, Contracts and Match Bonus | Accepted (Implemented) |
+| SIP-0036 | Player Training System: Skill and Tactical Weekly Training | Accepted (Implemented) |
+| SIP-0037 | Character Traits: Match and Training Effects | Accepted (Implemented) |
+| SIP-0038 | Game Style and Tactical Philosophy | Accepted (Implemented) |
+| SIP-0039 | Physical and Tactical Training Balance plus Staff Amplification | Accepted (Implemented) |
+| SIP-0040 | Injury System (Infortuni) | Accepted (Implemented) |
+| SIP-0041 | Cards System (Cartellini Gialli e Rossi) | Accepted (Implemented) |
 | SIP-0042 | Event-Driven Live View: SSE-Only Architecture | Accepted (Implemented) |
 | SIP-0043 | Live Substitution UI | Deferred (Backlog) |
 | SIP-0044 | Special Roles: Captain, Penalty Taker, Free Kick Specialist | Accepted (Implemented) |
@@ -89,17 +89,17 @@ git config core.hooksPath .githooks
 | SIP-0047 | Player Transfer Market v2 plus Generation Engine | Accepted (Implemented) |
 | SIP-0048 | Auto Formazione da Modulo + Tattica (v2) | Accepted (In Progress) |
 | SIP-0049 | Friendly Match System (Amichevoli Challenge) | Accepted (Implemented) |
-| SIP-0050 | News Feed (Notiziario) | Deferred (Backlog) |
+| SIP-0050 | News Feed (Notiziario) | Accepted (Implemented) |
 | SIP-0051 | CPU AI Behavior | Deferred (Backlog) |
 | SIP-0052 | LLM Streaming to Browser | Accepted (Implemented) |
 | SIP-0053 | Temporary Manager Test Control: Advance Day | Accepted (Implemented Temporary) |
-| SIP-0054 | Daily Training Cycle | Deferred (Backlog) |
+| SIP-0054 | Daily Training Cycle | Accepted (Implemented) |
 | SIP-0056 | Sponsor Management v2 | Accepted (Implemented) |
 | SIP-0066 | Unified Commentary Event Stream | Accepted (Implemented) |
 
 ## Current verification snapshot
 
-Verified on 2026-05-19:
+Verified on 2026-05-26:
 
 - Web entrypoint responds through Caddy/Nginx on `http://127.0.0.1:30203/`.
 - Application migrations are up to date.
@@ -108,6 +108,9 @@ Verified on 2026-05-19:
 - Go worker compiles with `go test ./...`.
 - Go worker now auto-starts due scheduled fixtures, cleans stale live state before kickoff, streams SSE event updates, and applies standings on match end.
 - Existing scheduled fixtures are normalized to 15:00 kickoff; no scheduled fixture remains at 00:00.
+- Match commentary supports template-based suspense/fallback flow; LLM enrichment is env-toggleable.
+- Formation/player UI uses shared SVG icon helpers for role/position/talent rendering.
+- Legacy temporary snippet `trait_php_snippet.tmp` is archived after merge verification.
 
 ## Branch
 
