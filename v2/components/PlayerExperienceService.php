@@ -366,30 +366,40 @@ final class PlayerExperienceService
     private function loadStartingZones(Fixture $fixture): array
     {
         $zones = [];
-        foreach (['home_team_id', 'away_team_id'] as $teamField) {
-            $teamId = (int) $fixture->$teamField;
+        $ms = Yii::$app->db->createCommand(
+            'SELECT home_formation_id, away_formation_id
+             FROM {{%match_state}}
+             WHERE fixture_id = :fid
+             LIMIT 1',
+            [':fid' => (int) $fixture->id]
+        )->queryOne();
 
-            // Active formation for this team
-            $formation = Yii::$app->db->createCommand(
-                'SELECT id FROM {{%formation}} WHERE team_id = :tid AND is_active = 1 LIMIT 1',
-                [':tid' => $teamId]
-            )->queryOne();
+        $formationIds = [];
+        if (!empty($ms['home_formation_id'])) {
+            $formationIds[] = (int) $ms['home_formation_id'];
+        }
+        if (!empty($ms['away_formation_id'])) {
+            $formationIds[] = (int) $ms['away_formation_id'];
+        }
 
-            if (!$formation) {
+        if (empty($formationIds)) {
+            return $zones;
+        }
+
+        $sql = 'SELECT player_id, zone
+                FROM {{%formation_slot}}
+                WHERE player_id IS NOT NULL
+                  AND ' . PitchZoneHelper::onPitchSql('zone') . '
+                  AND formation_id IN (' . implode(',', array_fill(0, count($formationIds), '?')) . ')';
+        $slots = Yii::$app->db->createCommand($sql, $formationIds)->queryAll();
+
+        foreach ($slots as $slot) {
+            $pid = (int) ($slot['player_id'] ?? 0);
+            $z = (int) ($slot['zone'] ?? 0);
+            if ($pid <= 0 || !PitchZoneHelper::isOnPitch($z)) {
                 continue;
             }
-
-            $slots = Yii::$app->db->createCommand(
-                'SELECT player_id, zone FROM {{%formation_slot}} WHERE formation_id = :fid AND player_id IS NOT NULL',
-                [':fid' => (int) $formation['id']]
-            )->queryAll();
-
-            foreach ($slots as $slot) {
-                $pid = (int) $slot['player_id'];
-                $z   = (int) $slot['zone'];
-                // Normalize to engine zone
-                $zones[$pid] = PitchZoneHelper::normalizeToCurrent($z);
-            }
+            $zones[$pid] = PitchZoneHelper::normalizeToCurrent($z);
         }
         return $zones;
     }
@@ -401,42 +411,43 @@ final class PlayerExperienceService
      */
     private function getRecentZones(int $playerId, int $n): array
     {
-        // Find the last N fixture_ids this player appeared in
-        $fixtureIds = Yii::$app->db->createCommand(
-            'SELECT fixture_id FROM {{%player_stat}} WHERE player_id = :pid AND minutes_played > 0
-             ORDER BY fixture_id DESC LIMIT ' . $n,
+        // Last N fixtures where player has minutes > 0, newest first.
+        $rows = Yii::$app->db->createCommand(
+            'SELECT ps.fixture_id, ps.team_id, f.home_team_id, f.away_team_id, ms.home_formation_id, ms.away_formation_id
+             FROM {{%player_stat}} ps
+             INNER JOIN {{%fixture}} f ON f.id = ps.fixture_id
+             LEFT JOIN {{%match_state}} ms ON ms.fixture_id = ps.fixture_id
+             WHERE ps.player_id = :pid
+               AND ps.minutes_played > 0
+             ORDER BY f.match_date DESC, ps.fixture_id DESC
+             LIMIT ' . max(1, (int) $n),
             [':pid' => $playerId]
-        )->queryColumn();
+        )->queryAll();
 
-        if (empty($fixtureIds)) {
-            return [];
-        }
-
-        // For each fixture, find what team the player was on and their zone
         $zones = [];
-        foreach ($fixtureIds as $fixtureId) {
-            // Get team_id for this player in this fixture
-            $teamId = Yii::$app->db->createCommand(
-                'SELECT team_id FROM {{%player_stat}} WHERE fixture_id = :fid AND player_id = :pid LIMIT 1',
-                [':fid' => $fixtureId, ':pid' => $playerId]
-            )->queryScalar();
-
-            if (!$teamId) {
+        foreach ($rows as $row) {
+            $fixtureId = (int) ($row['fixture_id'] ?? 0);
+            $teamId = (int) ($row['team_id'] ?? 0);
+            if ($fixtureId <= 0 || $teamId <= 0) {
                 continue;
             }
 
-            $formation = Yii::$app->db->createCommand(
-                'SELECT id FROM {{%formation}} WHERE team_id = :tid AND is_active = 1 LIMIT 1',
-                [':tid' => (int) $teamId]
-            )->queryOne();
+            $formationId = null;
+            $homeTeamId = (int) ($row['home_team_id'] ?? 0);
+            $awayTeamId = (int) ($row['away_team_id'] ?? 0);
 
-            if (!$formation) {
+            if ($homeTeamId > 0 && $teamId === $homeTeamId) {
+                $formationId = !empty($row['home_formation_id']) ? (int) $row['home_formation_id'] : null;
+            } elseif ($awayTeamId > 0 && $teamId === $awayTeamId) {
+                $formationId = !empty($row['away_formation_id']) ? (int) $row['away_formation_id'] : null;
+            }
+            if ($formationId === null || $formationId <= 0) {
                 continue;
             }
 
             $zone = Yii::$app->db->createCommand(
                 'SELECT zone FROM {{%formation_slot}} WHERE formation_id = :fid AND player_id = :pid LIMIT 1',
-                [':fid' => (int) $formation['id'], ':pid' => $playerId]
+                [':fid' => $formationId, ':pid' => $playerId]
             )->queryScalar();
 
             if ($zone) {

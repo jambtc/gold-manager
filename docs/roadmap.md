@@ -104,6 +104,8 @@
 - [x] SVG icon system per posizioni e abilità speciali (SIP-0033)
 - [x] Import nomi/cognomi italiani dal legacy — 1,043 nomi unici, 1,849 cognomi unici (SIP-0034)
 - [x] Special skill badges nel player card (SIP-0032, SIP-0033)
+- [x] Refactor campo logico 10 righe + mapping zone/lanes (SIP-0067)
+- [x] Esperienza ibrida quadrante+cella con decay giornaliero (SIP-0068)
 
 ## Phase 10 - Training, Staff & Tactical Depth ✅
 

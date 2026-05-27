@@ -97,6 +97,8 @@ git config core.hooksPath .githooks
 | SIP-0054 | Daily Training Cycle | Accepted (Implemented) |
 | SIP-0056 | Sponsor Management v2 | Accepted (Implemented) |
 | SIP-0066 | Unified Commentary Event Stream | Accepted (Implemented) |
+| SIP-0067 | Campo Logico 10-Righe (Field Grid Refactor) | Accepted (Implemented) |
+| SIP-0068 | Player Experience Ibrida (Quadrante + Cella) | Accepted (Implemented) |
 
 ## Current verification snapshot
 

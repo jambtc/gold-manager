@@ -1788,9 +1788,11 @@ class MatchEngine extends Component
         $fixture->status = Fixture::STATUS_FINISHED;
         $fixture->save();
 
-        // Persist player stats (goals) for competitive matches only
+        // Persist player stats for all matches (SIP-0068 needs minutes even for friendly)
+        $this->savePlayerStats($fixture, $state);
+
+        // Competitive-only suspension serving
         if ($fixture->competition && $fixture->competition->type !== 'friendly') {
-            $this->savePlayerStats($fixture, $state);
             $this->serveSuspensions($fixture);
         }
 

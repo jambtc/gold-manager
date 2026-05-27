@@ -9,6 +9,7 @@ import (
 	"math/rand"
 	"net/http"
 	"os"
+	"sort"
 	"strconv"
 	"strings"
 	"time"
@@ -1295,6 +1296,20 @@ func (e *MatchEngine) ProcessCommand(fixtureID int, state *models.MatchState, cm
 func (e *MatchEngine) EndMatch(fixtureID int) error {
 	var state models.MatchState
 	_ = e.DB.Get(&state, "SELECT * FROM match_state WHERE fixture_id = ?", fixtureID)
+	var fx struct {
+		CompetitionID   int    `db:"competition_id"`
+		CompetitionType string `db:"type"`
+		HomeTeamID      int    `db:"home_team_id"`
+		AwayTeamID      int    `db:"away_team_id"`
+	}
+	if err := e.DB.Get(&fx, `
+		SELECT f.competition_id, c.type, f.home_team_id, f.away_team_id
+		FROM fixture f
+		JOIN competition c ON c.id = f.competition_id
+		WHERE f.id = ?
+	`, fixtureID); err != nil {
+		return err
+	}
 
 	fallback := fmt.Sprintf("Triplice fischio! Finisce qui! %s %d - %s %d.", e.teamName(fixtureID, "home"), state.HomeScore, e.teamName(fixtureID, "away"), state.AwayScore)
 	if tpl, ok := e.pickTemplate("full_time", "", deriveGameState(state.HomeScore, state.AwayScore, "home", state.CurrentMinute), state.CurrentMinute, fixtureID, map[string]string{
@@ -1316,9 +1331,23 @@ func (e *MatchEngine) EndMatch(fixtureID int) error {
 		tx.Rollback()
 		return err
 	}
-	if err = e.applyStandings(tx, fixtureID, state.HomeScore, state.AwayScore); err != nil {
+	if err = e.savePlayerStatsTx(tx, fixtureID, &state, fx.HomeTeamID, fx.AwayTeamID); err != nil {
 		tx.Rollback()
 		return err
+	}
+	if err = e.applyFixtureExperienceTx(tx, fixtureID, &state, fx.CompetitionType == "friendly"); err != nil {
+		tx.Rollback()
+		return err
+	}
+	if fx.CompetitionType != "friendly" {
+		if err = e.applyStandings(tx, fixtureID, state.HomeScore, state.AwayScore); err != nil {
+			tx.Rollback()
+			return err
+		}
+		if err = e.serveSuspensionsTx(tx, fx.HomeTeamID, fx.AwayTeamID); err != nil {
+			tx.Rollback()
+			return err
+		}
 	}
 	if _, err = tx.Exec("UPDATE match_state SET phase = 'FINISHED' WHERE fixture_id = ?", fixtureID); err != nil {
 		tx.Rollback()
@@ -1374,6 +1403,566 @@ func (e *MatchEngine) applyStandings(tx *sql.Tx, fixtureID int, homeScore, awayS
 		return err
 	}
 	return updateStandingTx(tx, fixture.CompetitionID, fixture.AwayTeamID, awayScore, homeScore)
+}
+
+type playerStatRow struct {
+	TeamID          int
+	Goals           int
+	Assists         int
+	YellowCards     int
+	RedCards        int
+	MinutesPlayed   int
+	PenaltiesScored int
+	PenaltiesMissed int
+	Saves           int
+	CleanSheet      int
+}
+
+func (e *MatchEngine) blankPlayerStatRow(teamID int) *playerStatRow {
+	return &playerStatRow{
+		TeamID:          teamID,
+		Goals:           0,
+		Assists:         0,
+		YellowCards:     0,
+		RedCards:        0,
+		MinutesPlayed:   0,
+		PenaltiesScored: 0,
+		PenaltiesMissed: 0,
+		Saves:           0,
+		CleanSheet:      0,
+	}
+}
+
+func onPitchSQL(column string) string {
+	return fmt.Sprintf("(((%s = 10) OR ((%s BETWEEN 20 AND 103) AND (MOD(%s,10) BETWEEN 1 AND 3))) OR (%s BETWEEN 1 AND 63) OR (%s = 64))", column, column, column, column, column)
+}
+
+func normalizeToCurrentZone(zone int) int {
+	if zone == 64 {
+		return 10
+	}
+	// Current zones: GK=10 or row*10+lane where row 2..10, lane 1..3
+	if zone == 10 {
+		return 10
+	}
+	row := zone / 10
+	lane := zone % 10
+	if row >= 2 && row <= 10 && lane >= 1 && lane <= 3 {
+		return zone
+	}
+	// Legacy zones 1..63
+	if zone >= 1 && zone <= 63 {
+		legacyRow := ((zone - 1) / 7) + 1
+		legacyCol := ((zone - 1) % 7) + 1
+		newRow := 11 - legacyRow
+		newLane := 2
+		if legacyCol <= 2 {
+			newLane = 1
+		} else if legacyCol >= 6 {
+			newLane = 3
+		}
+		if newRow < 2 {
+			newRow = 2
+		}
+		if newRow > 10 {
+			newRow = 10
+		}
+		return newRow*10 + newLane
+	}
+	return 62
+}
+
+func toDisplayZone(zone int) int {
+	if zone == 64 || zone == 10 {
+		return 64
+	}
+	n := normalizeToCurrentZone(zone)
+	if n == 10 {
+		return 64
+	}
+	// If already current, map row/lane to legacy col/row.
+	row := n / 10
+	lane := n % 10
+	if row >= 2 && row <= 10 && lane >= 1 && lane <= 3 {
+		legacyRow := 11 - row
+		legacyCol := 4
+		if lane == 1 {
+			legacyCol = 2
+		} else if lane == 3 {
+			legacyCol = 6
+		}
+		return ((legacyRow - 1) * 7) + legacyCol
+	}
+	if zone >= 1 && zone <= 63 {
+		return zone
+	}
+	return 32
+}
+
+func zoneToQuadrant(zone int) string {
+	n := normalizeToCurrentZone(zone)
+	if n == 10 {
+		return "gk"
+	}
+	row := n / 10
+	lane := n % 10
+	band := "mid"
+	switch {
+	case row >= 2 && row <= 4:
+		band = "def"
+	case row >= 8 && row <= 10:
+		band = "att"
+	}
+	side := "c"
+	if lane == 1 {
+		side = "l"
+	} else if lane == 3 {
+		side = "r"
+	}
+	return band + "_" + side
+}
+
+func (e *MatchEngine) savePlayerStatsTx(tx *sql.Tx, fixtureID int, state *models.MatchState, homeTeamID, awayTeamID int) error {
+	stats := map[int]*playerStatRow{}
+	ensure := func(playerID int, teamID int) *playerStatRow {
+		if s, ok := stats[playerID]; ok {
+			return s
+		}
+		s := e.blankPlayerStatRow(teamID)
+		stats[playerID] = s
+		return s
+	}
+
+	// Goals
+	type goalRow struct {
+		PlayerID *int   `db:"player_id"`
+		TeamSide string `db:"team_side"`
+		Detail   string `db:"detail"`
+	}
+	var goals []goalRow
+	if err := e.DB.Select(&goals, "SELECT player_id, team_side, detail FROM match_event WHERE fixture_id = ? AND type = 'goal'", fixtureID); err != nil {
+		return err
+	}
+	for _, g := range goals {
+		if g.PlayerID == nil || *g.PlayerID <= 0 {
+			continue
+		}
+		teamID := awayTeamID
+		if g.TeamSide == "home" {
+			teamID = homeTeamID
+		}
+		row := ensure(*g.PlayerID, teamID)
+		row.Goals++
+		if strings.Contains(strings.ToLower(g.Detail), `"origin":"penalty"`) || strings.Contains(strings.ToLower(g.Detail), `"reason":"penalty"`) {
+			row.PenaltiesScored++
+		}
+	}
+
+	// Cards
+	type cardRow struct {
+		PlayerID *int   `db:"player_id"`
+		TeamSide string `db:"team_side"`
+		Type     string `db:"type"`
+	}
+	var cards []cardRow
+	if err := e.DB.Select(&cards, "SELECT player_id, team_side, type FROM match_event WHERE fixture_id = ? AND type IN ('yellow_card','red_card')", fixtureID); err != nil {
+		return err
+	}
+	for _, c := range cards {
+		if c.PlayerID == nil || *c.PlayerID <= 0 {
+			continue
+		}
+		teamID := awayTeamID
+		if c.TeamSide == "home" {
+			teamID = homeTeamID
+		}
+		row := ensure(*c.PlayerID, teamID)
+		if c.Type == "yellow_card" {
+			row.YellowCards++
+		} else if c.Type == "red_card" {
+			row.RedCards++
+		}
+	}
+
+	// GK saves
+	type saveRow struct {
+		PlayerID *int `db:"player_id"`
+	}
+	var saves []saveRow
+	if err := e.DB.Select(&saves, "SELECT player_id FROM match_event WHERE fixture_id = ? AND type = 'gk_save' AND player_id IS NOT NULL", fixtureID); err != nil {
+		return err
+	}
+	for _, s := range saves {
+		if s.PlayerID == nil || *s.PlayerID <= 0 {
+			continue
+		}
+		var teamID int
+		if err := e.DB.Get(&teamID, "SELECT team_id FROM player WHERE id = ? LIMIT 1", *s.PlayerID); err != nil {
+			continue
+		}
+		row := ensure(*s.PlayerID, teamID)
+		row.Saves++
+	}
+
+	homeMinutes := e.computeMinutesPlayedForSideTx(tx, fixtureID, state.HomeFormationID, homeTeamID, "home")
+	awayMinutes := e.computeMinutesPlayedForSideTx(tx, fixtureID, state.AwayFormationID, awayTeamID, "away")
+	for pid, mins := range homeMinutes {
+		row := ensure(pid, homeTeamID)
+		row.MinutesPlayed = mins
+	}
+	for pid, mins := range awayMinutes {
+		row := ensure(pid, awayTeamID)
+		row.MinutesPlayed = mins
+	}
+
+	// Clean sheet
+	for pid, row := range stats {
+		if row.MinutesPlayed <= 0 {
+			continue
+		}
+		var p struct {
+			Position string `db:"position"`
+			TeamID   int    `db:"team_id"`
+		}
+		if err := e.DB.Get(&p, "SELECT position, team_id FROM player WHERE id = ? LIMIT 1", pid); err != nil {
+			continue
+		}
+		if strings.ToUpper(p.Position) != "GK" {
+			continue
+		}
+		conceded := state.HomeScore
+		if p.TeamID == homeTeamID {
+			conceded = state.AwayScore
+		}
+		if conceded == 0 {
+			row.CleanSheet = 1
+		}
+	}
+
+	now := time.Now().Unix()
+	for pid, s := range stats {
+		if _, err := tx.Exec(`
+			INSERT INTO player_stat
+			    (fixture_id, player_id, team_id, goals, assists, yellow_cards, red_cards, minutes_played, penalties_scored, penalties_missed, saves, clean_sheet, created_at)
+			VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+			ON DUPLICATE KEY UPDATE
+			    goals = VALUES(goals),
+			    assists = VALUES(assists),
+			    yellow_cards = VALUES(yellow_cards),
+			    red_cards = VALUES(red_cards),
+			    minutes_played = VALUES(minutes_played),
+			    penalties_scored = VALUES(penalties_scored),
+			    penalties_missed = VALUES(penalties_missed),
+			    saves = VALUES(saves),
+			    clean_sheet = VALUES(clean_sheet)
+		`, fixtureID, pid, s.TeamID, s.Goals, s.Assists, s.YellowCards, s.RedCards, s.MinutesPlayed, s.PenaltiesScored, s.PenaltiesMissed, s.Saves, s.CleanSheet, now); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (e *MatchEngine) extractLineupPlayerIDsTx(tx *sql.Tx, formationID int, teamID int) []int {
+	if formationID > 0 {
+		q := fmt.Sprintf("SELECT DISTINCT player_id FROM formation_slot WHERE formation_id = ? AND player_id IS NOT NULL AND %s ORDER BY player_id ASC", onPitchSQL("zone"))
+		rows, err := tx.Query(q, formationID)
+		if err == nil {
+			defer rows.Close()
+			out := make([]int, 0, 16)
+			for rows.Next() {
+				var pid int
+				if err2 := rows.Scan(&pid); err2 == nil && pid > 0 {
+					out = append(out, pid)
+				}
+			}
+			if len(out) > 0 {
+				return out
+			}
+		}
+	}
+
+	fallback := []int{}
+	if err := e.DB.Select(&fallback, "SELECT id FROM player WHERE team_id = ? ORDER BY general_skill DESC, id ASC LIMIT 11", teamID); err == nil {
+		return fallback
+	}
+	return []int{}
+}
+
+type minuteAction struct {
+	Minute int
+	Kind   string
+	Out    int
+	In     int
+	Pid    int
+}
+
+func (e *MatchEngine) computeMinutesPlayedForSideTx(tx *sql.Tx, fixtureID int, formationIDPtr *int, teamID int, side string) map[int]int {
+	formationID := 0
+	if formationIDPtr != nil {
+		formationID = *formationIDPtr
+	}
+	finalLineup := e.extractLineupPlayerIDsTx(tx, formationID, teamID)
+
+	type subRow struct {
+		Minute int    `db:"minute"`
+		Detail string `db:"detail"`
+	}
+	var subRows []subRow
+	_ = e.DB.Select(&subRows, "SELECT minute, detail FROM match_event WHERE fixture_id = ? AND type = 'substitution' AND team_side = ? ORDER BY minute ASC, id ASC", fixtureID, side)
+
+	initial := append([]int{}, finalLineup...)
+	for i := len(subRows) - 1; i >= 0; i-- {
+		var d map[string]interface{}
+		_ = json.Unmarshal([]byte(subRows[i].Detail), &d)
+		outID := intFromAny(d["out"])
+		inID := intFromAny(d["in"])
+		if inID > 0 {
+			tmp := make([]int, 0, len(initial))
+			for _, id := range initial {
+				if id != inID {
+					tmp = append(tmp, id)
+				}
+			}
+			initial = tmp
+		}
+		if outID > 0 && !containsInt(initial, outID) {
+			initial = append(initial, outID)
+		}
+	}
+
+	activeSince := map[int]int{}
+	minutes := map[int]int{}
+	for _, pid := range initial {
+		if pid <= 0 {
+			continue
+		}
+		activeSince[pid] = 0
+		minutes[pid] = 0
+	}
+
+	actions := make([]minuteAction, 0, len(subRows)+4)
+	for _, sub := range subRows {
+		var d map[string]interface{}
+		_ = json.Unmarshal([]byte(sub.Detail), &d)
+		actions = append(actions, minuteAction{
+			Minute: clampInt(sub.Minute, 0, 90),
+			Kind:   "sub",
+			Out:    intFromAny(d["out"]),
+			In:     intFromAny(d["in"]),
+		})
+	}
+
+	type redRow struct {
+		Minute   int  `db:"minute"`
+		PlayerID *int `db:"player_id"`
+	}
+	var redRows []redRow
+	_ = e.DB.Select(&redRows, "SELECT minute, player_id FROM match_event WHERE fixture_id = ? AND type = 'red_card' AND team_side = ? ORDER BY minute ASC, id ASC", fixtureID, side)
+	for _, rr := range redRows {
+		if rr.PlayerID == nil || *rr.PlayerID <= 0 {
+			continue
+		}
+		actions = append(actions, minuteAction{
+			Minute: clampInt(rr.Minute, 0, 90),
+			Kind:   "red",
+			Pid:    *rr.PlayerID,
+		})
+	}
+
+	sort.Slice(actions, func(i, j int) bool {
+		if actions[i].Minute == actions[j].Minute {
+			return actions[i].Kind < actions[j].Kind
+		}
+		return actions[i].Minute < actions[j].Minute
+	})
+
+	for _, a := range actions {
+		m := a.Minute
+		if a.Kind == "sub" {
+			if a.Out > 0 {
+				if since, ok := activeSince[a.Out]; ok {
+					minutes[a.Out] += maxInt(0, m-since)
+					delete(activeSince, a.Out)
+				}
+			}
+			if a.In > 0 {
+				if _, ok := activeSince[a.In]; !ok {
+					activeSince[a.In] = m
+					if _, ok2 := minutes[a.In]; !ok2 {
+						minutes[a.In] = 0
+					}
+				}
+			}
+			continue
+		}
+		if a.Pid > 0 {
+			if since, ok := activeSince[a.Pid]; ok {
+				minutes[a.Pid] += maxInt(0, m-since)
+				delete(activeSince, a.Pid)
+			}
+		}
+	}
+
+	for pid, since := range activeSince {
+		minutes[pid] += maxInt(0, 90-since)
+	}
+	return minutes
+}
+
+func intFromAny(v interface{}) int {
+	switch t := v.(type) {
+	case float64:
+		return int(t)
+	case int:
+		return t
+	case int64:
+		return int(t)
+	case string:
+		i, _ := strconv.Atoi(strings.TrimSpace(t))
+		return i
+	default:
+		return 0
+	}
+}
+
+func containsInt(list []int, v int) bool {
+	for _, x := range list {
+		if x == v {
+			return true
+		}
+	}
+	return false
+}
+
+func maxInt(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+
+func clampInt(v, lo, hi int) int {
+	if v < lo {
+		return lo
+	}
+	if v > hi {
+		return hi
+	}
+	return v
+}
+
+func (e *MatchEngine) applyFixtureExperienceTx(tx *sql.Tx, fixtureID int, state *models.MatchState, isFriendly bool) error {
+	type statRow struct {
+		PlayerID      int `db:"player_id"`
+		MinutesPlayed int `db:"minutes_played"`
+	}
+	var statRows []statRow
+	if err := e.DB.Select(&statRows, "SELECT player_id, minutes_played FROM player_stat WHERE fixture_id = ?", fixtureID); err != nil {
+		return err
+	}
+	if len(statRows) == 0 {
+		return nil
+	}
+
+	formationIDs := []int{}
+	if state.HomeFormationID != nil && *state.HomeFormationID > 0 {
+		formationIDs = append(formationIDs, *state.HomeFormationID)
+	}
+	if state.AwayFormationID != nil && *state.AwayFormationID > 0 {
+		formationIDs = append(formationIDs, *state.AwayFormationID)
+	}
+	if len(formationIDs) == 0 {
+		return nil
+	}
+
+	q := fmt.Sprintf("SELECT player_id, zone FROM formation_slot WHERE player_id IS NOT NULL AND %s AND formation_id IN (%s)", onPitchSQL("zone"), placeholders(len(formationIDs)))
+	args := make([]interface{}, 0, len(formationIDs))
+	for _, id := range formationIDs {
+		args = append(args, id)
+	}
+	rows, err := tx.Query(q, args...)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+
+	playerZones := map[int]int{}
+	for rows.Next() {
+		var pid, zone int
+		if err2 := rows.Scan(&pid, &zone); err2 != nil {
+			continue
+		}
+		if pid > 0 {
+			playerZones[pid] = normalizeToCurrentZone(zone)
+		}
+	}
+
+	for _, row := range statRows {
+		if row.PlayerID <= 0 || row.MinutesPlayed <= 0 {
+			continue
+		}
+		zone, ok := playerZones[row.PlayerID]
+		if !ok {
+			continue
+		}
+
+		officialCredits := 0
+		friendlyCredits := 0
+		if isFriendly {
+			if row.MinutesPlayed >= 45 {
+				friendlyCredits = 1
+			}
+		} else {
+			if row.MinutesPlayed >= 60 {
+				officialCredits = 2
+			} else {
+				officialCredits = 1
+			}
+		}
+		if officialCredits == 0 && friendlyCredits == 0 {
+			continue
+		}
+
+		quadrant := zoneToQuadrant(zone)
+		displayZone := toDisplayZone(zone)
+		if _, err = tx.Exec(`
+			INSERT INTO player_quadrant_exp (player_id, quadrant, official_credits, friendly_credits)
+			VALUES (?, ?, ?, ?)
+			ON DUPLICATE KEY UPDATE
+			  official_credits = official_credits + VALUES(official_credits),
+			  friendly_credits = friendly_credits + VALUES(friendly_credits)
+		`, row.PlayerID, quadrant, officialCredits, friendlyCredits); err != nil {
+			return err
+		}
+		if _, err = tx.Exec(`
+			INSERT INTO player_cell_exp (player_id, zone, official_credits, friendly_credits)
+			VALUES (?, ?, ?, ?)
+			ON DUPLICATE KEY UPDATE
+			  official_credits = official_credits + VALUES(official_credits),
+			  friendly_credits = friendly_credits + VALUES(friendly_credits)
+		`, row.PlayerID, displayZone, officialCredits, friendlyCredits); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func placeholders(n int) string {
+	if n <= 0 {
+		return ""
+	}
+	parts := make([]string, n)
+	for i := 0; i < n; i++ {
+		parts[i] = "?"
+	}
+	return strings.Join(parts, ",")
+}
+
+func (e *MatchEngine) serveSuspensionsTx(tx *sql.Tx, homeTeamID, awayTeamID int) error {
+	if _, err := tx.Exec("UPDATE player SET suspended_matches = suspended_matches - 1 WHERE team_id IN (?, ?) AND suspended_matches > 0", homeTeamID, awayTeamID); err != nil {
+		return err
+	}
+	return nil
 }
 
 func updateStandingTx(tx *sql.Tx, competitionID int, teamID int, goalsFor int, goalsAgainst int) error {
