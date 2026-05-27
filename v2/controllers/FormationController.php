@@ -101,21 +101,17 @@ class FormationController extends Controller
             return $this->asJson(['success' => false, 'message' => 'Zona non valida.']);
         }
 
-        // Normalize all incoming clicks to canonical new zone codes.
-        // Grid cells always send legacy zone IDs (1-63) or display GK (64).
-        // Zones 21-63 overlap with new zone codes, so we MUST treat anything in
-        // 1-63 as a legacy position and convert via legacy row/col math.
+        // Persist outfield display zones with unambiguous storage (1001..1063),
+        // so drag&drop keeps exact 7-column cell and does not collapse to 2/4/6.
         if (PitchZoneHelper::isGoalkeeperZone($zoneId)) {
-            $zoneId = PitchZoneHelper::GK_ZONE; // 10
+            $zoneId = PitchZoneHelper::DISPLAY_GK_ZONE; // keep UI GK code (64)
         } elseif ($zoneId >= 1 && $zoneId <= 63) {
-            // Legacy cell → new zone code
-            $legRow = intdiv($zoneId - 1, 7) + 1;          // 1..9
-            $legCol = (($zoneId - 1) % 7) + 1;             // 1..7
-            $newRow = 11 - $legRow;                         // 2..10
-            $newLane = $legCol <= 2 ? 1 : ($legCol >= 6 ? 3 : 2);
-            $zoneId = $newRow * 10 + $newLane;
+            $zoneId = PitchZoneHelper::encodeStoredDisplayZone($zoneId);
         }
-        // Zones > 64 arriving here are already new zone codes (allowed from future callers).
+        // Zones > 64 arriving here can be historical/current callers.
+
+        $displayZone = PitchZoneHelper::toLegacyDisplayZone($zoneId);
+        $targetZoneCandidates = PitchZoneHelper::displayZoneCandidates($displayZone);
 
         if ($playerId) {
             $playerId = (int) $playerId;
@@ -140,7 +136,11 @@ class FormationController extends Controller
             $tx = Yii::$app->db->beginTransaction();
             try {
                 // Remove whoever is currently in target zone and ensure one-slot-per-player.
-                FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $zoneId]);
+                if (!empty($targetZoneCandidates)) {
+                    FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $targetZoneCandidates]);
+                } else {
+                    FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $zoneId]);
+                }
                 FormationSlot::deleteAll(['formation_id' => $formationId, 'player_id' => $playerId]);
 
                 // Max 11 starters on pitch (ignore bench/off-pitch zones).
@@ -166,7 +166,11 @@ class FormationController extends Controller
             }
         } else {
             // Clear zone only.
-            FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $zoneId]);
+            if (!empty($targetZoneCandidates)) {
+                FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $targetZoneCandidates]);
+            } else {
+                FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $zoneId]);
+            }
         }
 
         $count = (int) FormationSlot::find()

@@ -69,6 +69,16 @@ class PlayerController extends Controller
         $quadrantHeatmap = $player->getQuadrantHeatmap();
         $cellHeatmap     = $player->getCellHeatmap();
 
+        // Prev/next navigation ordered GK → DF → MF → FW, then by number
+        $teammates = Player::find()
+            ->where(['team_id' => $player->team_id])
+            ->orderBy(new \yii\db\Expression("FIELD(position,'GK','DF','MF','FW'), number ASC, name ASC"))
+            ->select('id')
+            ->column();
+        $idx = array_search($player->id, $teammates);
+        $prevPlayerId = ($idx !== false && $idx > 0) ? (int) $teammates[$idx - 1] : null;
+        $nextPlayerId = ($idx !== false && $idx < count($teammates) - 1) ? (int) $teammates[$idx + 1] : null;
+
         return $this->render('view', [
             'player'           => $player,
             'contract'         => $contract,
@@ -81,6 +91,8 @@ class PlayerController extends Controller
             'activeTransfer'   => $activeTransfer,
             'quadrantHeatmap'  => $quadrantHeatmap,
             'cellHeatmap'      => $cellHeatmap,
+            'prevPlayerId'     => $prevPlayerId,
+            'nextPlayerId'     => $nextPlayerId,
         ]);
     }
 }

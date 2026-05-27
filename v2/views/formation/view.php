@@ -37,7 +37,9 @@ foreach ($slots as $slot) {
     if (!PitchZoneHelper::isOnPitch($rawZone)) {
         continue;
     }
-    if (PitchZoneHelper::isGoalkeeperZone($rawZone)) {
+    if (PitchZoneHelper::isStoredDisplayZone($rawZone)) {
+        $key = PitchZoneHelper::decodeStoredDisplayZone($rawZone); // 1..63 exact display cell
+    } elseif (PitchZoneHelper::isGoalkeeperZone($rawZone)) {
         $key = PitchZoneHelper::DISPLAY_GK_ZONE; // 64
     } elseif (PitchZoneHelper::isCurrentZone($rawZone)) {
         // New zone code (row*10+lane); zones 21-63 fall here, not into legacy branch

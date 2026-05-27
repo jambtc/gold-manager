@@ -12,6 +12,8 @@ declare(strict_types=1);
 /** @var int $season */
 /** @var string $backUrl */
 /** @var app\models\Transfer|null $activeTransfer */
+/** @var int|null $prevPlayerId */
+/** @var int|null $nextPlayerId */
 /** @var array<string, array{official_credits:int, friendly_credits:int, bonus:float}> $quadrantHeatmap */
 /** @var array<int, array{official_credits:int, friendly_credits:int, bonus:float}> $cellHeatmap */
 
@@ -70,13 +72,33 @@ $trainingLogs = Yii::$app->db->createCommand(
 
 <div class="player-view">
 
-    <?php if (!empty($backUrl)): ?>
-        <div class="mb-3">
-            <a href="<?= Html::encode($backUrl) ?>" class="btn btn-outline-secondary btn-sm">
-                <i class="bi bi-arrow-left me-1"></i>Torna indietro
-            </a>
+    <div class="d-flex align-items-center justify-content-between mb-3">
+        <div>
+            <?php if (!empty($backUrl)): ?>
+                <a href="<?= Html::encode($backUrl) ?>" class="btn btn-outline-secondary btn-sm">
+                    <i class="bi bi-arrow-left me-1"></i>Indietro
+                </a>
+            <?php endif; ?>
         </div>
-    <?php endif; ?>
+        <div class="d-flex gap-2">
+            <?php if ($prevPlayerId): ?>
+                <a href="<?= Html::encode(\yii\helpers\Url::to(['/player/view', 'id' => $prevPlayerId, 'back' => $backUrl])) ?>"
+                   class="btn btn-outline-secondary btn-sm" title="Giocatore precedente">
+                    <i class="bi bi-chevron-left"></i>
+                </a>
+            <?php else: ?>
+                <button class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-chevron-left"></i></button>
+            <?php endif; ?>
+            <?php if ($nextPlayerId): ?>
+                <a href="<?= Html::encode(\yii\helpers\Url::to(['/player/view', 'id' => $nextPlayerId, 'back' => $backUrl])) ?>"
+                   class="btn btn-outline-secondary btn-sm" title="Giocatore successivo">
+                    <i class="bi bi-chevron-right"></i>
+                </a>
+            <?php else: ?>
+                <button class="btn btn-outline-secondary btn-sm" disabled><i class="bi bi-chevron-right"></i></button>
+            <?php endif; ?>
+        </div>
+    </div>
 
     <!-- Hero -->
     <div class="player-hero mb-4">
@@ -239,6 +261,17 @@ $trainingLogs = Yii::$app->db->createCommand(
                     <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                 </div>
 
+                <?php
+                // Pre-compute max total across all 64 display zones
+                $allTotals = [];
+                for ($r = 1; $r <= 9; $r++) {
+                    for ($c = 1; $c <= 7; $c++) {
+                        $allTotals[] = $heatCellVal(($r - 1) * 7 + $c)['total'];
+                    }
+                }
+                $allTotals[] = $heatCellVal(PitchZoneHelper::DISPLAY_GK_ZONE)['total'];
+                $maxCellTotal = max($allTotals);
+                ?>
                 <div class="pitch-container">
                     <div class="pitch-grid">
                         <?php for ($legRow = 1; $legRow <= 9; $legRow++): ?>
@@ -250,10 +283,11 @@ $trainingLogs = Yii::$app->db->createCommand(
                                 $bg  = $cellBgAlpha($cv['total']);
                                 $tip = 'Base: ' . $cv['base'] . ' | Q:+' . $cv['bonusQ'] . ' | C:+' . $cv['bonusC'] . ' | Tot: ' . $cv['total'];
                                 $centerCls = ($col >= 3 && $col <= 5) ? ' pitch-zone-center' : '';
+                                $bestBorder = ($cv['total'] === $maxCellTotal) ? 'box-shadow:inset 0 0 0 2px var(--gold);' : '';
                                 ?>
                                 <div class="pitch-zone<?= $centerCls ?>"
                                     title="<?= Html::encode($tip) ?>"
-                                    style="background:<?= $bg ?>;flex-direction:column;gap:0;cursor:default">
+                                    style="background:<?= $bg ?>;flex-direction:column;gap:0;cursor:default;<?= $bestBorder ?>">
                                     <div style="font-size:.75rem;font-weight:900;color:<?= $clr ?>;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.8)">
                                         <?= $cv['total'] ?>
                                     </div>
@@ -273,11 +307,12 @@ $trainingLogs = Yii::$app->db->createCommand(
                     $gkClr = $cellColor($gkCv['total']);
                     $gkBg  = $cellBgAlpha($gkCv['total']);
                     $gkTip = 'Base: ' . $gkCv['base'] . ' | Q:+' . $gkCv['bonusQ'] . ' | C:+' . $gkCv['bonusC'] . ' | Tot: ' . $gkCv['total'];
+                    $gkBestBorder = ($gkCv['total'] === $maxCellTotal) ? 'box-shadow:inset 0 0 0 2px var(--gold);' : '';
                     ?>
                     <div class="pitch-gk-row">
                         <div class="pitch-zone pitch-zone-gk"
                             title="<?= Html::encode($gkTip) ?>"
-                            style="background:<?= $gkBg ?>;flex-direction:column;gap:0;cursor:default">
+                            style="background:<?= $gkBg ?>;flex-direction:column;gap:0;cursor:default;<?= $gkBestBorder ?>">
                             <div style="font-size:.75rem;font-weight:900;color:<?= $gkClr ?>;line-height:1;text-shadow:0 1px 3px rgba(0,0,0,.8)">
                                 <?= $gkCv['total'] ?>
                             </div>

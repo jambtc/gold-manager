@@ -10,6 +10,9 @@ final class PitchZoneHelper
     public const DISPLAY_GK_ZONE = 64;
     public const LEGACY_MIN_ZONE = 1;
     public const LEGACY_MAX_ZONE = 63;
+    public const STORED_DISPLAY_OFFSET = 1000;
+    public const STORED_DISPLAY_MIN_ZONE = self::STORED_DISPLAY_OFFSET + self::LEGACY_MIN_ZONE; // 1001
+    public const STORED_DISPLAY_MAX_ZONE = self::STORED_DISPLAY_OFFSET + self::LEGACY_MAX_ZONE; // 1063
     public const ROW_MIN = 1;
     public const ROW_MAX = 10;
     public const LANE_MIN = 1;
@@ -34,6 +37,50 @@ final class PitchZoneHelper
         return $zone >= self::LEGACY_MIN_ZONE && $zone <= self::LEGACY_MAX_ZONE;
     }
 
+    public static function isStoredDisplayZone(int $zone): bool
+    {
+        return $zone >= self::STORED_DISPLAY_MIN_ZONE && $zone <= self::STORED_DISPLAY_MAX_ZONE;
+    }
+
+    public static function encodeStoredDisplayZone(int $displayZone): int
+    {
+        $displayZone = max(self::LEGACY_MIN_ZONE, min(self::LEGACY_MAX_ZONE, $displayZone));
+        return self::STORED_DISPLAY_OFFSET + $displayZone;
+    }
+
+    public static function decodeStoredDisplayZone(int $storedZone): int
+    {
+        if (!self::isStoredDisplayZone($storedZone)) {
+            return max(self::LEGACY_MIN_ZONE, min(self::LEGACY_MAX_ZONE, $storedZone));
+        }
+        return $storedZone - self::STORED_DISPLAY_OFFSET;
+    }
+
+    /**
+     * Returns all DB-zone candidates that represent a given display zone.
+     * Useful to clear/move slots across mixed old/new encodings safely.
+     *
+     * @return int[]
+     */
+    public static function displayZoneCandidates(int $displayZone): array
+    {
+        if ($displayZone === self::DISPLAY_GK_ZONE) {
+            return [self::DISPLAY_GK_ZONE, self::GK_ZONE];
+        }
+
+        if (!self::isLegacyZone($displayZone)) {
+            return [];
+        }
+
+        $out = [
+            self::encodeStoredDisplayZone($displayZone), // new unambiguous storage
+            $displayZone,                                 // legacy raw storage
+            self::normalizeDisplayZone($displayZone),     // historical current-zone storage
+        ];
+
+        return array_values(array_unique(array_map('intval', $out)));
+    }
+
     public static function isCurrentZone(int $zone): bool
     {
         if ($zone === self::GK_ZONE) {
@@ -46,7 +93,10 @@ final class PitchZoneHelper
 
     public static function isOnPitch(int $zone): bool
     {
-        return $zone === self::DISPLAY_GK_ZONE || self::isCurrentZone($zone) || self::isLegacyZone($zone);
+        return $zone === self::DISPLAY_GK_ZONE
+            || self::isCurrentZone($zone)
+            || self::isLegacyZone($zone)
+            || self::isStoredDisplayZone($zone);
     }
 
     public static function isGoalkeeperZone(int $zone): bool
@@ -62,6 +112,10 @@ final class PitchZoneHelper
      */
     public static function coords(int $zone): array
     {
+        if (self::isStoredDisplayZone($zone)) {
+            $zone = self::decodeStoredDisplayZone($zone);
+        }
+
         if (self::isCurrentZone($zone)) {
             if ($zone === self::GK_ZONE) {
                 return ['row' => 1, 'lane' => 2, 'is_gk' => true];
@@ -111,6 +165,9 @@ final class PitchZoneHelper
      */
     public static function normalizeDisplayZone(int $displayZone): int
     {
+        if (self::isStoredDisplayZone($displayZone)) {
+            $displayZone = self::decodeStoredDisplayZone($displayZone);
+        }
         if ($displayZone === self::DISPLAY_GK_ZONE) {
             return self::GK_ZONE;
         }
@@ -125,6 +182,9 @@ final class PitchZoneHelper
 
     public static function normalizeToCurrent(int $zone): int
     {
+        if (self::isStoredDisplayZone($zone)) {
+            $zone = self::decodeStoredDisplayZone($zone);
+        }
         if ($zone === self::DISPLAY_GK_ZONE) {
             return self::GK_ZONE;
         }
@@ -151,6 +211,9 @@ final class PitchZoneHelper
      */
     public static function toLegacyDisplayZone(int $zone): int
     {
+        if (self::isStoredDisplayZone($zone)) {
+            return self::decodeStoredDisplayZone($zone);
+        }
         if ($zone === self::DISPLAY_GK_ZONE) {
             return self::DISPLAY_GK_ZONE;
         }
@@ -189,7 +252,16 @@ final class PitchZoneHelper
         if (!$includeLegacy) {
             return $withDisplayGk;
         }
-        return sprintf('(%s OR (%s BETWEEN %d AND %d))', $withDisplayGk, $column, self::LEGACY_MIN_ZONE, self::LEGACY_MAX_ZONE);
+        return sprintf(
+            '(%s OR (%s BETWEEN %d AND %d) OR (%s BETWEEN %d AND %d))',
+            $withDisplayGk,
+            $column,
+            self::LEGACY_MIN_ZONE,
+            self::LEGACY_MAX_ZONE,
+            $column,
+            self::STORED_DISPLAY_MIN_ZONE,
+            self::STORED_DISPLAY_MAX_ZONE
+        );
     }
 
     /**
