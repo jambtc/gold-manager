@@ -23,8 +23,8 @@ $config = [
     ],
     'components' => [
         'request' => [
-            // !!! insert a secret key in the following (if it is empty) - this is required by cookie validation
-            'cookieValidationKey' => '3hCiLu7RxzT026pnS5zmw1fd4BLdbajl',
+            // Required for cookie tamper protection; override via env in deployment.
+            'cookieValidationKey' => getenv('COOKIE_VALIDATION_KEY') ?: '3hCiLu7RxzT026pnS5zmw1fd4BLdbajl',
         ],
         'cache' => [
             'class' => \yii\caching\FileCache::class,
