@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\components\AuctionService;
 use app\components\NewsService;
 use app\components\SponsorService;
+use app\models\MarketBid;
 use app\models\NewsItem;
 use app\models\Sponsor;
 use Yii;
@@ -66,6 +68,17 @@ class SponsorController extends Controller
             ->where(['team_id' => $team->id])
             ->orderBy(['signed_at' => SORT_DESC, 'id' => SORT_DESC])
             ->all();
+        $pendingBids = MarketBid::find()
+            ->where([
+                'team_id' => (int) $team->id,
+                'market_type' => MarketBid::TYPE_SPONSOR,
+                'status' => MarketBid::STATUS_PENDING,
+            ])
+            ->all();
+        $pendingBySponsor = [];
+        foreach ($pendingBids as $bid) {
+            $pendingBySponsor[(int) $bid->market_ref_id] = $bid;
+        }
 
         return $this->render('index', [
             'team' => $team,
@@ -73,11 +86,12 @@ class SponsorController extends Controller
             'availableSponsors' => $availableSponsors,
             'history' => $history,
             'prestige' => $prestige,
+            'pendingBySponsor' => $pendingBySponsor,
         ]);
     }
 
     /**
-     * Signs a sponsorship contract.
+     * Places/updates sponsor auction bid.
      */
     public function actionSign(int $id): Response
     {
@@ -102,65 +116,67 @@ class SponsorController extends Controller
             return $this->redirect(['index']);
         }
 
-        $tx = Yii::$app->db->beginTransaction();
-        try {
-            SponsorService::expireContracts(false);
-            $active = SponsorService::getActiveContractForTeam((int) $team->id);
-
-            $switchPenalty = 0;
-            if ($active) {
-                if ((int) $active->sponsor_id === (int) $sponsor->id) {
-                    Yii::$app->session->setFlash('info', "Hai già {$sponsor->name} come sponsor attivo.");
-                    $tx->rollBack();
-                    return $this->redirect(['index']);
-                }
-                $active->status = TeamSponsor::STATUS_TERMINATED;
-                $active->ends_at = time();
-                $active->save(false, ['status', 'ends_at']);
-
-                if ($active->sponsor) {
-                    $switchPenalty = (int) round($active->sponsor->base_payment * 0.05);
-                }
-            }
-
-            $now = time();
-            $contract = new TeamSponsor();
-            $contract->team_id = (int) $team->id;
-            $contract->sponsor_id = (int) $sponsor->id;
-            $contract->signed_at = $now;
-            $contract->ends_at = $now + SponsorService::contractDurationSeconds((int) $sponsor->duration_seasons);
-            $contract->status = TeamSponsor::STATUS_ACTIVE;
-            $contract->save(false);
-
-            $bonus = (int) round($sponsor->base_payment * 0.10);
-            $team->budget += ($bonus - $switchPenalty);
-            $team->save(false);
-
-            NewsService::create(
-                (int) $team->user_id,
-                NewsItem::CAT_FINANCE,
-                '=',
-                "Nuovo sponsor: {$sponsor->name}",
-                sprintf(
-                    'Contratto firmato (%d stagione/i). Bonus firma €%s%s.',
-                    (int) $sponsor->duration_seasons,
-                    number_format($bonus, 0, ',', '.'),
-                    $switchPenalty > 0 ? ' · Penale cambio €' . number_format($switchPenalty, 0, ',', '.') : ''
-                ),
-                Yii::$app->urlManager->createUrl(['/sponsor/index']),
-                1
-            );
-
-            $tx->commit();
-            Yii::$app->session->setFlash(
-                'success',
-                "Contratto firmato con {$sponsor->name}. Bonus €" . number_format($bonus, 0, ',', '.')
-                . ($switchPenalty > 0 ? " (penale cambio €" . number_format($switchPenalty, 0, ',', '.') . ")." : '.')
-            );
-        } catch (\Throwable $e) {
-            $tx->rollBack();
-            Yii::$app->session->setFlash('error', 'Errore firma sponsor: ' . $e->getMessage());
+        $offered = (int) Yii::$app->request->post('offered_fee', 0);
+        if ($offered <= 0) {
+            $offered = max(1000, (int) round((int) $sponsor->base_payment * 0.10));
         }
+        if ((int) $team->budget < $offered) {
+            Yii::$app->session->setFlash('error', 'Budget insufficiente per piazzare questa offerta sponsor.');
+            return $this->redirect(['index']);
+        }
+
+        $bid = AuctionService::placeOrUpdateBid(
+            (int) $team->id,
+            MarketBid::TYPE_SPONSOR,
+            (int) $sponsor->id,
+            $offered
+        );
+        Yii::$app->session->setFlash(
+            'success',
+            sprintf(
+                'Offerta sponsor inviata: €%s (scade %s).',
+                number_format((int) $bid->bid_amount, 0, ',', '.'),
+                date('d/m H:i', (int) $bid->expires_at)
+            )
+        );
+        return $this->redirect(['index']);
+    }
+
+    public function actionRaiseOffer(int $id): Response
+    {
+        $team = Team::findOne(['user_id' => Yii::$app->user->id]);
+        if (!$team) return $this->redirect(['/site/index']);
+
+        $sponsor = Sponsor::findOne($id);
+        if (!$sponsor) throw new NotFoundHttpException();
+
+        $existing = MarketBid::findOne([
+            'team_id'       => (int) $team->id,
+            'market_type'   => MarketBid::TYPE_SPONSOR,
+            'market_ref_id' => (int) $sponsor->id,
+            'status'        => MarketBid::STATUS_PENDING,
+        ]);
+        if (!$existing) {
+            Yii::$app->session->setFlash('error', 'Nessuna offerta attiva da alzare.');
+            return $this->redirect(['index']);
+        }
+        $base   = (int) $existing->bid_amount;
+        $newBid = max($base + 1000, (int) round($base * 1.15));
+        if ((int) $team->budget < $newBid) {
+            Yii::$app->session->setFlash('error', 'Budget insufficiente per il rialzo.');
+            return $this->redirect(['index']);
+        }
+
+        $bid = AuctionService::placeOrUpdateBid(
+            (int) $team->id,
+            MarketBid::TYPE_SPONSOR,
+            (int) $sponsor->id,
+            $newBid
+        );
+        Yii::$app->session->setFlash(
+            'success',
+            'Offerta sponsor alzata a €' . number_format((int) $bid->bid_amount, 0, ',', '.') . '.'
+        );
         return $this->redirect(['index']);
     }
 

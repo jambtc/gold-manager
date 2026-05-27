@@ -4,12 +4,13 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\components\AuctionService;
 use app\components\MultiplayerSyncService;
 use app\components\NewsService;
 use app\components\TelegramService;
 use app\components\TransferWindowService;
 use app\models\Competition;
-use app\models\Contract;
+use app\models\MarketBid;
 use app\models\NewsItem;
 use app\models\Player;
 use app\models\PlayerPool;
@@ -110,7 +111,22 @@ class TransferController extends Controller
         if ($maxAge > 0) {
             $poolQuery->andWhere(['<=', 'p.age', $maxAge]);
         }
-        $poolPlayers = $poolQuery->orderBy(['p.general_skill' => SORT_DESC, 'pp.id' => SORT_ASC])->all();
+        $poolPlayers = $poolQuery->orderBy([
+            'pp.expires_at' => SORT_ASC,
+            'p.general_skill' => SORT_DESC,
+            'pp.id' => SORT_ASC,
+        ])->all();
+        $poolBidRows = MarketBid::find()
+            ->where([
+                'team_id' => (int) $team->id,
+                'market_type' => MarketBid::TYPE_PLAYER_POOL,
+                'status' => MarketBid::STATUS_PENDING,
+            ])
+            ->all();
+        $poolBidMap = [];
+        foreach ($poolBidRows as $row) {
+            $poolBidMap[(int) $row->market_ref_id] = $row;
+        }
 
         $myOffersSent = TransferOffer::find()
             ->where(['from_team_id' => $team->id])
@@ -122,7 +138,7 @@ class TransferController extends Controller
         $incomingOffers = TransferOffer::find()
             ->where(['to_team_id' => $team->id, 'status' => TransferOffer::STATUS_PENDING])
             ->with(['player', 'transfer', 'fromTeam'])
-            ->orderBy(['created_at' => SORT_DESC])
+            ->orderBy(['expires_at' => SORT_ASC, 'id' => SORT_ASC])
             ->all();
 
         return $this->render('market', [
@@ -141,6 +157,7 @@ class TransferController extends Controller
             'windowOpen'     => TransferWindowService::isOpen(null, (int) $team->id),
             'nextOpenAt'     => TransferWindowService::nextOpeningTimestamp(null, (int) $team->id),
             'activeTab'      => $activeTab,
+            'poolBidMap'     => $poolBidMap,
         ]);
     }
 
@@ -170,6 +187,17 @@ class TransferController extends Controller
             ->exists();
         if ($alreadyListed) {
             Yii::$app->session->setFlash('info', 'Giocatore già sul mercato.');
+            return $this->redirect(['market']);
+        }
+
+        // 48h cooldown after manual delist without sale
+        $cooldown = Yii::$app->db->createCommand(
+            'SELECT unlocks_at FROM {{%transfer_cooldown}} WHERE player_id=:pid',
+            [':pid' => $player->id]
+        )->queryScalar();
+        if ($cooldown && strtotime($cooldown) > time()) {
+            $remaining = ceil((strtotime($cooldown) - time()) / 3600);
+            Yii::$app->session->setFlash('error', "Giocatore in cooldown: puoi rimetterlo in vendita tra {$remaining}h.");
             return $this->redirect(['market']);
         }
 
@@ -449,6 +477,15 @@ class TransferController extends Controller
         $transfer->status = Transfer::STATUS_CANCELLED;
         $transfer->resolved_at = time();
         $transfer->save(false, ['status', 'resolved_at', 'updated_at']);
+
+        // Insert/update 48h cooldown so player cannot be re-listed immediately
+        $unlocksAt = date('Y-m-d H:i:s', time() + 48 * 3600);
+        Yii::$app->db->createCommand(
+            'INSERT INTO {{%transfer_cooldown}} (player_id, team_id, unlocks_at)
+             VALUES (:pid, :tid, :ua)
+             ON DUPLICATE KEY UPDATE team_id=:tid, unlocks_at=:ua',
+            [':pid' => $transfer->player_id, ':tid' => $team->id, ':ua' => $unlocksAt]
+        )->execute();
         $requestId = MultiplayerSyncService::currentRequestId('transfer.delist.' . $id);
         $requestSource = MultiplayerSyncService::currentRequestSource();
         TransferOffer::updateAll(
@@ -465,7 +502,7 @@ class TransferController extends Controller
     }
 
     /**
-     * Free agent signing from player_pool.
+     * Places/updates free-agent auction bid from player_pool.
      */
     public function actionSignFreeAgent(int $id): Response
     {
@@ -494,46 +531,34 @@ class TransferController extends Controller
         $player = $pool->player;
         if (!$player || $player->team_id !== null) {
             Yii::$app->session->setFlash('error', 'Giocatore non più disponibile.');
-            if ($pool) {
-                $pool->delete();
-            }
             return $this->redirect(['market']);
         }
 
-        $player->team_id = (int) $team->id;
-        $player->save(false);
+        $offered = (int) Yii::$app->request->post('offered_fee', 0);
+        if ($offered <= 0) {
+            $offered = max(1, (int) $pool->asking_fee);
+        }
+        if ((int) $team->budget < $offered) {
+            Yii::$app->session->setFlash('error', 'Budget insufficiente per piazzare questa offerta.');
+            return $this->redirect(['market']);
+        }
 
-        Contract::updateAll(
-            ['status' => Contract::STATUS_TRANSFERRED],
-            ['player_id' => (int) $player->id, 'status' => Contract::STATUS_ACTIVE]
+        $bid = AuctionService::placeOrUpdateBid(
+            (int) $team->id,
+            MarketBid::TYPE_PLAYER_POOL,
+            (int) $pool->id,
+            $offered
         );
-
-        $contract = new Contract();
-        $contract->player_id = (int) $player->id;
-        $contract->team_id = (int) $team->id;
-        $contract->salary = (int) $pool->salary_ask;
-        $contract->season_start = $this->currentSeason();
-        $contract->season_end = $this->currentSeason() + 1;
-        $contract->status = Contract::STATUS_ACTIVE;
-        $contract->save(false);
-
-        $transfer = new Transfer();
-        $transfer->player_id = (int) $player->id;
-        $transfer->from_team_id = null;
-        $transfer->to_team_id = (int) $team->id;
-        $transfer->offered_by_team = (int) $team->id;
-        $transfer->fee = 0;
-        $transfer->asking_fee = 0;
-        $transfer->proposed_salary = (int) $pool->salary_ask;
-        $transfer->transfer_type = Transfer::TYPE_FREE;
-        $transfer->status = Transfer::STATUS_COMPLETED;
-        $transfer->listed_at = time();
-        $transfer->resolved_at = time();
-        $transfer->save(false);
-
-        $pool->delete();
-        Yii::$app->session->setFlash('success', "{$player->name} firmato a parametro zero.");
-        return $this->redirect(['/team/view']);
+        Yii::$app->session->setFlash(
+            'success',
+            sprintf(
+                'Offerta piazzata su %s: €%s (scade %s).',
+                $player->name,
+                number_format((int) $bid->bid_amount, 0, ',', '.'),
+                date('d/m H:i', (int) $bid->expires_at)
+            )
+        );
+        return $this->redirect(['market', 'tab' => 'pool']);
         } finally {
             MultiplayerSyncService::releaseLock('transfer.pool.' . $id, $lockToken);
         }

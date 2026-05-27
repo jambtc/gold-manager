@@ -8,6 +8,8 @@ declare(strict_types=1);
 /** @var app\models\ScoutingReport[] $pending */
 /** @var app\models\ScoutingReport[] $ready */
 /** @var app\models\ScoutingReport[] $archived */
+/** @var string[] $needPositions */
+/** @var int $scoutEff */
 
 use yii\helpers\Html;
 use yii\helpers\Url;
@@ -42,6 +44,28 @@ $this->params['breadcrumbs'][] = $this->title;
         <?= Html::a('<i class="bi bi-person-plus me-1"></i> Vai allo staff', ['/staff/view'], ['class' => 'btn btn-gold', 'encode' => false]) ?>
     </div>
     <?php else: ?>
+
+    <div class="gm-card mb-4">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+            <h5 class="text-white fw-bold mb-0"><i class="bi bi-funnel text-gold me-2"></i>Richieste Scout</h5>
+            <span class="text-muted-gm" style="font-size:.75rem">Efficienza scout: <?= (int) $scoutEff ?></span>
+        </div>
+        <p class="text-muted-gm mb-3" style="font-size:.78rem">
+            Seleziona fino a 3 ruoli: quando entra un profilo interessante nel pool, ricevi una news automatica.
+        </p>
+        <?= Html::beginForm(['/scouting/save-needs'], 'post', ['class' => 'd-flex flex-wrap align-items-center gap-3']) ?>
+            <?php foreach (['GK' => 'Portiere', 'DF' => 'Difensore', 'MF' => 'Centrocampista', 'FW' => 'Attaccante'] as $code => $label): ?>
+                <label class="d-inline-flex align-items-center gap-1 text-white" style="font-size:.82rem">
+                    <input type="checkbox"
+                           name="need_positions[]"
+                           value="<?= Html::encode($code) ?>"
+                           <?= in_array($code, $needPositions ?? [], true) ? 'checked' : '' ?>>
+                    <span><?= Html::encode($label) ?></span>
+                </label>
+            <?php endforeach; ?>
+            <button type="submit" class="btn btn-gold btn-sm ms-auto">Salva richieste</button>
+        <?= Html::endForm() ?>
+    </div>
 
     <!-- Pending -->
     <?php if (!empty($pending)): ?>

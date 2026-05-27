@@ -8,6 +8,7 @@ declare(strict_types=1);
 /** @var app\models\Sponsor[] $availableSponsors */
 /** @var app\models\TeamSponsor[] $history */
 /** @var int $prestige */
+/** @var array<int, app\models\MarketBid> $pendingBySponsor */
 
 use app\models\TeamSponsor;
 use yii\helpers\Html;
@@ -110,6 +111,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <?php else: ?>
                 <div class="row g-4">
                     <?php foreach ($availableSponsors as $sponsor): ?>
+                        <?php $pendingBid = $pendingBySponsor[(int) $sponsor->id] ?? null; ?>
                         <div class="col-lg-6">
                             <div class="sponsor-card h-100">
                                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -138,21 +140,37 @@ $this->params['breadcrumbs'][] = $this->title;
                                     Durata: <?= (int) $sponsor->duration_seasons ?> stagione/i
                                     · Prestige req: <?= (int) $sponsor->prestige_required ?>
                                 </div>
+                                <?php if ($pendingBid): ?>
+                                <div class="text-warning small mb-3">
+                                    Tua offerta: €<?= number_format((int) $pendingBid->bid_amount, 0, ',', '.') ?>
+                                    · <span class="auction-countdown" data-expires="<?= (int) $pendingBid->expires_at ?>">scade <?= date('d/m H:i', (int) $pendingBid->expires_at) ?></span>
+                                </div>
+                                <?php endif; ?>
 
                                 <div class="mt-auto">
-                                    <?= Html::a(
-                                        ($activeSponsor && (int) $activeSponsor->sponsor_id !== (int) $sponsor->id) ? 'CAMBIA SPONSOR' : 'FIRMA CONTRATTO',
-                                        ['sponsor/sign', 'id' => $sponsor->id],
-                                        [
-                                            'class' => ($activeSponsor && (int) $activeSponsor->sponsor_id !== (int) $sponsor->id)
-                                                ? 'btn btn-outline-warning w-100 fw-bold'
-                                                : 'btn btn-gold w-100 fw-bold',
-                                            'data-method' => 'post',
-                                            'data-confirm' => ($activeSponsor && (int) $activeSponsor->sponsor_id !== (int) $sponsor->id)
-                                                ? "Confermi cambio sponsor con {$sponsor->name}? È prevista penale di rescissione."
-                                                : "Confermi firma contratto con {$sponsor->name}?"
-                                        ]
-                                    ) ?>
+                                    <?= Html::beginForm(['sponsor/sign', 'id' => $sponsor->id], 'post', ['class' => 'd-flex gap-2']) ?>
+                                    <input type="number"
+                                           name="offered_fee"
+                                           min="1"
+                                           step="1000"
+                                           value="<?= (int) ($pendingBid ? $pendingBid->bid_amount : max(1000, (int) round((int) $sponsor->base_payment * 0.10))) ?>"
+                                           class="form-control form-control-sm bg-dark text-white border-secondary"
+                                           style="max-width:150px">
+                                    <button type="submit"
+                                            class="<?= ($activeSponsor && (int) $activeSponsor->sponsor_id !== (int) $sponsor->id) ? 'btn btn-outline-warning flex-grow-1 fw-bold btn-sm' : 'btn btn-gold flex-grow-1 fw-bold btn-sm' ?>"
+                                            data-confirm="Confermi invio offerta sponsor per <?= Html::encode($sponsor->name) ?>?">
+                                        OFFERTA
+                                    </button>
+                                    <?= Html::endForm() ?>
+                                    <?php if ($pendingBid): ?>
+                                    <?= Html::beginForm(['sponsor/raise-offer', 'id' => $sponsor->id], 'post') ?>
+                                    <button type="submit" class="btn btn-outline-warning btn-sm fw-bold"
+                                            title="Rialzo +15%"
+                                            data-confirm="Alzi automaticamente la tua offerta del 15%?">
+                                        <i class="bi bi-arrow-up-circle"></i>
+                                    </button>
+                                    <?= Html::endForm() ?>
+                                    <?php endif; ?>
                                 </div>
                             </div>
                         </div>

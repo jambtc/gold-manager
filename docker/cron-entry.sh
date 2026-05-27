@@ -81,6 +81,13 @@ register_job \
     "$LOGS/run-fixtures.log" \
     "run-fixtures"
 
+register_job \
+    "${CRON_ENABLE_RESOLVE_MARKET_AUCTIONS:-1}" \
+    "${CRON_RESOLVE_MARKET_AUCTIONS_SCHEDULE:-*/5 * * * *}" \
+    "php yii economy/resolve-market-auctions" \
+    "$LOGS/resolve-market-auctions.log" \
+    "resolve-market-auctions"
+
 crontab "$TMP_CRON"
 
 LOADED="$(grep -Ecv '^(#|$|[A-Za-z_][A-Za-z0-9_]*=)' "$TMP_CRON" || true)"
@@ -109,6 +116,7 @@ LOG_FILES=(
     "$LOGS/refresh-cpu-formations.log"
     "$LOGS/scouting.log"
     "$LOGS/run-fixtures.log"
+    "$LOGS/resolve-market-auctions.log"
 )
 tail -n 0 -F "${LOG_FILES[@]}" &
 TAIL_PID=$!

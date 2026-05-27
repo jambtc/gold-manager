@@ -7,6 +7,7 @@ declare(strict_types=1);
 /** @var app\models\Staff[] $staff */
 /** @var app\models\StaffMarket[] $market */
 /** @var app\models\StaffHistory[] $history */
+/** @var array<int, app\models\MarketBid> $pendingByCandidate */
 
 use app\models\Staff;
 use app\components\UiIconHelper;
@@ -137,6 +138,7 @@ $orderedRoles = [
             <?php else: ?>
                 <div class="row g-3">
                     <?php foreach ($market as $cand): ?>
+                        <?php $pendingBid = $pendingByCandidate[(int) $cand->id] ?? null; ?>
                         <div class="col-lg-6">
                             <div class="gm-card h-100">
                                 <div class="d-flex justify-content-between align-items-start mb-2">
@@ -162,19 +164,31 @@ $orderedRoles = [
                                     <span class="ms-2 text-muted-gm">Tentativi:</span>
                                     <span class="text-gold fw-bold"><?= $dotAttempts((int) $cand->negotiations) ?></span>
                                 </div>
+                                <?php if ($pendingBid): ?>
+                                <div class="small text-warning mb-2">
+                                    Tua offerta: €<?= number_format((int) $pendingBid->bid_amount, 0, ',', '.') ?>
+                                    · <span class="auction-countdown" data-expires="<?= (int) $pendingBid->expires_at ?>">scade <?= date('d/m H:i', (int) $pendingBid->expires_at) ?></span>
+                                </div>
+                                <?php endif; ?>
 
                                 <div class="d-flex gap-2">
-                                    <?= Html::beginForm(['/staff/negotiate', 'id' => $cand->id], 'post', ['class' => 'd-inline']) ?>
-                                        <button class="btn btn-gold btn-sm" type="submit" <?= (int) $cand->negotiations <= 0 ? 'disabled' : '' ?>>
-                                            Contratta
+                                    <?= Html::beginForm(['/staff/negotiate', 'id' => $cand->id], 'post', ['class' => 'd-inline d-flex gap-1']) ?>
+                                        <input type="number"
+                                               name="offered_fee"
+                                               min="1"
+                                               step="1000"
+                                               value="<?= (int) ($pendingBid ? $pendingBid->bid_amount : max(1000, (int) $cand->salary)) ?>"
+                                               class="form-control form-control-sm bg-dark text-white border-secondary"
+                                               style="max-width:120px">
+                                        <button class="btn btn-gold btn-sm" type="submit">
+                                            Offerta
                                         </button>
                                     <?= Html::endForm() ?>
 
                                     <?= Html::beginForm(['/staff/raise-offer', 'id' => $cand->id], 'post', ['class' => 'd-inline']) ?>
                                         <button class="btn btn-outline-gold btn-sm"
                                                 type="submit"
-                                                <?= (int) $cand->raise_used > 0 ? 'disabled' : '' ?>
-                                                data-confirm="Alzare stipendio e resettare tentativi a 4?">
+                                                data-confirm="Alzare l'offerta del 15%?">
                                             Rialza offerta
                                         </button>
                                     <?= Html::endForm() ?>

@@ -6,13 +6,63 @@ namespace app\components;
 
 use app\models\NewsItem;
 use app\models\Player;
+use app\models\PlayerPool;
 use app\models\ScoutingReport;
+use app\models\ScoutingAlert;
+use app\models\ScoutingNeed;
 use app\models\Staff;
 use app\models\Team;
 use Yii;
 
 class ScoutingService
 {
+    /**
+     * @return string[]
+     */
+    public static function getNeedPositions(int $teamId): array
+    {
+        $rows = ScoutingNeed::find()
+            ->select('position')
+            ->where(['team_id' => $teamId])
+            ->orderBy(['id' => SORT_ASC])
+            ->column();
+        return array_values(array_unique(array_map(static fn($p): string => strtoupper((string) $p), $rows)));
+    }
+
+    /**
+     * Saves max 3 distinct target positions.
+     *
+     * @param string[] $positions
+     */
+    public static function saveNeedPositions(int $teamId, array $positions): void
+    {
+        $allowed = ['GK', 'DF', 'MF', 'FW'];
+        $clean = [];
+        foreach ($positions as $position) {
+            $p = strtoupper(trim((string) $position));
+            if (!in_array($p, $allowed, true)) {
+                continue;
+            }
+            if (in_array($p, $clean, true)) {
+                continue;
+            }
+            $clean[] = $p;
+            if (count($clean) >= 3) {
+                break;
+            }
+        }
+
+        ScoutingNeed::deleteAll(['team_id' => $teamId]);
+        $now = time();
+        foreach ($clean as $position) {
+            $need = new ScoutingNeed();
+            $need->team_id = $teamId;
+            $need->position = $position;
+            $need->created_at = $now;
+            $need->save(false);
+        }
+    }
+
     public static function canScout(int $teamId): bool
     {
         return Staff::find()
@@ -79,10 +129,10 @@ class ScoutingService
                 NewsService::create(
                     (int) $team->user_id,
                     NewsItem::CAT_TRANSFER,
-                    '🔍',
+                    'S',
                     "Rapporto scout: {$player->name}",
                     "Skill stimata {$data['general_skill']} — {$data['position']}, {$player->age} anni",
-                    Yii::$app->urlManager->createUrl(['/scouting/report', 'id' => $report->id]),
+                    self::safeUrl('/scouting/report', ['id' => (int) $report->id]),
                     1
                 );
             }
@@ -90,6 +140,86 @@ class ScoutingService
         }
 
         return $count;
+    }
+
+    public static function notifyTeamsForNewPoolPlayer(Player $player, PlayerPool $pool): int
+    {
+        $position = strtoupper((string) $player->position);
+        if (!in_array($position, ['GK', 'DF', 'MF', 'FW'], true)) {
+            return 0;
+        }
+
+        $notified = 0;
+        $humanTeams = Team::find()->where(['is_cpu' => 0])->andWhere(['not', ['user_id' => null]])->all();
+        foreach ($humanTeams as $team) {
+            $teamId = (int) $team->id;
+            $userId = (int) ($team->user_id ?? 0);
+            if ($userId <= 0) {
+                continue;
+            }
+            if (!self::canScout($teamId)) {
+                continue;
+            }
+
+            $needs = self::getNeedPositions($teamId);
+            if (empty($needs) || !in_array($position, $needs, true)) {
+                continue;
+            }
+
+            if (ScoutingAlert::find()->where(['team_id' => $teamId, 'player_id' => (int) $player->id])->exists()) {
+                continue;
+            }
+
+            $scoutEff = self::getScoutEfficiency($teamId);
+            $minInterestingSkill = max(35, (int) round(68 - ($scoutEff * 0.30)));
+            if ((int) $player->general_skill < $minInterestingSkill) {
+                continue;
+            }
+
+            $hitChance = max(20, min(95, (int) round(25 + ($scoutEff * 0.70))));
+            if (random_int(1, 100) > $hitChance) {
+                continue;
+            }
+
+            $alert = new ScoutingAlert();
+            $alert->team_id = $teamId;
+            $alert->player_id = (int) $player->id;
+            $alert->created_at = time();
+            $alert->save(false);
+
+            NewsService::create(
+                $userId,
+                NewsItem::CAT_TRANSFER,
+                'S',
+                "Scout segnala: {$player->name}",
+                sprintf(
+                    'Profilo %s interessante per le tue richieste scout. Skill %d · Età %d · Base asta €%s.',
+                    $position,
+                    (int) $player->general_skill,
+                    (int) $player->age,
+                    number_format((int) $pool->asking_fee, 0, ',', '.')
+                ),
+                self::safeUrl('/transfer/market', ['tab' => 'pool', 'pos' => $position]),
+                1
+            );
+            $notified++;
+        }
+
+        return $notified;
+    }
+
+    /**
+     * Builds route URL both in web and console context.
+     *
+     * @param array<string, scalar> $params
+     */
+    private static function safeUrl(string $route, array $params = []): string
+    {
+        if (Yii::$app instanceof \yii\console\Application) {
+            $q = http_build_query($params);
+            return $q !== '' ? ($route . '?' . $q) : $route;
+        }
+        return Yii::$app->urlManager->createUrl(array_merge([$route], $params));
     }
 
     private static function obfuscate(Player $player, int $noise): array

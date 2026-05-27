@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\components\AuctionService;
 use Yii;
 use app\models\Team;
+use app\models\MarketBid;
 use app\models\Staff;
 use app\models\StaffHistory;
 use app\models\StaffMarket;
@@ -57,24 +59,36 @@ class StaffController extends Controller
         $market = StaffMarket::find()
             ->where(['team_id' => $team->id])
             ->andWhere(['>', 'expires_at', time()])
-            ->orderBy(['role' => SORT_ASC, 'ability' => SORT_DESC, 'id' => SORT_ASC])
+            ->orderBy(['expires_at' => SORT_ASC, 'role' => SORT_ASC, 'ability' => SORT_DESC, 'id' => SORT_ASC])
             ->all();
         $history = StaffHistory::find()
             ->where(['team_id' => $team->id])
             ->orderBy(['left_season' => SORT_DESC, 'id' => SORT_DESC])
             ->limit(30)
             ->all();
+        $pendingBids = MarketBid::find()
+            ->where([
+                'team_id' => (int) $team->id,
+                'market_type' => MarketBid::TYPE_STAFF,
+                'status' => MarketBid::STATUS_PENDING,
+            ])
+            ->all();
+        $pendingByCandidate = [];
+        foreach ($pendingBids as $bid) {
+            $pendingByCandidate[(int) $bid->market_ref_id] = $bid;
+        }
 
         return $this->render('view', [
             'team' => $team,
             'staff' => $staff,
             'market' => $market,
             'history' => $history,
+            'pendingByCandidate' => $pendingByCandidate,
         ]);
     }
 
     /**
-     * Attempts negotiation and signs contract on success.
+     * Places/updates staff auction bid.
      */
     public function actionNegotiate(int $id): Response
     {
@@ -87,45 +101,34 @@ class StaffController extends Controller
             return $this->redirect(['view']);
         }
 
-        $existing = Staff::findOne(['team_id' => $team->id, 'role' => $candidate->role]);
-        if ($existing) {
-            Yii::$app->session->setFlash('error', 'Hai già uno staff in questo ruolo. Licenzia prima quello attuale.');
+        $offered = (int) Yii::$app->request->post('offered_fee', 0);
+        if ($offered <= 0) {
+            $offered = max(1000, (int) $candidate->salary);
+        }
+        if ((int) $team->budget < $offered) {
+            Yii::$app->session->setFlash('error', 'Budget insufficiente per piazzare questa offerta.');
             return $this->redirect(['view']);
         }
 
-        $probability = $this->successProbability((int) $candidate->negotiations);
-        if ($candidate->negotiations <= 0 || random_int(1, 100) > $probability) {
-            $candidate->negotiations = max(0, (int) $candidate->negotiations - 1);
-            $candidate->save(false, ['negotiations']);
-            Yii::$app->session->setFlash('error', "Trattativa fallita. Tentativi rimasti: {$candidate->negotiations}.");
-            return $this->redirect(['view']);
-        }
-
-        $season = $this->currentSeason();
-        $staff = new Staff();
-        $staff->team_id = $team->id;
-        $staff->name = $candidate->name;
-        $staff->role = $candidate->role;
-        $staff->ability = (int) $candidate->ability;
-        $staff->experience = (int) $candidate->experience;
-        $staff->age = max(30, min(68, (int) $candidate->experience + random_int(22, 30)));
-        $staff->motivation = (int) $candidate->motivation;
-        $staff->contract_ends = $season + max(1, (int) $candidate->contract_length) - 1;
-        $staff->salary = (int) $candidate->salary;
-        $staff->specialisation = $this->roleSpecialisation((string) $candidate->role);
-        $staff->recomputeEfficiency();
-
-        if ($staff->save(false)) {
-            $candidate->delete();
-            Yii::$app->session->setFlash('success', "Assunto: {$staff->name} (eff. {$staff->efficiency}). Contratto fino a stagione {$staff->contract_ends}.");
-        } else {
-            Yii::$app->session->setFlash('error', 'Errore durante firma contratto staff.');
-        }
+        $bid = AuctionService::placeOrUpdateBid(
+            (int) $team->id,
+            MarketBid::TYPE_STAFF,
+            (int) $candidate->id,
+            $offered
+        );
+        Yii::$app->session->setFlash(
+            'success',
+            sprintf(
+                'Offerta staff piazzata: €%s (scade %s).',
+                number_format((int) $bid->bid_amount, 0, ',', '.'),
+                date('d/m H:i', (int) $bid->expires_at)
+            )
+        );
         return $this->redirect(['view']);
     }
 
     /**
-     * One-time salary increase for candidate, resets negotiations to 4.
+     * Quick +15% bid raise on candidate auction.
      */
     public function actionRaiseOffer(int $id): Response
     {
@@ -137,17 +140,29 @@ class StaffController extends Controller
             Yii::$app->session->setFlash('error', 'Candidato non disponibile.');
             return $this->redirect(['view']);
         }
-        if ((int) $candidate->raise_used > 0) {
-            Yii::$app->session->setFlash('error', 'Rialzo già usato su questo candidato.');
+        $existing = MarketBid::findOne([
+            'team_id' => (int) $team->id,
+            'market_type' => MarketBid::TYPE_STAFF,
+            'market_ref_id' => (int) $candidate->id,
+            'status' => MarketBid::STATUS_PENDING,
+        ]);
+        $base = $existing ? (int) $existing->bid_amount : max(1000, (int) $candidate->salary);
+        $newBid = max($base + 1000, (int) round($base * 1.15));
+        if ((int) $team->budget < $newBid) {
+            Yii::$app->session->setFlash('error', 'Budget insufficiente per il rialzo.');
             return $this->redirect(['view']);
         }
 
-        $newSalary = (int) round((int) $candidate->salary * 1.15);
-        $candidate->salary = max($newSalary, (int) $candidate->salary + 1000);
-        $candidate->negotiations = 4;
-        $candidate->raise_used = 1;
-        $candidate->save(false, ['salary', 'negotiations', 'raise_used']);
-        Yii::$app->session->setFlash('success', "Offerta alzata a €" . number_format((int) $candidate->salary, 0, ',', '.') . ". Tentativi riportati a 4.");
+        $bid = AuctionService::placeOrUpdateBid(
+            (int) $team->id,
+            MarketBid::TYPE_STAFF,
+            (int) $candidate->id,
+            $newBid
+        );
+        Yii::$app->session->setFlash(
+            'success',
+            "Offerta staff alzata a €" . number_format((int) $bid->bid_amount, 0, ',', '.') . "."
+        );
         return $this->redirect(['view']);
     }
 
@@ -174,28 +189,6 @@ class StaffController extends Controller
         return $this->redirect(['view']);
     }
 
-    private function roleSpecialisation(string $role): string
-    {
-        return match ($role) {
-            Staff::ROLE_HEAD_COACH => 'tattica',
-            Staff::ROLE_FITNESS_COACH => 'fisico',
-            Staff::ROLE_GOALKEEPING_COACH => 'portieri',
-            Staff::ROLE_SCOUT => 'scouting',
-            default => 'equilibrato',
-        };
-    }
-
-    private function successProbability(int $attempts): int
-    {
-        return match ($attempts) {
-            4 => 90,
-            3 => 80,
-            2 => 70,
-            1 => 60,
-            default => 0,
-        };
-    }
-
     private function currentSeason(): int
     {
         $season = (int) Competition::find()->where(['!=', 'type', 'friendly'])->max('season');
@@ -212,9 +205,8 @@ class StaffController extends Controller
             return;
         }
 
-        $season = $this->currentSeason();
-        $seasonEndTs = strtotime('+' . max(1, 24 * 7) . ' days');
         $now = time();
+        $expiresAt = $now + (AuctionService::hoursForType(MarketBid::TYPE_STAFF) * 3600);
         $roles = [
             Staff::ROLE_HEAD_COACH,
             Staff::ROLE_FITNESS_COACH,
@@ -250,7 +242,7 @@ class StaffController extends Controller
             $cand->negotiations = 4;
             $cand->raise_used = 0;
             $cand->generated_at = $now;
-            $cand->expires_at = $seasonEndTs ?: ($now + 14 * 86400);
+            $cand->expires_at = $expiresAt;
             $cand->save(false);
         }
     }

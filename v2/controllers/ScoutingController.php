@@ -25,7 +25,7 @@ class ScoutingController extends Controller
             ],
             'verbs' => [
                 'class'   => VerbFilter::class,
-                'actions' => ['scout' => ['post'], 'dismiss' => ['post']],
+                'actions' => ['scout' => ['post'], 'dismiss' => ['post'], 'save-needs' => ['post']],
             ],
         ];
     }
@@ -48,8 +48,10 @@ class ScoutingController extends Controller
         $archived = ScoutingReport::find()
             ->where(['team_id' => $team->id, 'status' => 'dismissed'])
             ->with('player')->orderBy(['id' => SORT_DESC])->limit(20)->all();
+        $needPositions = ScoutingService::getNeedPositions((int) $team->id);
+        $scoutEff = ScoutingService::getScoutEfficiency((int) $team->id);
 
-        return $this->render('index', compact('team', 'hasScout', 'pending', 'ready', 'archived'));
+        return $this->render('index', compact('team', 'hasScout', 'pending', 'ready', 'archived', 'needPositions', 'scoutEff'));
     }
 
     public function actionReport(int $id): string
@@ -98,6 +100,27 @@ class ScoutingController extends Controller
             $report->status = 'dismissed';
             $report->save(false);
         }
+        return $this->redirect(['index']);
+    }
+
+    public function actionSaveNeeds(): Response
+    {
+        $team = Team::findOne(['user_id' => Yii::$app->user->id]);
+        if (!$team) {
+            return $this->redirect(['/site/index']);
+        }
+
+        if (!ScoutingService::canScout((int) $team->id)) {
+            Yii::$app->session->setFlash('error', 'Serve uno scout attivo per impostare le richieste.');
+            return $this->redirect(['index']);
+        }
+
+        $positions = Yii::$app->request->post('need_positions', []);
+        if (!is_array($positions)) {
+            $positions = [];
+        }
+        ScoutingService::saveNeedPositions((int) $team->id, $positions);
+        Yii::$app->session->setFlash('success', 'Richieste scout aggiornate (max 3 ruoli).');
         return $this->redirect(['index']);
     }
 }

@@ -5,21 +5,25 @@ declare(strict_types=1);
 namespace app\commands;
 
 use app\components\seeders\FixtureSeeder;
+use app\components\AuctionService;
 use app\components\CharacterTraitHelper;
 use app\components\FriendlyChallengeService;
 use app\components\PlayerAttributeHelper;
+use app\components\ScoutingService;
 use app\components\TransferWindowService;
 use app\components\seeders\PlayerSeeder;
 use app\components\WorldData;
 use app\components\WorldSeeder;
 use app\components\NewsService;
 use app\components\SponsorService;
+use app\components\TelegramService;
 use app\models\Competition;
 use app\models\Contract;
 use app\models\Fixture;
 use app\models\Formation;
 use app\models\FormationSlot;
 use app\models\FriendlyChallenge;
+use app\models\MarketBid;
 use app\models\NewsItem;
 use app\models\Player;
 use app\models\PlayerPool;
@@ -173,12 +177,14 @@ class EconomyController extends Controller
         $cpuStaffHired = $this->runCpuStaffHiringCycle();
         $cpuFriendlies = $this->runCpuFriendlyBehavior();
         $staffRestocked = $this->restockStaffMarketForManagers();
+        $auctionResult = $this->resolveExpiredMarketBids();
         $this->stdout("🌱 Pool giovani: +{$generated}, totale {$poolCount}\n");
         $this->stdout("🤖 Roster CPU reintegrati: {$cpuFilled}\n");
         $this->stdout("🤖 Mercato CPU: offerte {$cpuTransfers['offersHandled']} · acquisti {$cpuTransfers['bought']} · cessioni {$cpuTransfers['listed']}\n");
         $this->stdout("🤖 Staff CPU: assunzioni {$cpuStaffHired}\n");
         $this->stdout("🤖 Amichevoli CPU: lanciate {$cpuFriendlies['initiated']} · accettate {$cpuFriendlies['accepted']} · rifiutate {$cpuFriendlies['declined']}\n");
         $this->stdout("🧑‍💼 Staff market restock: {$staffRestocked}\n");
+        $this->stdout("🔨 Aste risolte: {$auctionResult['resolved']} · vinte {$auctionResult['won']} · perse {$auctionResult['lost']}\n");
 
         return ExitCode::OK;
     }
@@ -207,6 +213,19 @@ class EconomyController extends Controller
             $result['current']
         ));
 
+        return ExitCode::OK;
+    }
+
+    /**
+     * Resolves expired market auctions (players/staff/sponsors).
+     * Can be scheduled frequently (e.g. every 5 minutes).
+     *
+     * Usage: ./yii economy/resolve-market-auctions
+     */
+    public function actionResolveMarketAuctions(): int
+    {
+        $result = $this->resolveExpiredMarketBids();
+        $this->stdout("🔨 Aste risolte: {$result['resolved']} · vinte {$result['won']} · perse {$result['lost']}\n");
         return ExitCode::OK;
     }
 
@@ -670,6 +689,9 @@ class EconomyController extends Controller
             $this->stdout("⚠️ SIP-0068 decay error: {$e->getMessage()}\n");
         }
 
+        $auctionResult = $this->resolveExpiredMarketBids();
+        $this->stdout("🔨 Aste risolte: {$auctionResult['resolved']} · vinte {$auctionResult['won']} · perse {$auctionResult['lost']}\n");
+
         return ExitCode::OK;
     }
 
@@ -1023,6 +1045,8 @@ class EconomyController extends Controller
         $pool->available_since = time();
         $pool->expires_at = time() + (3600 * 24 * 365 * 2);
         $pool->save(false);
+
+        ScoutingService::notifyTeamsForNewPoolPlayer($player, $pool);
     }
 
     private function randomPositionForPool(): string
@@ -1973,7 +1997,7 @@ class EconomyController extends Controller
                     $cand->negotiations = 4;
                     $cand->raise_used = 0;
                     $cand->generated_at = $now;
-                    $cand->expires_at = $now + (3600 * 24 * 21);
+                    $cand->expires_at = $now + (AuctionService::hoursForType(MarketBid::TYPE_STAFF) * 3600);
                     $cand->save(false);
                     $created++;
                 }
@@ -2124,6 +2148,422 @@ class EconomyController extends Controller
             'deleted' => $deleted,
             'expiredContracts' => (int) $expiredContracts,
         ];
+    }
+
+    /**
+     * Resolve expired bids for player_pool, staff and sponsor auctions.
+     *
+     * @return array{resolved:int,won:int,lost:int}
+     */
+    private function resolveExpiredMarketBids(): array
+    {
+        $now = time();
+        $bids = MarketBid::find()
+            ->where(['status' => MarketBid::STATUS_PENDING])
+            ->andWhere(['<=', 'expires_at', $now])
+            ->orderBy(['market_type' => SORT_ASC, 'market_ref_id' => SORT_ASC, 'bid_amount' => SORT_DESC, 'id' => SORT_ASC])
+            ->all();
+        if (empty($bids)) {
+            return ['resolved' => 0, 'won' => 0, 'lost' => 0];
+        }
+
+        $grouped = [];
+        foreach ($bids as $bid) {
+            $key = $bid->market_type . ':' . (int) $bid->market_ref_id;
+            $grouped[$key][] = $bid;
+        }
+
+        $resolved = 0;
+        $won = 0;
+        $lost = 0;
+        foreach ($grouped as $group) {
+            $type = (string) ($group[0]->market_type ?? '');
+            $result = match ($type) {
+                MarketBid::TYPE_PLAYER_POOL => $this->resolvePlayerPoolAuction($group, $now),
+                MarketBid::TYPE_STAFF => $this->resolveStaffAuction($group, $now),
+                MarketBid::TYPE_SPONSOR => $this->resolveSponsorAuction($group, $now),
+                default => $this->resolveAsLost($group, 'Tipo asta non supportato', $now),
+            };
+            $resolved += (int) ($result['resolved'] ?? 0);
+            $won += (int) ($result['won'] ?? 0);
+            $lost += (int) ($result['lost'] ?? 0);
+        }
+
+        return ['resolved' => $resolved, 'won' => $won, 'lost' => $lost];
+    }
+
+    /**
+     * @param MarketBid[] $bids
+     * @return array{resolved:int,won:int,lost:int}
+     */
+    private function resolvePlayerPoolAuction(array $bids, int $now): array
+    {
+        $poolId = (int) $bids[0]->market_ref_id;
+        $pool = PlayerPool::findOne($poolId);
+        $player = $pool?->player;
+        if (!$pool || !$player || $player->team_id !== null || (int) $pool->expires_at <= $now) {
+            return $this->resolveAsLost($bids, 'Giocatore non più disponibile', $now);
+        }
+
+        $winner = $this->pickFirstAffordableBid($bids);
+        if (!$winner) {
+            return $this->resolveAsLost($bids, 'Nessuna offerta valida', $now);
+        }
+
+        $winnerTeam = Team::findOne((int) $winner->team_id);
+        if (!$winnerTeam) {
+            return $this->resolveAsLost($bids, 'Squadra non trovata', $now);
+        }
+
+        $tx = Yii::$app->db->beginTransaction();
+        try {
+            $player->team_id = (int) $winnerTeam->id;
+            $player->save(false);
+
+            Contract::updateAll(
+                ['status' => Contract::STATUS_TRANSFERRED],
+                ['player_id' => (int) $player->id, 'status' => Contract::STATUS_ACTIVE]
+            );
+
+            $contract = new Contract();
+            $contract->player_id = (int) $player->id;
+            $contract->team_id = (int) $winnerTeam->id;
+            $contract->salary = (int) $pool->salary_ask;
+            $contract->season_start = $this->currentSeasonForGeneration();
+            $contract->season_end = $this->currentSeasonForGeneration() + 1;
+            $contract->status = Contract::STATUS_ACTIVE;
+            $contract->save(false);
+
+            $transfer = new Transfer();
+            $transfer->player_id = (int) $player->id;
+            $transfer->from_team_id = null;
+            $transfer->to_team_id = (int) $winnerTeam->id;
+            $transfer->offered_by_team = (int) $winnerTeam->id;
+            $transfer->fee = (int) $winner->bid_amount;
+            $transfer->asking_fee = (int) $pool->asking_fee;
+            $transfer->proposed_salary = (int) $pool->salary_ask;
+            $transfer->transfer_type = Transfer::TYPE_FREE;
+            $transfer->status = Transfer::STATUS_COMPLETED;
+            $transfer->listed_at = $now;
+            $transfer->resolved_at = $now;
+            $transfer->save(false);
+
+            $winnerTeam->budget -= (int) $winner->bid_amount;
+            $winnerTeam->save(false, ['budget', 'updated_at']);
+            $pool->delete();
+            $tx->commit();
+        } catch (\Throwable $e) {
+            if ($tx->isActive) {
+                $tx->rollBack();
+            }
+            Yii::warning('Auction player_pool failed: ' . $e->getMessage(), 'economy');
+            return $this->resolveAsLost($bids, 'Errore sistema in assegnazione', $now);
+        }
+
+        foreach ($bids as $bid) {
+            $isWinner = (int) $bid->id === (int) $winner->id;
+            $this->markBid($bid, $isWinner ? MarketBid::STATUS_WON : MarketBid::STATUS_LOST, $isWinner ? 'Asta vinta' : 'Superato da offerta migliore', $now);
+        }
+
+        if ($winnerTeam->user_id) {
+            NewsService::create(
+                (int) $winnerTeam->user_id,
+                NewsItem::CAT_TRANSFER,
+                '🏁',
+                "Asta vinta: {$player->name}",
+                sprintf('Acquisto completato a €%s.', number_format((int) $winner->bid_amount, 0, ',', '.')),
+                Yii::$app->urlManager->createUrl(['/transfer/market']),
+                1
+            );
+            TelegramService::sendToUser(
+                (int) $winnerTeam->user_id,
+                "✅ Hai vinto l'asta per {$player->name}!\nCosto: €" . number_format((int) $winner->bid_amount, 0, ',', '.')
+            );
+        }
+        foreach ($bids as $bid) {
+            if ((int) $bid->id === (int) $winner->id) continue;
+            $loserTeam = \app\models\Team::findOne($bid->team_id);
+            if ($loserTeam && $loserTeam->user_id) {
+                TelegramService::sendToUser(
+                    (int) $loserTeam->user_id,
+                    "❌ Hai perso l'asta per {$player->name}.\nVincitore: {$winnerTeam->name}"
+                );
+            }
+        }
+
+        return ['resolved' => count($bids), 'won' => 1, 'lost' => max(0, count($bids) - 1)];
+    }
+
+    /**
+     * @param MarketBid[] $bids
+     * @return array{resolved:int,won:int,lost:int}
+     */
+    private function resolveStaffAuction(array $bids, int $now): array
+    {
+        $candidateId = (int) $bids[0]->market_ref_id;
+        $candidate = StaffMarket::findOne($candidateId);
+        if (!$candidate) {
+            return $this->resolveAsLost($bids, 'Candidato non più disponibile', $now);
+        }
+
+        $winner = $this->pickFirstAffordableBid($bids);
+        if (!$winner) {
+            $candidate->delete();
+            return $this->resolveAsLost($bids, 'Nessuna offerta valida', $now);
+        }
+
+        $team = Team::findOne((int) $winner->team_id);
+        if (!$team || (int) $team->id !== (int) $candidate->team_id) {
+            $candidate->delete();
+            return $this->resolveAsLost($bids, 'Offerta non valida per il candidato', $now);
+        }
+
+        $existing = Staff::findOne(['team_id' => (int) $team->id, 'role' => (string) $candidate->role]);
+        if ($existing) {
+            $candidate->delete();
+            return $this->resolveAsLost($bids, 'Ruolo già coperto', $now);
+        }
+
+        $ratio = ((float) $winner->bid_amount) / max(1.0, (float) $candidate->salary);
+        $successChance = max(20, min(95, (int) round(40 + ($ratio * 45))));
+        $winRoll = random_int(1, 100);
+        if ($winRoll > $successChance) {
+            $candidate->delete();
+            return $this->resolveAsLost($bids, 'Trattativa non conclusa', $now);
+        }
+
+        $season = $this->currentSeasonForGeneration();
+        $staff = new Staff();
+        $staff->team_id = (int) $team->id;
+        $staff->name = (string) $candidate->name;
+        $staff->role = (string) $candidate->role;
+        $staff->ability = (int) $candidate->ability;
+        $staff->experience = (int) $candidate->experience;
+        $staff->age = max(30, min(68, (int) $candidate->experience + random_int(22, 30)));
+        $staff->motivation = (int) $candidate->motivation;
+        $staff->contract_ends = $season + max(1, (int) $candidate->contract_length) - 1;
+        $staff->salary = (int) $winner->bid_amount;
+        $staff->specialisation = $this->roleSpecialisationForAuction((string) $candidate->role);
+        $staff->recomputeEfficiency();
+        if (!$staff->save(false)) {
+            $candidate->delete();
+            return $this->resolveAsLost($bids, 'Errore firma staff', $now);
+        }
+
+        $team->budget -= (int) $winner->bid_amount;
+        $team->save(false, ['budget', 'updated_at']);
+        $candidate->delete();
+
+        foreach ($bids as $bid) {
+            $isWinner = (int) $bid->id === (int) $winner->id;
+            $this->markBid($bid, $isWinner ? MarketBid::STATUS_WON : MarketBid::STATUS_LOST, $isWinner ? 'Asta staff vinta' : 'Offerta non vincente', $now);
+        }
+
+        if ($team->user_id) {
+            NewsService::create(
+                (int) $team->user_id,
+                NewsItem::CAT_FINANCE,
+                '🧑‍💼',
+                "Staff assunto: {$staff->name}",
+                sprintf('Ruolo %s · costo asta €%s.', $staff->role, number_format((int) $winner->bid_amount, 0, ',', '.')),
+                Yii::$app->urlManager->createUrl(['/staff/view'])
+            );
+            TelegramService::sendToUser(
+                (int) $team->user_id,
+                "✅ Hai vinto l'asta staff per {$staff->name}!\nCosto: €" . number_format((int) $winner->bid_amount, 0, ',', '.')
+            );
+        }
+        foreach ($bids as $bid) {
+            if ((int) $bid->id === (int) $winner->id) continue;
+            $loserTeam = Team::findOne($bid->team_id);
+            if ($loserTeam && $loserTeam->user_id) {
+                TelegramService::sendToUser(
+                    (int) $loserTeam->user_id,
+                    "❌ Hai perso l'asta staff per {$staff->name}.\nVincitore: {$team->name}"
+                );
+            }
+        }
+
+        return ['resolved' => count($bids), 'won' => 1, 'lost' => max(0, count($bids) - 1)];
+    }
+
+    /**
+     * @param MarketBid[] $bids
+     * @return array{resolved:int,won:int,lost:int}
+     */
+    private function resolveSponsorAuction(array $bids, int $now): array
+    {
+        $sponsor = Sponsor::findOne((int) $bids[0]->market_ref_id);
+        if (!$sponsor) {
+            return $this->resolveAsLost($bids, 'Sponsor non più disponibile', $now);
+        }
+
+        $winner = null;
+        foreach ($this->sortBidsDesc($bids) as $bid) {
+            $team = Team::findOne((int) $bid->team_id);
+            if (!$team || (int) $team->budget < (int) $bid->bid_amount) {
+                continue;
+            }
+            $available = SponsorService::findAvailableSponsorsForTeam($team);
+            $allowed = false;
+            foreach ($available as $offer) {
+                if ((int) $offer->id === (int) $sponsor->id) {
+                    $allowed = true;
+                    break;
+                }
+            }
+            if (!$allowed) {
+                continue;
+            }
+            $winner = $bid;
+            break;
+        }
+
+        if (!$winner) {
+            return $this->resolveAsLost($bids, 'Nessuna offerta valida', $now);
+        }
+
+        $team = Team::findOne((int) $winner->team_id);
+        if (!$team) {
+            return $this->resolveAsLost($bids, 'Squadra non trovata', $now);
+        }
+
+        $ratio = ((float) $winner->bid_amount) / max(1.0, (float) $sponsor->base_payment);
+        $successChance = max(15, min(95, (int) round(35 + ($ratio * 55))));
+        if (random_int(1, 100) > $successChance) {
+            return $this->resolveAsLost($bids, 'Offerta non accettata dallo sponsor', $now);
+        }
+
+        $tx = Yii::$app->db->beginTransaction();
+        try {
+            SponsorService::expireContracts(false);
+            $active = SponsorService::getActiveContractForTeam((int) $team->id);
+            $switchPenalty = 0;
+            if ($active) {
+                if ((int) $active->sponsor_id === (int) $sponsor->id) {
+                    throw new \RuntimeException('Sponsor già attivo');
+                }
+                $active->status = TeamSponsor::STATUS_TERMINATED;
+                $active->ends_at = $now;
+                $active->save(false, ['status', 'ends_at']);
+                if ($active->sponsor) {
+                    $switchPenalty = (int) round((int) $active->sponsor->base_payment * 0.05);
+                }
+            }
+
+            $contract = new TeamSponsor();
+            $contract->team_id = (int) $team->id;
+            $contract->sponsor_id = (int) $sponsor->id;
+            $contract->signed_at = $now;
+            $contract->ends_at = $now + SponsorService::contractDurationSeconds((int) $sponsor->duration_seasons);
+            $contract->status = TeamSponsor::STATUS_ACTIVE;
+            $contract->save(false);
+
+            $bonus = (int) round((int) $sponsor->base_payment * 0.10);
+            $team->budget += ($bonus - $switchPenalty - (int) $winner->bid_amount);
+            $team->save(false, ['budget', 'updated_at']);
+            $tx->commit();
+        } catch (\Throwable $e) {
+            if ($tx->isActive) {
+                $tx->rollBack();
+            }
+            Yii::warning('Auction sponsor failed: ' . $e->getMessage(), 'economy');
+            return $this->resolveAsLost($bids, 'Errore firma sponsor', $now);
+        }
+
+        foreach ($bids as $bid) {
+            $isWinner = (int) $bid->id === (int) $winner->id;
+            $this->markBid($bid, $isWinner ? MarketBid::STATUS_WON : MarketBid::STATUS_LOST, $isWinner ? 'Asta sponsor vinta' : 'Offerta non vincente', $now);
+        }
+
+        if ($team->user_id) {
+            NewsService::create(
+                (int) $team->user_id,
+                NewsItem::CAT_FINANCE,
+                '🤝',
+                "Sponsor acquisito: {$sponsor->name}",
+                sprintf('Asta vinta con €%s.', number_format((int) $winner->bid_amount, 0, ',', '.')),
+                Yii::$app->urlManager->createUrl(['/sponsor/index']),
+                1
+            );
+            TelegramService::sendToUser(
+                (int) $team->user_id,
+                "✅ Hai vinto l'asta sponsor per {$sponsor->name}!\nEntrate: €" . number_format((int) $sponsor->base_payment, 0, ',', '.') . '/stagione'
+            );
+        }
+        foreach ($bids as $bid) {
+            if ((int) $bid->id === (int) $winner->id) continue;
+            $loserTeam = Team::findOne($bid->team_id);
+            if ($loserTeam && $loserTeam->user_id) {
+                TelegramService::sendToUser(
+                    (int) $loserTeam->user_id,
+                    "❌ Hai perso l'asta sponsor per {$sponsor->name}.\nVincitore: {$team->name}"
+                );
+            }
+        }
+
+        return ['resolved' => count($bids), 'won' => 1, 'lost' => max(0, count($bids) - 1)];
+    }
+
+    /**
+     * @param MarketBid[] $bids
+     * @return array{resolved:int,won:int,lost:int}
+     */
+    private function resolveAsLost(array $bids, string $reason, int $now): array
+    {
+        foreach ($bids as $bid) {
+            $this->markBid($bid, MarketBid::STATUS_LOST, $reason, $now);
+        }
+        return ['resolved' => count($bids), 'won' => 0, 'lost' => count($bids)];
+    }
+
+    private function markBid(MarketBid $bid, string $status, string $note, int $now): void
+    {
+        $bid->status = $status;
+        $bid->resolved_at = $now;
+        $bid->result_note = substr($note, 0, 255);
+        $bid->updated_at = $now;
+        $bid->save(false, ['status', 'resolved_at', 'result_note', 'updated_at']);
+    }
+
+    /**
+     * @param MarketBid[] $bids
+     */
+    private function pickFirstAffordableBid(array $bids): ?MarketBid
+    {
+        foreach ($this->sortBidsDesc($bids) as $bid) {
+            $team = Team::findOne((int) $bid->team_id);
+            if ($team && (int) $team->budget >= (int) $bid->bid_amount) {
+                return $bid;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * @param MarketBid[] $bids
+     * @return MarketBid[]
+     */
+    private function sortBidsDesc(array $bids): array
+    {
+        usort($bids, static function (MarketBid $a, MarketBid $b): int {
+            if ((int) $a->bid_amount === (int) $b->bid_amount) {
+                return (int) $a->created_at <=> (int) $b->created_at;
+            }
+            return (int) $b->bid_amount <=> (int) $a->bid_amount;
+        });
+        return $bids;
+    }
+
+    private function roleSpecialisationForAuction(string $role): string
+    {
+        return match ($role) {
+            Staff::ROLE_HEAD_COACH => 'tattica',
+            Staff::ROLE_FITNESS_COACH => 'fisico',
+            Staff::ROLE_GOALKEEPING_COACH => 'portieri',
+            Staff::ROLE_SCOUT => 'scouting',
+            default => 'equilibrato',
+        };
     }
 
     private function createRandomSponsors(int $count, int $season): int

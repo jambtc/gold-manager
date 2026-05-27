@@ -8,6 +8,7 @@ declare(strict_types=1);
 /** @var app\models\PlayerPool[] $poolPlayers */
 /** @var app\models\TransferOffer[] $myOffersSent */
 /** @var app\models\TransferOffer[] $incomingOffers */
+/** @var array<int, app\models\MarketBid> $poolBidMap */
 /** @var app\components\PlayerValuator $valuator */
 /** @var string $q */
 /** @var string $pos */
@@ -244,6 +245,7 @@ $footLbl = static fn(string $f): string => match ($f) {
                 <div class="row g-4">
                     <?php foreach ($poolPlayers as $pool): ?>
                         <?php $p = $pool->player; if (!$p) { continue; } ?>
+                        <?php $myPoolBid = $poolBidMap[(int) $pool->id] ?? null; ?>
                         <div class="col-md-6 col-xl-4">
                             <div class="gm-card d-flex flex-column" style="gap:0">
                                 <div class="d-flex align-items-center justify-content-between mb-3">
@@ -274,6 +276,12 @@ $footLbl = static fn(string $f): string => match ($f) {
                                 <div class="small text-muted-gm mb-3 text-center">
                                     Richiesta salariale: <span class="text-white fw-bold">€<?= number_format((int) $pool->salary_ask, 0, ',', '.') ?></span>
                                 </div>
+                                <?php if ($myPoolBid): ?>
+                                <div class="small text-warning mb-2 text-center">
+                                    Tua offerta: €<?= number_format((int) $myPoolBid->bid_amount, 0, ',', '.') ?>
+                                    · <span class="auction-countdown" data-expires="<?= (int) $myPoolBid->expires_at ?>">scade <?= date('d/m H:i', (int) $myPoolBid->expires_at) ?></span>
+                                </div>
+                                <?php endif; ?>
                                 <div class="d-flex gap-2 mt-auto">
                                     <?= Html::a('<i class="bi bi-person"></i>', ['/player/view', 'id' => $p->id, 'back' => $backUrl], [
                                         'class' => 'btn btn-outline-secondary btn-sm',
@@ -282,10 +290,17 @@ $footLbl = static fn(string $f): string => match ($f) {
                                     <?php if (!$windowOpen): ?>
                                         <button class="btn btn-outline-secondary flex-grow-1 btn-sm" disabled>Finestra chiusa</button>
                                     <?php else: ?>
-                                        <?= Html::beginForm(['/transfer/sign-free-agent', 'id' => $pool->id], 'post', ['class' => 'flex-grow-1']) ?>
-                                        <button type="submit" class="btn btn-gold w-100 btn-sm"
-                                                data-confirm="Firmare <?= Html::encode($p->name) ?> a parametro zero?">
-                                            Firma
+                                        <?= Html::beginForm(['/transfer/sign-free-agent', 'id' => $pool->id], 'post', ['class' => 'flex-grow-1 d-flex gap-1']) ?>
+                                        <input type="number"
+                                               name="offered_fee"
+                                               min="1"
+                                               step="1000"
+                                               value="<?= (int) ($myPoolBid ? $myPoolBid->bid_amount : max(1000, (int) $pool->asking_fee)) ?>"
+                                               class="form-control form-control-sm bg-dark text-white border-secondary"
+                                               style="max-width:130px">
+                                        <button type="submit" class="btn btn-gold flex-grow-1 btn-sm"
+                                                data-confirm="Piazzare offerta su <?= Html::encode($p->name) ?>?">
+                                            Offerta
                                         </button>
                                         <?= Html::endForm() ?>
                                     <?php endif; ?>

@@ -198,7 +198,75 @@ $jersey = function (string $position, int $number, float $scale = 1.0) use ($jer
 </svg>
 SVG;
 };
+
+// ── Best-zone map: playerId → display zone (1-64) with highest score ──────
+$_calcoRows = Yii::$app->db->createCommand(
+    'SELECT ord, po, df, cn, pa, rg, cr, tc, tr FROM {{%calcolatore}} WHERE formula=:f',
+    [':f' => 'Formula 2']
+)->queryAll();
+$_coeffs = [];
+foreach ($_calcoRows as $_r) {
+    $_coeffs[(int)$_r['ord']] = $_r;
+}
+$_allDz = array_merge(range(1, 63), [PitchZoneHelper::DISPLAY_GK_ZONE]);
+$_bestZoneMap = [];
+foreach ($players as $_pl) {
+    $_bestScore = PHP_INT_MIN; $_scores = [];
+    foreach ($_allDz as $_dz) {
+        $_ez = PitchZoneHelper::normalizeDisplayZone($_dz);
+        $_co = $_coeffs[$_ez] ?? null;
+        if (!$_co) { continue; }
+        $_lane = PitchZoneHelper::laneCode($_ez);
+        $_pdd  = match (true) {
+            $_lane === 'L' => $_pl->foot === 'R' ? -6 : ($_pl->foot === 'L' ? 6 : 4),
+            $_lane === 'R' => $_pl->foot === 'R' ? 6  : ($_pl->foot === 'L' ? -6 : 4),
+            $_lane === 'C' => $_pl->foot === 'LR' ? 7 : 4,
+            default        => 4,
+        };
+        $_sc = $_pdd
+            + $_pl->skill_po * (float)$_co['po']
+            + $_pl->skill_df * (float)$_co['df']
+            + $_pl->skill_cn * (float)$_co['cn']
+            + $_pl->skill_pa * (float)$_co['pa']
+            + $_pl->skill_rg * (float)$_co['rg']
+            + $_pl->skill_cr * (float)$_co['cr']
+            + $_pl->skill_tc * (float)$_co['tc']
+            + $_pl->skill_tr * (float)$_co['tr'];
+        $_scores[$_dz] = $_sc;
+        if ($_sc > $_bestScore) { $_bestScore = $_sc; }
+    }
+    // collect ALL zones tied at the maximum score (rounded to avoid float drift)
+    $_bestZones = [];
+    foreach ($_scores as $_dz => $_sc) {
+        if (round($_sc, 4) === round($_bestScore, 4)) { $_bestZones[] = $_dz; }
+    }
+    if ($_bestZones) { $_bestZoneMap[$_pl->id] = $_bestZones; }
+}
+$_bestZoneJson = json_encode($_bestZoneMap);
 ?>
+
+<style>
+@keyframes gm-march {
+    to { background-position: 12px 0, 100% 12px, calc(100% - 12px) 100%, 0 calc(100% - 12px); }
+}
+.pitch-zone-best-match::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    border-radius: inherit;
+    background-image:
+        repeating-linear-gradient(90deg,  var(--gold) 0, var(--gold) 7px, transparent 7px, transparent 14px),
+        repeating-linear-gradient(180deg, var(--gold) 0, var(--gold) 7px, transparent 7px, transparent 14px),
+        repeating-linear-gradient(90deg,  var(--gold) 0, var(--gold) 7px, transparent 7px, transparent 14px),
+        repeating-linear-gradient(180deg, var(--gold) 0, var(--gold) 7px, transparent 7px, transparent 14px);
+    background-size:   14px 2px, 2px 14px, 14px 2px, 2px 14px;
+    background-position: 0 0, 100% 0, 100% 100%, 0 100%;
+    background-repeat: repeat-x, repeat-y, repeat-x, repeat-y;
+    animation: gm-march .45s linear infinite;
+    z-index: 3;
+}
+</style>
 
 <div class="formation-view">
     <div class="row g-4">
@@ -956,4 +1024,65 @@ window.setRole = function(role, playerId) {
 };
 JS;
 $this->registerJs($js);
+
+// Best-zone highlight JS
+$bestJs = <<<JS
+(function() {
+    var _bestMap = {$_bestZoneJson};
+
+    function showBestZone(playerId) {
+        hideBestZone();
+        var zones = _bestMap[playerId];
+        if (!zones) return;
+        zones.forEach(function(zone) {
+            var el = document.querySelector('.pitch-zone[data-zone="' + zone + '"]');
+            if (el) el.classList.add('pitch-zone-best-match');
+        });
+    }
+
+    function hideBestZone() {
+        document.querySelectorAll('.pitch-zone-best-match').forEach(function(el) {
+            el.classList.remove('pitch-zone-best-match');
+        });
+    }
+
+    // Hook: drag from player list
+    var _origDragList = window.dragFromList;
+    window.dragFromList = function(e, playerId) {
+        _origDragList(e, playerId);
+        showBestZone(playerId);
+    };
+
+    // Hook: drag from pitch zone
+    var _origDragZone = window.dragFromZone;
+    window.dragFromZone = function(e, fromZone, playerId) {
+        _origDragZone(e, fromZone, playerId);
+        showBestZone(playerId);
+    };
+
+    // Hook: drop (clear after placement)
+    var _origDrop = window.dropOnZone;
+    window.dropOnZone = function(e, zoneId) {
+        _origDrop(e, zoneId);
+        hideBestZone();
+    };
+    var _origDropList = window.dropOnList;
+    window.dropOnList = function(e) {
+        _origDropList(e);
+        hideBestZone();
+    };
+
+    // Clear on drag cancel
+    document.addEventListener('dragend', hideBestZone);
+
+    // Hover on player list items
+    document.querySelectorAll('[data-player-id]').forEach(function(el) {
+        var pid = el.getAttribute('data-player-id');
+        if (!pid || !_bestMap[pid]) return;
+        el.addEventListener('mouseenter', function() { showBestZone(pid); });
+        el.addEventListener('mouseleave', hideBestZone);
+    });
+})();
+JS;
+$this->registerJs($bestJs);
 ?>
