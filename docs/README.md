@@ -59,7 +59,7 @@ git config core.hooksPath .githooks
 | SIP-0015 | API Versioning | Accepted (Implemented) |
 | SIP-0016 | Plugin System | Deferred (Backlog) |
 | SIP-0017 | Mobile Application Support | Deferred (Backlog — Final Phase) |
-| SIP-0018 | Multiplayer Synchronization | Deferred (Backlog) |
+| SIP-0018 | Multiplayer Synchronization | Accepted (Implemented Baseline) |
 | SIP-0020 | Real-Time Match Engine Architecture | Accepted |
 | SIP-0021 | Go Match Worker (Live Engine) | Accepted (Implemented) |
 | SIP-0022 | World Generation and New-Game Seeding | Accepted (Implemented) |

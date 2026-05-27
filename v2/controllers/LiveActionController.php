@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\controllers;
 
+use app\components\MultiplayerSyncService;
 use app\models\Fixture;
 use app\models\Formation;
 use app\models\FormationSlot;
@@ -121,6 +122,10 @@ class LiveActionController extends Controller
      */
     public function actionSubstitution(int $fixtureId): Response
     {
+        if (!MultiplayerSyncService::ensureOnce('live.sub.' . $fixtureId, 6)) {
+            return $this->asJson(['success' => true, 'message' => 'Richiesta duplicata ignorata.']);
+        }
+
         $fixture = Fixture::findOne($fixtureId);
         $team    = Team::findOne(['user_id' => Yii::$app->user->id]);
 
@@ -138,6 +143,11 @@ class LiveActionController extends Controller
 
         $side  = $fixture->home_team_id === $team->id ? 'home' : 'away';
         $state = MatchState::findOne(['fixture_id' => $fixtureId]);
+        $lockToken = MultiplayerSyncService::acquireLock('live.fixture.' . $fixtureId . '.team.' . (int) $team->id, 8);
+        if ($lockToken === null) {
+            return $this->asJson(['success' => false, 'message' => 'Operazione concorrente in corso.']);
+        }
+        try {
 
         // Check subs limit
         $subsField = "{$side}_subs_used";
@@ -174,6 +184,9 @@ class LiveActionController extends Controller
             'message'   => $msg,
             'subs_used' => $subsUsed + 1,
         ]);
+        } finally {
+            MultiplayerSyncService::releaseLock('live.fixture.' . $fixtureId . '.team.' . (int) $team->id, $lockToken);
+        }
     }
 
     /**
@@ -181,6 +194,10 @@ class LiveActionController extends Controller
      */
     public function actionTactic(int $fixtureId): Response
     {
+        if (!MultiplayerSyncService::ensureOnce('live.tactic.' . $fixtureId, 3)) {
+            return $this->asJson(['success' => true, 'message' => 'Richiesta duplicata ignorata.']);
+        }
+
         $fixture = Fixture::findOne($fixtureId);
         $team    = Team::findOne(['user_id' => Yii::$app->user->id]);
 

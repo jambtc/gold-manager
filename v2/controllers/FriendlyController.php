@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controllers;
 
 use app\components\FriendlyChallengeService;
+use app\components\MultiplayerSyncService;
 use app\components\NewsService;
 use app\models\Fixture;
 use app\models\FriendlyChallenge;
@@ -168,6 +169,11 @@ class FriendlyController extends Controller
 
     public function actionChallenge(): Response
     {
+        if (!MultiplayerSyncService::ensureOnce('friendly.challenge', 20)) {
+            Yii::$app->session->setFlash('info', 'Richiesta già elaborata.');
+            return $this->redirect(['/friendly/index']);
+        }
+
         $myTeam = Team::findOne(['user_id' => Yii::$app->user->id]);
         if (!$myTeam) {
             return $this->redirect(['/site/index']);
@@ -185,6 +191,14 @@ class FriendlyController extends Controller
             Yii::$app->session->setFlash('error', 'Avversario non trovato.');
             return $this->redirect(['/friendly/index']);
         }
+
+        $lockScope = 'friendly.challenge.' . min((int) $myTeam->id, (int) $target->id) . '.' . max((int) $myTeam->id, (int) $target->id);
+        $lockToken = MultiplayerSyncService::acquireLock($lockScope, 15);
+        if ($lockToken === null) {
+            Yii::$app->session->setFlash('warning', 'Operazione concorrente in corso. Riprova.');
+            return $this->redirect(['/friendly/index']);
+        }
+        try {
 
         $proposedAt = FriendlyChallengeService::nextFriendlySlot();
         if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $myTeam->id, $proposedAt)) {
@@ -278,10 +292,25 @@ class FriendlyController extends Controller
         }
 
         return $this->redirect(['/friendly/index']);
+        } finally {
+            MultiplayerSyncService::releaseLock($lockScope, $lockToken);
+        }
     }
 
     public function actionRespond(int $id, string $decision): Response
     {
+        if (!MultiplayerSyncService::ensureOnce('friendly.respond.' . $id . '.' . strtolower($decision), 20)) {
+            Yii::$app->session->setFlash('info', 'Risposta già elaborata.');
+            return $this->redirect(['/friendly/index']);
+        }
+
+        $lockToken = MultiplayerSyncService::acquireLock('friendly.challenge.' . $id, 15);
+        if ($lockToken === null) {
+            Yii::$app->session->setFlash('warning', 'Operazione concorrente in corso. Riprova.');
+            return $this->redirect(['/friendly/index']);
+        }
+        try {
+
         $myTeam = Team::findOne(['user_id' => Yii::$app->user->id]);
         if (!$myTeam) {
             return $this->redirect(['/site/index']);
@@ -383,10 +412,25 @@ class FriendlyController extends Controller
 
         Yii::$app->session->setFlash('info', 'Sfida rifiutata.');
         return $this->redirect(['/friendly/index']);
+        } finally {
+            MultiplayerSyncService::releaseLock('friendly.challenge.' . $id, $lockToken);
+        }
     }
 
     public function actionStartNow(int $id): Response
     {
+        if (!MultiplayerSyncService::ensureOnce('friendly.start-now.' . $id, 20)) {
+            Yii::$app->session->setFlash('info', 'Richiesta già elaborata.');
+            return $this->redirect(['/friendly/index']);
+        }
+
+        $lockToken = MultiplayerSyncService::acquireLock('friendly.start-now.' . $id, 15);
+        if ($lockToken === null) {
+            Yii::$app->session->setFlash('warning', 'Operazione concorrente in corso. Riprova.');
+            return $this->redirect(['/friendly/index']);
+        }
+        try {
+
         if (!$this->canStartFriendlyNow()) {
             Yii::$app->session->setFlash('error', 'Funzione disponibile solo in ambiente test.');
             return $this->redirect(['/friendly/index']);
@@ -436,6 +480,9 @@ class FriendlyController extends Controller
         }
 
         return $this->redirect(['/fixture/live', 'id' => $fixture->id]);
+        } finally {
+            MultiplayerSyncService::releaseLock('friendly.start-now.' . $id, $lockToken);
+        }
     }
 
     private function canStartFriendlyNow(): bool

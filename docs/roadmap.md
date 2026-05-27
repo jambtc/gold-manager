@@ -133,6 +133,7 @@
 
 ## Phase 12 - Social & Multiplayer 🚧 (ex Phase 10)
 
+- [x] Multiplayer synchronization baseline: idempotency + distributed locks su endpoint critici (SIP-0018)
 - [ ] In-game Chat & Private Messages
 - [ ] User Profiles & Trophies
 - [ ] Clan/Federation system
