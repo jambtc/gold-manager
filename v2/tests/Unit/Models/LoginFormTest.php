@@ -21,6 +21,9 @@ final class LoginFormTest extends \Codeception\Test\Unit
     protected function _after()
     {
         Yii::$app->user->logout();
+        putenv('GM_LOGIN_MAX_ATTEMPTS');
+        putenv('GM_LOGIN_WINDOW_SECONDS');
+        putenv('GM_LOGIN_BLOCK_SECONDS');
     }
 
     public function testLoginNoUser()
@@ -65,5 +68,41 @@ final class LoginFormTest extends \Codeception\Test\Unit
         verify($this->_model->login())->true();
         verify(Yii::$app->user->isGuest)->false();
         verify($this->_model->errors)->arrayHasNotKey('password');
+    }
+
+    public function testLoginBruteForceThrottle(): void
+    {
+        putenv('GM_LOGIN_MAX_ATTEMPTS=2');
+        putenv('GM_LOGIN_WINDOW_SECONDS=600');
+        putenv('GM_LOGIN_BLOCK_SECONDS=600');
+
+        $attempt1 = new LoginForm(
+            new Security(),
+            [
+                'username' => 'throttle_probe_user',
+                'password' => 'x',
+            ],
+        );
+        verify($attempt1->login())->false();
+
+        $attempt2 = new LoginForm(
+            new Security(),
+            [
+                'username' => 'throttle_probe_user',
+                'password' => 'x',
+            ],
+        );
+        verify($attempt2->login())->false();
+
+        $attempt3 = new LoginForm(
+            new Security(),
+            [
+                'username' => 'throttle_probe_user',
+                'password' => 'x',
+            ],
+        );
+        verify($attempt3->login())->false();
+        verify($attempt3->errors)->arrayHasKey('password');
+        verify(implode(' ', $attempt3->errors['password']))->contains('Too many attempts');
     }
 }

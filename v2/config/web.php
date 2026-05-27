@@ -44,6 +44,14 @@ $config = [
                     'class' => \yii\log\FileTarget::class,
                     'levels' => ['error', 'warning'],
                 ],
+                [
+                    'class' => \yii\log\FileTarget::class,
+                    'levels' => ['info', 'warning'],
+                    'categories' => ['security.auth'],
+                    'logFile' => '@runtime/logs/security-auth.log',
+                    'maxFileSize' => 1024,
+                    'maxLogFiles' => 7,
+                ],
             ],
         ],
         'db' => $db,
@@ -65,6 +73,16 @@ $config = [
             'channel' => 'gold-manager-queue',
         ],
         
+        'i18n' => [
+            'translations' => [
+                'app' => [
+                    'class'          => \yii\i18n\PhpMessageSource::class,
+                    'basePath'       => '@app/messages',
+                    'sourceLanguage' => 'en-US',
+                    'fileMap'        => ['app' => 'app.php'],
+                ],
+            ],
+        ],
         'urlManager' => [
             'enablePrettyUrl' => true,
             'showScriptName' => false,

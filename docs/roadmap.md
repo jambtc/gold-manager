@@ -18,6 +18,7 @@
 - [x] Migrations framework
 - [x] CI/CD pipeline
 - [x] Unit test DB separato (`gold_manager_test`) + mock user seed
+- [x] Security baseline authz/authn: login brute-force guard + API rate limiting + audit log (SIP-0005)
 
 ## Phase 3 - Core domain ✅
 

@@ -46,7 +46,7 @@ git config core.hooksPath .githooks
 | SIP-0002 | Target Architecture | Accepted |
 | SIP-0003 | Domain Model | Accepted (Implemented) |
 | SIP-0004 | Database and Migrations | Accepted (Implemented) |
-| SIP-0005 | Authentication and Authorization | Deferred (Backlog) |
+| SIP-0005 | Authentication and Authorization | Accepted (Implemented) |
 | SIP-0006 | UI and UX Design System | Accepted (Implemented) |
 | SIP-0007 | Team and Player Management | Accepted (Implemented) |
 | SIP-0008 | Competitions, Fixtures and Standings | Accepted (Implemented) |
