@@ -50,4 +50,23 @@ class NewsService
             ->limit($limit)
             ->all();
     }
+
+    /**
+     * @return array{unread_count:int,latest_id:int}
+     */
+    public static function snapshot(int $userId): array
+    {
+        $unreadCount = (int) NewsItem::find()
+            ->where(['user_id' => $userId, 'is_read' => 0])
+            ->count();
+
+        $latestId = (int) NewsItem::find()
+            ->where(['user_id' => $userId])
+            ->max('id');
+
+        return [
+            'unread_count' => $unreadCount,
+            'latest_id' => $latestId,
+        ];
+    }
 }

@@ -120,6 +120,7 @@
 ## Live UX Follow-up ✅
 
 - [x] Live substitution UI (panchina modal, roster endpoint, dual write MatchState+MatchCommand) (SIP-0043)
+- [x] Header notifications real-time (SSE + polling fallback) (SIP-0014)
 
 ## Phase 11 - Injuries & Discipline ✅
 

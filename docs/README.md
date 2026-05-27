@@ -55,7 +55,7 @@ git config core.hooksPath .githooks
 | SIP-0011 | Match Simulation Engine | Accepted (Implemented) |
 | SIP-0012 | AI Controlled Teams | Accepted (Implemented) |
 | SIP-0013 | Match Event Sourcing | Accepted (Implemented) |
-| SIP-0014 | Notifications and WebSocket Infrastructure | Deferred (Backlog) |
+| SIP-0014 | Notifications and WebSocket Infrastructure | Accepted (Implemented) |
 | SIP-0015 | API Versioning | Accepted (Implemented) |
 | SIP-0016 | Plugin System | Deferred (Backlog) |
 | SIP-0017 | Mobile Application Support | Deferred (Backlog — Final Phase) |

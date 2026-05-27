@@ -5,13 +5,21 @@ declare(strict_types=1);
 /** @var yii\web\View $this */
 
 use app\models\User;
+use app\assets\HeaderNotificationsAsset;
 use yii\bootstrap5\Nav;
 use yii\bootstrap5\NavBar;
 use yii\helpers\Html;
+use yii\helpers\Json;
+use yii\helpers\Url;
+use yii\web\View;
 
 /** @var User|null $identity */
 $identity = Yii::$app->user->identity;
 $isAdmin  = $identity && $identity->isAdmin();
+
+if ($identity && !$isAdmin) {
+    HeaderNotificationsAsset::register($this);
+}
 
 $managerItems = [
     ['label' => '<i class="bi bi-speedometer2"></i> Dashboard', 'url' => ['/site/index']],
@@ -93,11 +101,22 @@ $navItems = $isAdmin ? $adminItems : $managerItems;
         <?php else: ?>
             <?php if (!$isAdmin): ?>
             <?php $unread = \app\components\NewsService::unreadCount($identity->id); ?>
-            <a href="<?= \yii\helpers\Url::to(['/news/index']) ?>" class="nav-link position-relative me-1" title="Notizie">
-                <i class="bi bi-bell<?= $unread > 0 ? '-fill text-gold' : '' ?>"></i>
-                <?php if ($unread > 0): ?>
-                <span style="position:absolute;top:4px;right:2px;background:var(--accent-red);color:#fff;border-radius:50%;font-size:.55rem;font-weight:900;width:14px;height:14px;display:flex;align-items:center;justify-content:center;line-height:1"><?= min($unread, 99) ?></span>
-                <?php endif; ?>
+            <?php
+            $this->registerJs(
+                'window.GM_HEADER_NOTIFICATIONS = ' . Json::htmlEncode([
+                    'enabled' => true,
+                    'initialUnread' => (int) $unread,
+                    'lastEventId' => 0,
+                    'streamUrl' => Url::to(['/notification/stream']),
+                    'pollUrl' => Url::to(['/notification/poll']),
+                    'pollMs' => 12000,
+                ]) . ';',
+                View::POS_HEAD
+            );
+            ?>
+            <a id="gm-news-bell" href="<?= Url::to(['/news/index']) ?>" class="nav-link position-relative me-1" title="Notizie">
+                <i id="gm-news-bell-icon" class="bi bi-bell<?= $unread > 0 ? '-fill text-gold' : '' ?>"></i>
+                <span id="gm-news-bell-badge" style="position:absolute;top:4px;right:2px;background:var(--accent-red);color:#fff;border-radius:50%;font-size:.55rem;font-weight:900;width:14px;height:14px;align-items:center;justify-content:center;line-height:1;display:<?= $unread > 0 ? 'flex' : 'none' ?>"><?= $unread > 0 ? min($unread, 99) : '' ?></span>
             </a>
             <?php endif; ?>
             <div class="nav-item dropdown">
