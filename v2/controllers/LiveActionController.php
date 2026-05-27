@@ -172,6 +172,8 @@ class LiveActionController extends Controller
         $cmd->command_type    = MatchCommand::TYPE_SUBSTITUTION;
         $cmd->payload         = Json::encode(['out' => $playerOutId, 'in' => $playerInId]);
         $cmd->minute_submitted = $state ? $state->current_minute : 0;
+        $cmd->request_id = MultiplayerSyncService::currentRequestId('live.sub.' . $fixtureId);
+        $cmd->request_source = MultiplayerSyncService::currentRequestSource();
         $cmd->save();
 
         $out = Player::findOne($playerOutId);
@@ -267,6 +269,8 @@ class LiveActionController extends Controller
             'preset_levels' => $presetLevels,
         ]);
         $cmd->minute_submitted = $state ? $state->current_minute : 0;
+        $cmd->request_id = MultiplayerSyncService::currentRequestId('live.tactic.' . $fixtureId);
+        $cmd->request_source = MultiplayerSyncService::currentRequestSource();
         $cmd->save();
 
         $label = match($tactic) {

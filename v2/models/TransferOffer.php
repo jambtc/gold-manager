@@ -18,6 +18,8 @@ use yii\db\ActiveRecord;
  * @property int $created_at
  * @property int $expires_at
  * @property int $updated_at
+ * @property string|null $request_id
+ * @property string|null $request_source
  *
  * @property Transfer $transfer
  * @property Team $fromTeam
@@ -47,6 +49,8 @@ class TransferOffer extends ActiveRecord
             [['transfer_id', 'from_team_id', 'to_team_id', 'player_id', 'offered_fee', 'expires_at'], 'required'],
             [['transfer_id', 'from_team_id', 'to_team_id', 'player_id', 'offered_fee', 'created_at', 'expires_at', 'updated_at'], 'integer'],
             [['status'], 'string', 'max' => 20],
+            [['request_id'], 'string', 'max' => 96],
+            [['request_source'], 'string', 'max' => 24],
             [['status'], 'in', 'range' => [
                 self::STATUS_PENDING,
                 self::STATUS_ACCEPTED,
@@ -76,4 +80,3 @@ class TransferOffer extends ActiveRecord
         return $this->hasOne(Player::class, ['id' => 'player_id']);
     }
 }
-

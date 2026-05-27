@@ -9,6 +9,27 @@ use yii\base\Component;
 
 class MultiplayerSyncService extends Component
 {
+    public static function currentRequestId(string $scope = 'default'): string
+    {
+        return self::resolveRequestId($scope);
+    }
+
+    public static function currentRequestSource(): string
+    {
+        $request = Yii::$app->request;
+        $explicit = trim((string) $request->headers->get('X-Request-Source', ''));
+        if ($explicit !== '') {
+            return substr(preg_replace('/[^a-zA-Z0-9_\-:.]/', '', $explicit) ?: 'web', 0, 24);
+        }
+
+        $path = '/' . ltrim((string) $request->pathInfo, '/');
+        if (str_starts_with($path, '/api/')) {
+            return 'api';
+        }
+
+        return 'web';
+    }
+
     public static function ensureOnce(string $scope, int $ttlSeconds = 30): bool
     {
         $requestId = self::resolveRequestId($scope);
@@ -93,4 +114,3 @@ class MultiplayerSyncService extends Component
         return sha1((string) json_encode($payload, JSON_UNESCAPED_UNICODE));
     }
 }
-

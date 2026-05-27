@@ -16,6 +16,8 @@ use yii\db\ActiveRecord;
  * @property int|null $fixture_id
  * @property int $created_at
  * @property int|null $responded_at
+ * @property string|null $request_id
+ * @property string|null $request_source
  *
  * @property Team $challenger
  * @property Team $challenged
@@ -41,6 +43,8 @@ class FriendlyChallenge extends ActiveRecord
             [['challenger_id', 'challenged_id', 'proposed_at', 'fixture_id', 'created_at', 'responded_at'], 'integer'],
             [['status'], 'string', 'max' => 20],
             [['decline_reason'], 'string', 'max' => 120],
+            [['request_id'], 'string', 'max' => 96],
+            [['request_source'], 'string', 'max' => 24],
             [['status'], 'in', 'range' => [
                 self::STATUS_PENDING,
                 self::STATUS_ACCEPTED,
@@ -67,4 +71,3 @@ class FriendlyChallenge extends ActiveRecord
         return $this->hasOne(Fixture::class, ['id' => 'fixture_id']);
     }
 }
-

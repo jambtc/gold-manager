@@ -16,6 +16,8 @@ use yii\behaviors\TimestampBehavior;
  * @property int $minute_submitted
  * @property int|null $executed_at_minute
  * @property int $created_at
+ * @property string|null $request_id
+ * @property string|null $request_source
  */
 class MatchCommand extends ActiveRecord
 {
@@ -42,6 +44,8 @@ class MatchCommand extends ActiveRecord
             [['fixture_id', 'team_id', 'minute_submitted', 'executed_at_minute'], 'integer'],
             [['command_type'], 'string', 'max' => 50],
             [['payload'], 'string'],
+            [['request_id'], 'string', 'max' => 96],
+            [['request_source'], 'string', 'max' => 24],
         ];
     }
 }

@@ -262,6 +262,8 @@ class TransferController extends Controller
         }
 
         try {
+        $requestId = MultiplayerSyncService::currentRequestId('transfer.accept-offer.' . $id);
+        $requestSource = MultiplayerSyncService::currentRequestSource();
         if ((int) $offer->to_team_id !== (int) $team->id) {
             Yii::$app->session->setFlash('error', 'Offerta non di tua competenza.');
             return $this->redirect(['market']);
@@ -291,7 +293,12 @@ class TransferController extends Controller
         try {
             $now = time();
             $rows = TransferOffer::updateAll(
-                ['status' => TransferOffer::STATUS_ACCEPTED, 'updated_at' => $now],
+                [
+                    'status' => TransferOffer::STATUS_ACCEPTED,
+                    'updated_at' => $now,
+                    'request_id' => $requestId,
+                    'request_source' => $requestSource,
+                ],
                 [
                     'id' => (int) $offer->id,
                     'status' => TransferOffer::STATUS_PENDING,
@@ -323,7 +330,12 @@ class TransferController extends Controller
             }
 
         TransferOffer::updateAll(
-            ['status' => TransferOffer::STATUS_REJECTED, 'updated_at' => $now],
+            [
+                'status' => TransferOffer::STATUS_REJECTED,
+                'updated_at' => $now,
+                'request_id' => $requestId,
+                'request_source' => $requestSource,
+            ],
             [
                 'and',
                 ['transfer_id' => $transfer->id],
@@ -391,7 +403,9 @@ class TransferController extends Controller
         }
 
         $offer->status = TransferOffer::STATUS_REJECTED;
-        $offer->save(false, ['status', 'updated_at']);
+        $offer->request_id = MultiplayerSyncService::currentRequestId('transfer.reject-offer.' . $id);
+        $offer->request_source = MultiplayerSyncService::currentRequestSource();
+        $offer->save(false, ['status', 'updated_at', 'request_id', 'request_source']);
         Yii::$app->session->setFlash('success', 'Offerta rifiutata.');
 
         // News al compratore
@@ -435,8 +449,15 @@ class TransferController extends Controller
         $transfer->status = Transfer::STATUS_CANCELLED;
         $transfer->resolved_at = time();
         $transfer->save(false, ['status', 'resolved_at', 'updated_at']);
+        $requestId = MultiplayerSyncService::currentRequestId('transfer.delist.' . $id);
+        $requestSource = MultiplayerSyncService::currentRequestSource();
         TransferOffer::updateAll(
-            ['status' => TransferOffer::STATUS_WITHDRAWN, 'updated_at' => time()],
+            [
+                'status' => TransferOffer::STATUS_WITHDRAWN,
+                'updated_at' => time(),
+                'request_id' => $requestId,
+                'request_source' => $requestSource,
+            ],
             ['transfer_id' => $transfer->id, 'status' => TransferOffer::STATUS_PENDING]
         );
         Yii::$app->session->setFlash('success', 'Giocatore ritirato dal mercato.');
@@ -549,6 +570,8 @@ class TransferController extends Controller
         }
 
         $expiresAt = time() + 48 * 3600;
+        $requestId = MultiplayerSyncService::currentRequestId('transfer.make-offer.' . (int) $transfer->id);
+        $requestSource = MultiplayerSyncService::currentRequestSource();
         $offer = TransferOffer::findOne([
             'transfer_id' => (int) $transfer->id,
             'from_team_id' => (int) $team->id,
@@ -558,7 +581,9 @@ class TransferController extends Controller
         if ($offer) {
             $offer->offered_fee = $offered;
             $offer->expires_at = $expiresAt;
-            $offer->save(false, ['offered_fee', 'expires_at', 'updated_at']);
+            $offer->request_id = $requestId;
+            $offer->request_source = $requestSource;
+            $offer->save(false, ['offered_fee', 'expires_at', 'updated_at', 'request_id', 'request_source']);
             Yii::$app->session->setFlash('success', 'Offerta aggiornata.');
         } else {
             $offer = new TransferOffer();
@@ -569,6 +594,8 @@ class TransferController extends Controller
             $offer->offered_fee = $offered;
             $offer->status = TransferOffer::STATUS_PENDING;
             $offer->expires_at = $expiresAt;
+            $offer->request_id = $requestId;
+            $offer->request_source = $requestSource;
             $offer->save(false);
             Yii::$app->session->setFlash('success', 'Offerta inviata.');
 

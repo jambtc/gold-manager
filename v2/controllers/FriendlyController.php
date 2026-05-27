@@ -216,6 +216,8 @@ class FriendlyController extends Controller
         $challenge->status = FriendlyChallenge::STATUS_PENDING;
         $challenge->proposed_at = $proposedAt;
         $challenge->created_at = time();
+        $challenge->request_id = MultiplayerSyncService::currentRequestId('friendly.challenge');
+        $challenge->request_source = MultiplayerSyncService::currentRequestSource();
         $challenge->save(false);
 
         // Human manager target: wait for response.
@@ -256,7 +258,9 @@ class FriendlyController extends Controller
             $challenge->status = FriendlyChallenge::STATUS_ACCEPTED;
             $challenge->fixture_id = (int) $fixture->id;
             $challenge->responded_at = time();
-            $challenge->save(false, ['status', 'fixture_id', 'responded_at']);
+            $challenge->request_id = MultiplayerSyncService::currentRequestId('friendly.challenge.accept-cpu');
+            $challenge->request_source = MultiplayerSyncService::currentRequestSource();
+            $challenge->save(false, ['status', 'fixture_id', 'responded_at', 'request_id', 'request_source']);
 
             if ($myTeam->user_id) {
                 NewsService::create(
@@ -275,7 +279,9 @@ class FriendlyController extends Controller
             $challenge->status = FriendlyChallenge::STATUS_DECLINED;
             $challenge->decline_reason = $reason;
             $challenge->responded_at = time();
-            $challenge->save(false, ['status', 'decline_reason', 'responded_at']);
+            $challenge->request_id = MultiplayerSyncService::currentRequestId('friendly.challenge.decline-cpu');
+            $challenge->request_source = MultiplayerSyncService::currentRequestSource();
+            $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
             if ($myTeam->user_id) {
                 NewsService::create(
@@ -344,7 +350,9 @@ class FriendlyController extends Controller
                 $challenge->status = FriendlyChallenge::STATUS_DECLINED;
                 $challenge->decline_reason = 'Slot non più disponibile per una delle due squadre';
                 $challenge->responded_at = time();
-                $challenge->save(false, ['status', 'decline_reason', 'responded_at']);
+                $challenge->request_id = MultiplayerSyncService::currentRequestId('friendly.respond.' . $id . '.auto-decline');
+                $challenge->request_source = MultiplayerSyncService::currentRequestSource();
+                $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
                 if ($challenge->challenger && $challenge->challenger->user_id) {
                     NewsService::create(
@@ -365,7 +373,9 @@ class FriendlyController extends Controller
             $challenge->status = FriendlyChallenge::STATUS_ACCEPTED;
             $challenge->fixture_id = (int) $fixture->id;
             $challenge->responded_at = time();
-            $challenge->save(false, ['status', 'fixture_id', 'responded_at']);
+            $challenge->request_id = MultiplayerSyncService::currentRequestId('friendly.respond.' . $id . '.accept');
+            $challenge->request_source = MultiplayerSyncService::currentRequestSource();
+            $challenge->save(false, ['status', 'fixture_id', 'responded_at', 'request_id', 'request_source']);
 
             if ($challenge->challenger && $challenge->challenger->user_id) {
                 NewsService::create(
@@ -397,7 +407,9 @@ class FriendlyController extends Controller
         $challenge->status = FriendlyChallenge::STATUS_DECLINED;
         $challenge->decline_reason = 'Invito rifiutato';
         $challenge->responded_at = time();
-        $challenge->save(false, ['status', 'decline_reason', 'responded_at']);
+        $challenge->request_id = MultiplayerSyncService::currentRequestId('friendly.respond.' . $id . '.decline');
+        $challenge->request_source = MultiplayerSyncService::currentRequestSource();
+        $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
         if ($challenge->challenger && $challenge->challenger->user_id) {
             NewsService::create(
