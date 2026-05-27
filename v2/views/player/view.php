@@ -143,7 +143,7 @@ $trainingLogs = Yii::$app->db->createCommand(
         $qBonusMap[$q] = (float) $qd['bonus'];
     }
     $heatCellVal = function (int $displayZone) use ($player, $cellHeatmap, $qBonusMap): array {
-        $engineZone = PitchZoneHelper::normalizeToCurrent($displayZone);
+        $engineZone = PitchZoneHelper::normalizeDisplayZone($displayZone);
         $quadrant   = QuadrantHelper::zoneToQuadrant($engineZone);
         $base       = round($player->getOverallForPosition($engineZone), 1);
         $bonusQ     = round($qBonusMap[$quadrant] ?? 0.0, 1);

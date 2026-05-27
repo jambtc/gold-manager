@@ -104,6 +104,25 @@ final class PitchZoneHelper
         return self::coords($zone)['row'];
     }
 
+    /**
+     * Normalize a DISPLAY zone (1-64) to an engine zone for heatmap/view rendering.
+     * Zone 64 → GK_ZONE(10). Zones 1-63 are ALWAYS treated as legacy zones.
+     * Unlike normalizeToCurrent(), this never confuses zone 10 with GK_ZONE.
+     */
+    public static function normalizeDisplayZone(int $displayZone): int
+    {
+        if ($displayZone === self::DISPLAY_GK_ZONE) {
+            return self::GK_ZONE;
+        }
+        if (!self::isLegacyZone($displayZone)) {
+            return self::zone(6, 2);
+        }
+        $legacy = self::legacyCoords($displayZone);
+        $newRow = 11 - $legacy['row'];
+        $lane   = self::legacyColToLane($legacy['col']);
+        return self::zone($newRow, $lane);
+    }
+
     public static function normalizeToCurrent(int $zone): int
     {
         if ($zone === self::DISPLAY_GK_ZONE) {
