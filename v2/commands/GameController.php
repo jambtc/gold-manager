@@ -303,12 +303,13 @@ class GameController extends Controller
             if ($result['updated']) {
                 $updated++;
                 $this->stdout(sprintf(
-                    "[CPU #%d] %-24s -> %s / %s (%d titolari)\n",
+                    "[CPU #%d] %-24s -> %s / %s (%d titolari, %s)\n",
                     $team->id,
                     substr((string) $team->name, 0, 24),
                     $result['module'],
                     $result['tactic'],
-                    $result['assigned']
+                    $result['assigned'],
+                    $result['difficulty'] ?? 'normal'
                 ));
             }
         }
@@ -356,15 +357,16 @@ class GameController extends Controller
         }
 
         try {
-            $result = $this->cpuFormationService->ensureTeamReady($team);
+            $result = $this->cpuFormationService->ensureTeamReady($team, (int) ($fixture->competition_id ?? 0));
             if ($result['updated']) {
                 $this->stdout(sprintf(
-                    "[CPU auto-form] Team #%d %s -> %s / %s (%d)\n",
+                    "[CPU auto-form] Team #%d %s -> %s / %s (%d, %s)\n",
                     $team->id,
                     $team->name,
                     $result['module'],
                     $result['tactic'],
-                    $result['assigned']
+                    $result['assigned'],
+                    $result['difficulty'] ?? 'normal'
                 ));
             }
         } catch (\Throwable $e) {

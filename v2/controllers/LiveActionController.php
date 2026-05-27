@@ -194,7 +194,7 @@ class LiveActionController extends Controller
         $trainedTactic = (string) Yii::$app->request->post('trained_tactic', '');
         $allowedTactics = ['balanced', 'ultra_defensive', 'all_out_attack'];
         $allowedMarkings = ['zone', 'man'];
-        $allowedTrained = ['pressing', 'contropiede', 'possesso', 'palla_bassa', 'lancio_lungo', 'catenaccio', 'fuorigioco', 'calci_piazzati'];
+        $allowedTrained = ['pressing', 'contropiede', 'possesso', 'palla_bassa', 'lancio_lungo', 'catenaccio', 'fuorigioco'];
 
         if (!in_array($tactic, $allowedTactics, true)) {
             $tactic = 'balanced';
@@ -272,15 +272,15 @@ class LiveActionController extends Controller
         return match ($tactic) {
             'ultra_defensive' => [
                 'pressing' => 20, 'possesso' => 30, 'catenaccio' => 70, 'contropiede' => 60,
-                'palla_bassa' => 60, 'lancio_lungo' => 55, 'fuorigioco' => 50, 'calci_piazzati' => 40,
+                'palla_bassa' => 60, 'lancio_lungo' => 55, 'fuorigioco' => 50,
             ],
             'all_out_attack' => [
                 'pressing' => 80, 'possesso' => 70, 'catenaccio' => 10, 'contropiede' => 20,
-                'palla_bassa' => 25, 'lancio_lungo' => 35, 'fuorigioco' => 40, 'calci_piazzati' => 55,
+                'palla_bassa' => 25, 'lancio_lungo' => 35, 'fuorigioco' => 40,
             ],
             default => [
                 'pressing' => 50, 'possesso' => 50, 'catenaccio' => 30, 'contropiede' => 30,
-                'palla_bassa' => 40, 'lancio_lungo' => 30, 'fuorigioco' => 30, 'calci_piazzati' => 45,
+                'palla_bassa' => 40, 'lancio_lungo' => 30, 'fuorigioco' => 30,
             ],
         };
     }

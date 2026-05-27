@@ -5,7 +5,7 @@
 use yii\helpers\Url;
 
 $this->title = 'Preparazione squadra in corso…';
-$statusUrl   = Url::to(['/api/user/status']);
+$statusUrl   = Url::to(['/api/v1/user/status']);
 $homeUrl     = Url::to(['/site/index']);
 ?>
 

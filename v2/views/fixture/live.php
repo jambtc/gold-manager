@@ -236,7 +236,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                         ? \app\models\FormationSlot::find()->where(['formation_id' => $myFormation->id])->count()
                         : 0;
                     $tacticTraining = Yii::$app->db->createCommand(
-                        'SELECT pressing, contropiede, possesso, palla_bassa, lancio_lungo, catenaccio, fuorigioco, calci_piazzati
+                        'SELECT pressing, contropiede, possesso, palla_bassa, lancio_lungo, catenaccio, fuorigioco
                      FROM {{%training_tactic}}
                      WHERE team_id = :teamId
                      ORDER BY season DESC
@@ -251,7 +251,6 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                         'lancio_lungo' => 'Lancio lungo',
                         'catenaccio' => 'Catenaccio',
                         'fuorigioco' => 'Fuorigioco',
-                        'calci_piazzati' => 'Piazzati',
                     ];
                     $initialStyle = $myFormation && in_array((string) $myFormation->tactic, ['balanced', 'ultra_defensive', 'all_out_attack'], true)
                         ? (string) $myFormation->tactic : 'balanced';
@@ -366,7 +365,6 @@ $jsTrainedLabels = Json::htmlEncode($trainedTacticMap ?? [
     'lancio_lungo' => 'Lancio lungo',
     'catenaccio' => 'Catenaccio',
     'fuorigioco' => 'Fuorigioco',
-    'calci_piazzati' => 'Piazzati',
 ]);
 $jsSuspenseEnabled = CommentaryTemplateService::suspenseEnabled() ? 'true' : 'false';
 $jsSuspenseDelayMs = CommentaryTemplateService::suspenseDelayMs();

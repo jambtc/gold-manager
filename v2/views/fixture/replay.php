@@ -16,6 +16,7 @@ use yii\db\Query;
 use yii\web\View;
 use app\assets\FixtureReplayAsset;
 use app\components\FixtureViewHelper;
+use app\components\PitchZoneHelper;
 
 $this->title = $fixture->homeTeam->name . ' vs ' . $fixture->awayTeam->name . ' — Replay';
 $this->params['breadcrumbs'][] = ['label' => 'Calendario', 'url' => ['index']];
@@ -66,7 +67,7 @@ $loadLineup = static function (int $teamId): array {
         ->innerJoin('{{%formation_slot}} fs', 'fs.formation_id = f.id')
         ->innerJoin('{{%player}} p', 'p.id = fs.player_id')
         ->where(['f.team_id' => $teamId, 'f.is_active' => 1])
-        ->andWhere(['<=', 'fs.zone', 63])
+        ->andWhere(new \yii\db\Expression(PitchZoneHelper::onPitchSql('fs.zone')))
         ->andWhere(['is not', 'fs.player_id', null])
         ->orderBy(['fs.zone' => SORT_ASC, 'p.id' => SORT_ASC])
         ->limit(11)

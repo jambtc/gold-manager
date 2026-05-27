@@ -57,6 +57,9 @@ func main() {
 		}
 	}()
 
+	// On startup: finalize zombie fixtures (status=0/1 but match_state at minute>=90)
+	finalizeZombieFixtures()
+
 	// Main Polling Loop
 	for {
 		processActiveMatches()
@@ -164,6 +167,38 @@ func processActiveMatches() {
 	}
 }
 
+// finalizeZombieFixtures sets status=2 for fixtures that are stuck in status 0/1
+// but whose match_state is already at minute>=90 (Go worker crashed before full_time tx).
+func finalizeZombieFixtures() {
+	type zombie struct {
+		FixtureID int `db:"fixture_id"`
+		HomeScore int `db:"home_score"`
+		AwayScore int `db:"away_score"`
+	}
+	var rows []zombie
+	err := db.Select(&rows, `
+		SELECT ms.fixture_id, ms.home_score, ms.away_score
+		FROM match_state ms
+		JOIN fixture f ON f.id = ms.fixture_id
+		WHERE ms.current_minute >= 90
+		  AND f.status IN (0, 1)
+	`)
+	if err != nil || len(rows) == 0 {
+		return
+	}
+	for _, z := range rows {
+		_, err2 := db.Exec(
+			"UPDATE fixture SET status=2, home_score=?, away_score=? WHERE id=? AND status IN (0,1)",
+			z.HomeScore, z.AwayScore, z.FixtureID,
+		)
+		if err2 != nil {
+			log.Printf("finalizeZombie: fixture %d error: %v", z.FixtureID, err2)
+		} else {
+			log.Printf("finalizeZombie: fixture %d finalized %d-%d", z.FixtureID, z.HomeScore, z.AwayScore)
+		}
+	}
+}
+
 func ensureCPUFormationsForFixture(fixtureID int) error {
 	type row struct {
 		HomeTeamID int `db:"home_team_id"`
@@ -221,7 +256,9 @@ func ensureCPUActiveFormation(teamID int) error {
 	var starters int
 	if err := db.Get(&starters, `
 		SELECT COUNT(*) FROM formation_slot
-		WHERE formation_id = ? AND zone <= 63 AND player_id IS NOT NULL
+		WHERE formation_id = ?
+		  AND (((zone = 10) OR ((zone BETWEEN 20 AND 103) AND (MOD(zone,10) BETWEEN 1 AND 3))) OR (zone BETWEEN 1 AND 63))
+		  AND player_id IS NOT NULL
 	`, formationID); err != nil {
 		return err
 	}
@@ -254,10 +291,10 @@ func ensureCPUActiveFormation(teamID int) error {
 		Role string
 	}
 	template := []slotTpl{
-		{Zone: 60, Role: "GK"},
-		{Zone: 51, Role: "DF"}, {Zone: 52, Role: "DF"}, {Zone: 54, Role: "DF"}, {Zone: 55, Role: "DF"},
-		{Zone: 37, Role: "MF"}, {Zone: 38, Role: "MF"}, {Zone: 40, Role: "MF"}, {Zone: 41, Role: "MF"},
-		{Zone: 17, Role: "FW"}, {Zone: 19, Role: "FW"},
+		{Zone: 10, Role: "GK"},
+		{Zone: 31, Role: "DF"}, {Zone: 22, Role: "DF"}, {Zone: 32, Role: "DF"}, {Zone: 33, Role: "DF"},
+		{Zone: 61, Role: "MF"}, {Zone: 62, Role: "MF"}, {Zone: 72, Role: "MF"}, {Zone: 63, Role: "MF"},
+		{Zone: 82, Role: "FW"}, {Zone: 92, Role: "FW"},
 	}
 
 	used := make(map[int]bool)

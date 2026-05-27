@@ -7,6 +7,7 @@ namespace app\controllers;
 use Yii;
 use app\components\FormationAutoHelper;
 use app\components\FormationRoleHelper;
+use app\components\PitchZoneHelper;
 use app\models\Team;
 use app\models\Formation;
 use app\models\FormationSlot;
@@ -14,6 +15,7 @@ use app\models\Player;
 use yii\web\Controller;
 use yii\web\Response;
 use yii\filters\AccessControl;
+use yii\db\Expression;
 
 class FormationController extends Controller
 {
@@ -83,39 +85,95 @@ class FormationController extends Controller
         if (!$formationId || !$zoneId) {
             return $this->asJson(['success' => false, 'message' => 'Missing data']);
         }
+        $formationId = (int) $formationId;
 
-        // Remove whoever is currently in this zone
-        FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $zoneId]);
+        $team = Team::findOne(['user_id' => Yii::$app->user->id]);
+        if (!$team) {
+            return $this->asJson(['success' => false, 'message' => 'Squadra non trovata.']);
+        }
+        $formation = Formation::findOne(['id' => $formationId, 'team_id' => (int) $team->id]);
+        if (!$formation) {
+            return $this->asJson(['success' => false, 'message' => 'Formazione non valida.']);
+        }
+
+        $zoneId = (int) $zoneId;
+        if (!PitchZoneHelper::isOnPitch($zoneId)) {
+            return $this->asJson(['success' => false, 'message' => 'Zona non valida.']);
+        }
+
+        // Normalize all incoming clicks to canonical new zone codes.
+        // Grid cells always send legacy zone IDs (1-63) or display GK (64).
+        // Zones 21-63 overlap with new zone codes, so we MUST treat anything in
+        // 1-63 as a legacy position and convert via legacy row/col math.
+        if (PitchZoneHelper::isGoalkeeperZone($zoneId)) {
+            $zoneId = PitchZoneHelper::GK_ZONE; // 10
+        } elseif ($zoneId >= 1 && $zoneId <= 63) {
+            // Legacy cell → new zone code
+            $legRow = intdiv($zoneId - 1, 7) + 1;          // 1..9
+            $legCol = (($zoneId - 1) % 7) + 1;             // 1..7
+            $newRow = 11 - $legRow;                         // 2..10
+            $newLane = $legCol <= 2 ? 1 : ($legCol >= 6 ? 3 : 2);
+            $zoneId = $newRow * 10 + $newLane;
+        }
+        // Zones > 64 arriving here are already new zone codes (allowed from future callers).
 
         if ($playerId) {
+            $playerId = (int) $playerId;
             // Block injured and suspended players
-            $player = \app\models\Player::findOne((int)$playerId);
+            $player = Player::findOne(['id' => $playerId, 'team_id' => (int) $team->id]);
+            if (!$player) {
+                return $this->asJson(['success' => false, 'message' => 'Giocatore non valido per questa squadra.']);
+            }
             if ($player && $player->injury_weeks > 0) {
                 return $this->asJson(['success' => false, 'message' => "Giocatore infortunato ({$player->injury_type}, {$player->injury_weeks} sett. rimanenti)."]);
             }
             if ($player && $player->suspended_matches > 0) {
                 return $this->asJson(['success' => false, 'message' => "Giocatore squalificato ({$player->suspended_matches} gara/e)."]);
             }
-
-            // Remove this player from any other zone (one player, one zone)
-            FormationSlot::deleteAll(['formation_id' => $formationId, 'player_id' => $playerId]);
-
-            // Max 11 on pitch
-            $current = (int) FormationSlot::find()
-                ->where(['formation_id' => $formationId])
-                ->count();
-            if ($current >= 11) {
-                return $this->asJson(['success' => false, 'message' => 'Massimo 11 giocatori in campo.']);
+            $isGkZone = PitchZoneHelper::isGoalkeeperZone($zoneId);
+            if ($player && $isGkZone && strtoupper((string) $player->position) !== 'GK') {
+                return $this->asJson(['success' => false, 'message' => 'La cella portiere accetta solo un portiere (GK).']);
             }
+            if ($player && strtoupper((string) $player->position) === 'GK' && !$isGkZone) {
+                return $this->asJson(['success' => false, 'message' => 'Il portiere titolare deve stare nella cella portiere.']);
+            }
+            $tx = Yii::$app->db->beginTransaction();
+            try {
+                // Remove whoever is currently in target zone and ensure one-slot-per-player.
+                FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $zoneId]);
+                FormationSlot::deleteAll(['formation_id' => $formationId, 'player_id' => $playerId]);
 
-            $slot = new FormationSlot();
-            $slot->formation_id = (int)$formationId;
-            $slot->zone         = (int)$zoneId;
-            $slot->player_id    = (int)$playerId;
-            $slot->save();
+                // Max 11 starters on pitch (ignore bench/off-pitch zones).
+                $current = (int) FormationSlot::find()
+                    ->where(['formation_id' => $formationId])
+                    ->andWhere(new Expression(PitchZoneHelper::onPitchSql('zone')))
+                    ->count();
+                if ($current >= 11) {
+                    $tx->rollBack();
+                    return $this->asJson(['success' => false, 'message' => 'Massimo 11 giocatori in campo.']);
+                }
+
+                $slot = new FormationSlot();
+                $slot->formation_id = $formationId;
+                $slot->zone = (int) $zoneId;
+                $slot->player_id = $playerId;
+                $slot->save(false);
+                $tx->commit();
+            } catch (\Throwable $e) {
+                $tx->rollBack();
+                Yii::error('save-slot failed: ' . $e->getMessage(), __METHOD__);
+                return $this->asJson(['success' => false, 'message' => 'Errore salvataggio formazione.']);
+            }
+        } else {
+            // Clear zone only.
+            FormationSlot::deleteAll(['formation_id' => $formationId, 'zone' => $zoneId]);
         }
 
-        return $this->asJson(['success' => true, 'count' => (int) FormationSlot::find()->where(['formation_id' => $formationId])->count()]);
+        $count = (int) FormationSlot::find()
+            ->where(['formation_id' => $formationId])
+            ->andWhere(new Expression(PitchZoneHelper::onPitchSql('zone')))
+            ->count();
+        return $this->asJson(['success' => true, 'count' => $count]);
     }
 
     /**
@@ -158,11 +216,21 @@ class FormationController extends Controller
             $warning = null;
             $missing = (int) ($result['missing'] ?? 0);
             if ($missing > 0) {
+                $missingByRole = is_array($result['missing_by_role'] ?? null) ? $result['missing_by_role'] : [];
+                $parts = [];
+                foreach (['GK' => 'GK', 'DF' => 'DF', 'MF' => 'MF', 'FW' => 'FW'] as $key => $label) {
+                    $value = (int) ($missingByRole[$key] ?? 0);
+                    if ($value > 0) {
+                        $parts[] = $label . ' x' . $value;
+                    }
+                }
+                $roleHint = empty($parts) ? '' : (' Ruoli mancanti: ' . implode(', ', $parts) . '.');
                 $warning = sprintf(
-                    'Auto-formazione completata ma solo %d/11 slot sono stati riempiti (rosa attuale: %d). Mancano %d giocatori: completa manualmente o firma nuovi elementi.',
+                    'Auto-formazione completata ma solo %d/11 slot sono stati riempiti (rosa attuale: %d). Mancano %d giocatori: completa manualmente o firma nuovi elementi.%s',
                     (int) $result['assigned'],
                     (int) ($result['total_players'] ?? 0),
-                    $missing
+                    $missing,
+                    $roleHint
                 );
             }
 
@@ -198,12 +266,14 @@ class FormationController extends Controller
         }
 
         $helper = new FormationAutoHelper();
+        $module = FormationAutoHelper::normalizeModule((string) Yii::$app->request->post('module', '4-4-2'));
         $formation->tactic = FormationAutoHelper::normalizeTactic((string) Yii::$app->request->post('tactic', 'balanced'));
         $formation->marking = $helper->normalizeMarking((string) Yii::$app->request->post('marking', 'zone'));
         $formation->offside_trap = (int) ((int) Yii::$app->request->post('offside_trap', 1) > 0 ? 1 : 0);
         $formation->trained_tactic = $helper->normalizeTrainedTactic((string) Yii::$app->request->post('trained_tactic', ''));
+        $formation->name = 'Auto ' . $module;
         $formation->updated_at = time();
-        $formation->save(false, ['tactic', 'marking', 'offside_trap', 'trained_tactic', 'updated_at']);
+        $formation->save(false, ['name', 'tactic', 'marking', 'offside_trap', 'trained_tactic', 'updated_at']);
 
         return $this->asJson([
             'success' => true,
@@ -248,7 +318,7 @@ class FormationController extends Controller
 
         $slots = FormationSlot::find()
             ->where(['formation_id' => $formation->id])
-            ->andWhere(['<=', 'zone', 63])
+            ->andWhere(new Expression(PitchZoneHelper::onPitchSql('zone')))
             ->andWhere(['not', ['player_id' => null]])
             ->all();
         $starterIds = [];
@@ -293,7 +363,7 @@ class FormationController extends Controller
     private function loadTrainedTactics(int $teamId): array
     {
         $row = Yii::$app->db->createCommand(
-            'SELECT pressing, contropiede, possesso, palla_bassa, lancio_lungo, catenaccio, fuorigioco, calci_piazzati
+            'SELECT pressing, contropiede, possesso, palla_bassa, lancio_lungo, catenaccio, fuorigioco
              FROM {{%training_tactic}}
              WHERE team_id = :teamId
              ORDER BY season DESC
@@ -309,7 +379,6 @@ class FormationController extends Controller
             'lancio_lungo' => 'Lancio lungo',
             'catenaccio' => 'Catenaccio',
             'fuorigioco' => 'Fuorigioco',
-            'calci_piazzati' => 'Calci piazzati',
         ];
 
         $result = [];

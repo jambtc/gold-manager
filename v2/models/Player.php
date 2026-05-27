@@ -120,14 +120,59 @@ class Player extends ActiveRecord
     }
 
     /**
-     * Calculates the player's overall rating for a specific pitch zone (1-64).
-     * Based on the legacy "Formula 2" engine.
+     * Calculates the player's overall rating for a specific pitch zone.
+     * Supports both legacy zones and SIP-0067 10-row zones.
      *
-     * @param int $positionOrd The pitch zone number (1-64)
+     * @param int $positionOrd The pitch zone number
      * @return float
      */
+    /**
+     * SIP-0068: quadrant heatmap for this player.
+     * Returns array keyed by quadrant with 'official_credits', 'friendly_credits', 'bonus'.
+     *
+     * @return array<string, array{official_credits:int, friendly_credits:int, bonus:float}>
+     */
+    public function getQuadrantHeatmap(): array
+    {
+        $svc = new \app\components\PlayerExperienceService();
+        $expMap = $svc->getAllQuadrantExp($this->id);
+        $bonusMap = $svc->getQuadrantBonusMap($this->id);
+        $result = [];
+        foreach ($expMap as $q => $row) {
+            $result[$q] = [
+                'official_credits' => $row['official_credits'],
+                'friendly_credits' => $row['friendly_credits'],
+                'bonus'            => round($bonusMap[$q] ?? 0.0, 1),
+            ];
+        }
+        return $result;
+    }
+
+    /**
+     * SIP-0068: cell heatmap for this player (64 cells).
+     * Returns array keyed by display zone (1-64) with 'official_credits', 'friendly_credits', 'bonus'.
+     *
+     * @return array<int, array{official_credits:int, friendly_credits:int, bonus:float}>
+     */
+    public function getCellHeatmap(): array
+    {
+        $svc = new \app\components\PlayerExperienceService();
+        $expMap = $svc->getAllCellExp($this->id);
+        $bonusMap = $svc->getCellBonusMap($this->id);
+        $result = [];
+        foreach ($expMap as $zone => $row) {
+            $result[$zone] = [
+                'official_credits' => $row['official_credits'],
+                'friendly_credits' => $row['friendly_credits'],
+                'bonus'            => round($bonusMap[$zone] ?? 0.0, 1),
+            ];
+        }
+        return $result;
+    }
+
     public function getOverallForPosition(int $positionOrd): float
     {
+        $positionOrd = \app\components\PitchZoneHelper::normalizeToCurrent($positionOrd);
         $coeffs = Yii::$app->db->createCommand(
             'SELECT * FROM {{%calcolatore}} WHERE formula = :f AND ord = :ord',
             [':f' => 'Formula 2', ':ord' => $positionOrd]
@@ -138,15 +183,12 @@ class Player extends ActiveRecord
         }
 
         $pdd = 4;
-        $leftPositions = [1, 2, 8, 9, 15, 16, 22, 23, 29, 30, 36, 37, 43, 44, 50, 51, 57, 58];
-        $centerPositions = [3, 4, 5, 10, 11, 12, 17, 18, 19, 24, 25, 26, 31, 32, 33, 38, 39, 40, 45, 46, 47, 52, 53, 54, 59, 60, 61];
-        $rightPositions = [6, 7, 13, 14, 20, 21, 27, 28, 34, 35, 41, 42, 48, 49, 55, 56, 62, 63];
-
-        if (in_array($positionOrd, $leftPositions, true)) {
+        $lane = \app\components\PitchZoneHelper::laneCode($positionOrd);
+        if ($lane === 'L') {
             $pdd = $this->foot === 'R' ? -6 : ($this->foot === 'L' ? 6 : 4);
-        } elseif (in_array($positionOrd, $centerPositions, true)) {
+        } elseif ($lane === 'C') {
             $pdd = $this->foot === 'LR' ? 7 : 4;
-        } elseif (in_array($positionOrd, $rightPositions, true)) {
+        } elseif ($lane === 'R') {
             $pdd = $this->foot === 'R' ? 6 : ($this->foot === 'L' ? -6 : 4);
         }
 

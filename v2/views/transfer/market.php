@@ -152,7 +152,7 @@ $footLbl = static fn(string $f): string => match ($f) {
                                     <h4 class="mb-1 fw-bold text-white"><?= Html::encode($p->name) ?></h4>
                                     <div class="text-muted-gm" style="font-size:.75rem">
                                         <?= (int) $p->age ?> anni
-                                        · <?= Html::encode($footLbl((string) $p->foot)) ?>
+                                        · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $p->foot, 11) ?><?= Html::encode($footLbl((string) $p->foot)) ?></span>
                                         <?php if ($p->character): ?>
                                         · <span style="font-style:italic"><?= Html::encode(ucfirst($p->character)) ?></span>
                                         <?php endif; ?>
@@ -184,8 +184,8 @@ $footLbl = static fn(string $f): string => match ($f) {
                                 <div class="d-flex flex-wrap gap-1 mb-3">
                                     <?php foreach ($specials as $tal): ?>
                                     <span title="<?= Html::encode((string) $tal['label']) ?>"
-                                          style="font-size:.65rem;background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25);border-radius:.3rem;padding:.1rem .4rem;white-space:nowrap">
-                                        <?= UiIconHelper::renderTalentTypeIcon((string) ($tal['code'] ?? ''), 10) ?> <?= Html::encode((string) $tal['label']) ?> Lv<?= (int) $tal['level'] ?>
+                                          style="white-space:nowrap">
+                                        <?= UiIconHelper::renderTalentBadge((string) ($tal['code'] ?? ''), (string) ($tal['label'] ?? ''), (int) $tal['level'], 10) ?>
                                     </span>
                                     <?php endforeach; ?>
                                 </div>
@@ -253,7 +253,7 @@ $footLbl = static fn(string $f): string => match ($f) {
                                 <div class="text-center mb-3">
                                     <h4 class="mb-1 fw-bold text-white"><?= Html::encode($p->name) ?></h4>
                                     <div class="text-muted-gm" style="font-size:.75rem">
-                                        <?= (int) $p->age ?> anni · <?= Html::encode($footLbl((string) $p->foot)) ?> · Skill <span class="text-gold fw-bold"><?= (int) $p->general_skill ?></span>
+                                        <?= (int) $p->age ?> anni · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $p->foot, 11) ?><?= Html::encode($footLbl((string) $p->foot)) ?></span> · Skill <span class="text-gold fw-bold"><?= (int) $p->general_skill ?></span>
                                         <?php if ($p->character): ?>
                                         · <span style="font-style:italic"><?= Html::encode(ucfirst($p->character)) ?></span>
                                         <?php endif; ?>
@@ -265,8 +265,8 @@ $footLbl = static fn(string $f): string => match ($f) {
                                 <div class="d-flex flex-wrap gap-1 mb-2">
                                     <?php foreach ($poolSpecials as $tal): ?>
                                     <span title="<?= Html::encode((string) $tal['label']) ?>"
-                                          style="font-size:.65rem;background:rgba(245,158,11,.12);color:var(--gold);border:1px solid rgba(245,158,11,.25);border-radius:.3rem;padding:.1rem .4rem">
-                                        <?= UiIconHelper::renderTalentTypeIcon((string) ($tal['code'] ?? ''), 10) ?> <?= Html::encode((string) $tal['label']) ?> Lv<?= (int) $tal['level'] ?>
+                                          style="white-space:nowrap">
+                                        <?= UiIconHelper::renderTalentBadge((string) ($tal['code'] ?? ''), (string) ($tal['label'] ?? ''), (int) $tal['level'], 10) ?>
                                     </span>
                                     <?php endforeach; ?>
                                 </div>

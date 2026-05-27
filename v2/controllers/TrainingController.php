@@ -48,6 +48,7 @@ class TrainingController extends Controller
         if (!$team) return $this->redirect(['/site/index']);
 
         $season = (int) Yii::$app->db->createCommand('SELECT MIN(season) FROM {{%competition}}')->queryScalar() ?: 1;
+        $hasSetPieceAlloc = $this->hasSetPiecePhysicalAllocColumn();
 
         // Load or initialise skill training record
         $skill = Yii::$app->db->createCommand(
@@ -55,14 +56,18 @@ class TrainingController extends Controller
             [':t' => $team->id, ':s' => $season]
         )->queryOne();
         if (!$skill) {
-            Yii::$app->db->createCommand()->insert('{{%training_skill}}', [
+            $skillSeed = [
                 'team_id' => $team->id, 'season' => $season,
                 'alloc_forma' => 10, 'alloc_cond' => 10,
                 'alloc_po' => 5,  'alloc_df' => 10, 'alloc_cn' => 10,
                 'alloc_pa' => 10, 'alloc_rg' => 10, 'alloc_cr' => 10,
                 'alloc_tc' => 10, 'alloc_tr' => 5,
                 'updated_at' => time(),
-            ])->execute();
+            ];
+            if ($hasSetPieceAlloc) {
+                $skillSeed['alloc_calci_piazzati'] = 10;
+            }
+            Yii::$app->db->createCommand()->insert('{{%training_skill}}', $skillSeed)->execute();
             $skill = Yii::$app->db->createCommand(
                 'SELECT * FROM {{%training_skill}} WHERE team_id=:t AND season=:s',
                 [':t' => $team->id, ':s' => $season]
@@ -99,13 +104,12 @@ class TrainingController extends Controller
                     'team_id' => $team->id,
                     'season' => $season,
                     'pressing' => 15,
-                    'contropiede' => 10,
+                    'contropiede' => 15,
                     'possesso' => 15,
-                    'palla_bassa' => 10,
+                    'palla_bassa' => 15,
                     'lancio_lungo' => 10,
-                    'catenaccio' => 10,
-                    'fuorigioco' => 10,
-                    'calci_piazzati' => 20,
+                    'catenaccio' => 15,
+                    'fuorigioco' => 15,
                     'updated_at' => time(),
                 ])->execute();
                 $tacticPlan = Yii::$app->db->createCommand(
@@ -117,13 +121,12 @@ class TrainingController extends Controller
             // Migration not applied yet: fallback to normalized tactic levels.
             $tacticPlan = [
                 'pressing' => 15,
-                'contropiede' => 10,
+                'contropiede' => 15,
                 'possesso' => 15,
-                'palla_bassa' => 10,
+                'palla_bassa' => 15,
                 'lancio_lungo' => 10,
-                'catenaccio' => 10,
-                'fuorigioco' => 10,
-                'calci_piazzati' => 20,
+                'catenaccio' => 15,
+                'fuorigioco' => 15,
             ];
         }
 
@@ -137,8 +140,7 @@ class TrainingController extends Controller
             (int) ($tactic['lancio_lungo'] ?? 0),
             (int) ($tactic['catenaccio'] ?? 0),
             (int) ($tactic['fuorigioco'] ?? 0),
-            (int) ($tactic['calci_piazzati'] ?? 0),
-        ]) / 8);
+        ]) / 7);
         $now = time();
         $matchSoon = Fixture::find()
             ->where(['status' => Fixture::STATUS_SCHEDULED])
@@ -156,7 +158,7 @@ class TrainingController extends Controller
             )->queryAll();
             $latest = $snaps[0] ?? null;
             $prev = $snaps[1] ?? null;
-            foreach (['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco','calci_piazzati'] as $f) {
+            foreach (['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco'] as $f) {
                 $curr = (int)($latest[$f] ?? ($tactic[$f] ?? 0));
                 $old = (int)($prev[$f] ?? $curr);
                 $tacticDelta[$f] = $curr - $old;
@@ -185,6 +187,9 @@ class TrainingController extends Controller
         $season = (int) Yii::$app->db->createCommand('SELECT MIN(season) FROM {{%competition}}')->queryScalar() ?: 1;
 
         $fields = ['alloc_forma','alloc_cond','alloc_po','alloc_df','alloc_cn','alloc_pa','alloc_rg','alloc_cr','alloc_tc','alloc_tr'];
+        if ($this->hasSetPiecePhysicalAllocColumn()) {
+            $fields[] = 'alloc_calci_piazzati';
+        }
         $data = ['updated_at' => time()];
         $total = 0;
         foreach ($fields as $f) {
@@ -216,7 +221,7 @@ class TrainingController extends Controller
         if (!$team) return $this->redirect(['/site/index']);
         $season = (int) Yii::$app->db->createCommand('SELECT MIN(season) FROM {{%competition}}')->queryScalar() ?: 1;
 
-        $fields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco','calci_piazzati'];
+        $fields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco'];
         $data = ['updated_at' => time()];
         $total = 0;
         foreach ($fields as $f) {
@@ -267,6 +272,21 @@ class TrainingController extends Controller
             };
         }
         return $bonus;
+    }
+
+    private function hasSetPiecePhysicalAllocColumn(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        try {
+            $schema = Yii::$app->db->schema->getTableSchema('{{%training_skill}}', true);
+            $has = $schema !== null && isset($schema->columns['alloc_calci_piazzati']);
+        } catch (\Throwable) {
+            $has = false;
+        }
+        return $has;
     }
 
     /** GET /training/progress?playerId=X&weeks=8 */
@@ -377,7 +397,7 @@ class TrainingController extends Controller
         $plan = [];
         try {
             $season = (int) Yii::$app->db->createCommand('SELECT MIN(season) FROM {{%competition}}')->queryScalar() ?: 1;
-            $tacticFields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco','calci_piazzati'];
+            $tacticFields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco'];
             $snap = Yii::$app->db->createCommand(
                 'SELECT * FROM {{%training_tactic_snapshot}}
                  WHERE team_id = :t AND season = :s

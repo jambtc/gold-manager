@@ -225,7 +225,7 @@ class SiteController extends Controller
     }
 
     /**
-     * Waiting room: polls /api/user/status until team is ready.
+     * Waiting room: polls /api/v1/user/status until team is ready.
      */
     public function actionPending(): Response|string
     {

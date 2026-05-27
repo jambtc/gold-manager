@@ -22,11 +22,75 @@ Riferimenti principali:
 
 ---
 
+## 0) Modello attributi (canone)
+
+### 0.1 Skill tecniche giocatore (0..99)
+
+Usate da motore partita e valutazione ruolo:
+
+- `skill_po` (parate)
+- `skill_df` (difesa)
+- `skill_cn` (contrasti)
+- `skill_pa` (passaggi)
+- `skill_rg` (regia)
+- `skill_cr` (cross)
+- `skill_tc` (tecnica)
+- `skill_tr` (tiro)
+
+`general_skill = media arrotondata delle 8 skill`.
+
+### 0.2 Stato atletico/forma giocatore
+
+- `form` (forma)
+- `freshness` (freschezza)
+- `condition` (condizione atletica)
+- `experience` (esperienza, non percentuale)
+
+Questi valori modificano direttamente i moltiplicatori in match.
+
+### 0.3 Talenti giocatore
+
+- indipendenti dal carattere
+- max `2` talenti per giocatore
+- livello `1..3`
+- crescita lenta: richiede lavoro prolungato + probabilità
+
+Talenti supportati:
+
+- `creativita`, `resistenza`, `dribbling`, `velocita`
+- `visione`, `leadership`, `marcatura`, `riflessi`
+- `finalizzazione`, `disciplina`, `tenacia`, `freddezza`
+- `calci_piazzati` (nuovo talento esplicito)
+
+### 0.4 Allenamento squadra
+
+- **Fisico/tecnico (allocazioni 0..100, somma max 100):**  
+  `alloc_forma`, `alloc_cond`, `alloc_po`, `alloc_df`, `alloc_cn`, `alloc_pa`, `alloc_rg`, `alloc_cr`, `alloc_tc`, `alloc_tr`, `alloc_calci_piazzati`.
+- **Tattico (allocazioni 0..100, somma max 100):**  
+  `pressing`, `contropiede`, `possesso`, `palla_bassa`, `lancio_lungo`, `catenaccio`, `fuorigioco`.
+- `calci_piazzati` non è più tattica live: viene allenato dal blocco fisico/tecnico e alimenta il valore team set-piece.
+
+### 0.5 Tattiche squadra in partita
+
+Stile gara:
+
+- `balanced`
+- `ultra_defensive`
+- `all_out_attack`
+
+Switch live immediato:
+
+- marcatura `zone/man`
+- trappola fuorigioco `on/off`
+- focus su tattica allenata (solo elenco tattico sopra, senza `calci_piazzati`)
+
+---
+
 ## 1) Migliore posizione in campo (per giocatore)
 
 ### 1.1 Rating per zona (`Player::getOverallForPosition`)
 
-Per ogni zona `ord` (1..64) viene caricata la riga coefficienti da tabella `calcolatore` (`formula = "Formula 2"`).
+Per ogni zona `ord` (attuale 1..63 giocabili) viene caricata la riga coefficienti da tabella `calcolatore` (`formula = "Formula 2"`).
 
 Formula:
 
@@ -40,25 +104,132 @@ con:
   - corsia destra: `R=+6`, `L=-6`, `LR=+4`
 - output arrotondato a 1 decimale.
 
+### 1.3 Schema campo: stato attuale vs target
+
+#### Stato attuale (legacy)
+
+- griglia a zone storiche (layout non ancora separato formalmente in 10 righe)
+- riga portiere non isolata in modo rigido
+
+#### Target richiesto (prossimo refactor)
+
+Campo logico a **10 righe**:
+
+1. Riga 1: solo portiere (GK-only)
+2. Righe 2-4: difesa (3 righe DF)
+3. Righe 5-7: centrocampo (3 righe MF)
+4. Righe 8-10: attacco (3 righe FW)
+
+Schema concettuale:
+
+```text
+R1  [GK-only]
+R2  [DF lane L/C/R]
+R3  [DF lane L/C/R]
+R4  [DF lane L/C/R]
+R5  [MF lane L/C/R]
+R6  [MF lane L/C/R]
+R7  [MF lane L/C/R]
+R8  [FW lane L/C/R]
+R9  [FW lane L/C/R]
+R10 [FW lane L/C/R]
+```
+
+Nota migrazione: questa modifica impatta `FormationAutoHelper`, rendering campo (`formation/view`, `fixture/live`, `fixture/replay`), query zone `<=63` in PHP/Go e mapping `Player::getOverallForPosition`.
+
 ### 1.2 Auto-formazione (`FormationAutoHelper::autoAssign`)
 
-Per ogni coppia `(player, zone_template)`:
+#### 1.2.1 Regola attiva (ora)
+
+L'auto-formazione e vincolata al modulo con **ruolo hard**:
+
+- slot `GK` -> solo giocatori `GK`
+- slot `DF` -> solo giocatori `DF`
+- slot `MF` -> solo giocatori `MF`
+- slot `FW` -> solo giocatori `FW`
+
+Giocatori infortunati/squalificati sono esclusi automaticamente.
+
+Se il ruolo richiesto non ha abbastanza giocatori disponibili:
+
+- lo slot resta vuoto
+- ritorna warning con conteggio ruoli mancanti (`missing_by_role`)
+
+Questo garantisce coerenza modulo (es. `4-3-3` = 4 difensori reali in auto).
+
+Per i candidati dello stesso ruolo:
 
 `score = overall_zone + roleFit + readiness + tacticScore`
 
-poi assegnazione greedy in ordine decrescente score (1 player per 1 zona).
+assegnazione greedy in ordine decrescente score (1 player per 1 zona).
 
-Componenti:
+Componenti attive:
 
 - `roleFit`:
-  - GK in ruolo `+25`, fuori ruolo `-25`
-  - DF/MF/FW in ruolo `+10`, adattati da ruolo vicino `+1/+2`, fuori `-8`
+  - GK in ruolo `+25`, fuori ruolo non ammesso
+  - DF/MF/FW in ruolo `+10` (fuori ruolo non ammesso in auto)
 - `readiness`:
   - `((form-50)*0.08) + ((freshness-50)*0.06) + ((condition-50)*0.06)`
-- `tacticScore` (dipende da stile scelto):
-  - `all_out_attack`: usa `tr/tc/cr`, bonus ruolo FW, bonus training `contropiede+palla_bassa`
-  - `ultra_defensive`: usa `df/cn/po`, bonus ruolo DF/GK, bonus training `catenaccio+fuorigioco`
-  - `balanced`: usa `pa/rg/cn`, bonus ruolo MF, bonus training `possesso+pressing`
+- `tacticScore` (stile gara):
+  - `all_out_attack`: `tr/tc/cr`, bonus FW, training `contropiede+palla_bassa`
+  - `ultra_defensive`: `df/cn/po`, bonus DF/GK, training `catenaccio+fuorigioco`
+  - `balanced`: `pa/rg/cn`, bonus MF, training `possesso+pressing`
+
+#### 1.2.2 Estensione target (prossimo step): peso del focus `trained_tactic`
+
+Il focus tattico allenato (`trained_tactic`) deve entrare nello score auto.
+
+Formula target:
+
+`score_final = score_base + focusScore`
+
+dove:
+
+- `score_base` = formula attiva sopra
+- `focusScore` dipende da:
+  - tattica allenata (`trained_tactic`)
+  - livello allenamento squadra per quella tattica (`0..100`)
+  - profilo giocatore (skill, stato atletico, talenti coerenti)
+
+Esempi target:
+
+- `lancio_lungo`: premia `tr`, `tc`, profondita, talento `velocita`, buona `freshness`
+- `catenaccio`: premia `df`, `cn`, `po`, `freshness/condition`, talento `marcatura`/`disciplina`
+- `pressing`: premia `cn`, `freshness`, `condition`, talento `resistenza`
+- `contropiede`: premia progressione verticale, finalizzazione, talento `velocita`
+- `possesso` / `palla_bassa`: premia `pa`, `rg`, `tc`, controllo ritmo
+- `fuorigioco`: premia linea difensiva disciplinata, `df/cn`, lettura tempi
+
+Nota design: il focus non deve rompere il modulo/ruolo; deve solo ordinare i
+giocatori **dentro** i candidati gia validi per ruolo.
+
+#### 1.2.3 Forza squadra teorica (card `formation/view`)
+
+La card "Forza squadra" non e piu una media semplice di `general_skill`.
+Usa un calcolo teorico per slot reale:
+
+`slot_score = overall_per_zona * readinessMult * roleFitMult * styleMult * focusMult`
+
+con:
+
+- `overall_per_zona` da `Player::getOverallForPosition(zone)`
+- `readinessMult` da `form`, `freshness`, `condition`
+- `roleFitMult` severo sui fuori-ruolo (es. FW in slot DF penalizzato forte)
+- `styleMult` da stile gara (`balanced`, `ultra_defensive`, `all_out_attack`)
+- `focusMult` da tattica allenata + livello (es. `catenaccio` alto premia DF/GK)
+
+Output:
+
+- score reparto (`GK/DF/MF/FW`) = media `slot_score` delle celle di quel reparto
+- overall teorico = media pesata dei reparti (pesi dinamici per stile/focus)
+- penalty automatico per slot mancanti (`starters/11`)
+
+Effetto atteso:
+
+- schierare giocatori fuori ruolo in reparti critici abbassa sensibilmente la
+  forza teorica
+- modulo + tattica/focus coerenti (es. `5-3-2` + `catenaccio` alto) alzano la
+  forza teorica, a parita di rosa
 
 ---
 
@@ -135,7 +306,7 @@ Codice: `PlayerAttributeHelper::progressTalentsDaily`.
 Regole:
 
 - talento cresce solo se allocazione correlata `> 80`
-- probabilità base settimanale:
+- probabilità base giornaliera tattica (formula attiva da SIP-0067-prep):
   - `weeklyChance = base + bonus_surplus`
   - `base` da env `GM_TALENT_GROWTH_CHANCE_BASE` (default 35)
   - `maxBonus` da env `GM_TALENT_GROWTH_CHANCE_MAX_BONUS` (default 20)
@@ -228,6 +399,15 @@ Tiro vs portiere:
 - `shotPower = tc*0.4 + tr*0.6`
 - `gkPower = po*2.0 + df*0.2`
 
+### 3.4b Allenamento tattico — formula crescita (aggiornata)
+
+`levelMod = max(0.3, 1.0 - (value/100)*0.55)`
+`prob = (alloc/100) * 0.035 * levelMod * tacticalStaffMod * dailyScale`
+
+- al livello 0: `levelMod=1.0` → prob massima
+- al livello 100: `levelMod=0.3` → prob ridotta del 70%
+- decay (no alloc): `max(1, round(150 * dailyScale))`
+
 ### 3.5 Precisione finale e piazzati
 
 Base precision cap `30`.
@@ -236,8 +416,7 @@ Su piazzati:
 
 - `precisionCapForSetPiece` da `FormationRoleHelper`:
   - `cap = min(60, 30 + int((tc*0.2 + tr*0.3)/10))`
-- +bonus `calci_piazzati`
-- +bonus focus tattico `calci_piazzati`
+- +bonus livello team `calci_piazzati` (allenato via `alloc_calci_piazzati`)
 - bonus razionale sul rigorista.
 
 Se roll > cap -> `near_miss`, altrimenti `goal`.

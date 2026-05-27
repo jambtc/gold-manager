@@ -15,17 +15,47 @@ use yii\helpers\Url;
 use app\components\CharacterTraitHelper;
 use app\components\FormationAutoHelper;
 use app\components\FormationRoleHelper;
+use app\components\FormationStrengthHelper;
+use app\components\PitchZoneHelper;
 use app\components\PlayerAttributeHelper;
-use app\components\SvgIcons;
+use app\components\PlayerExperienceService;
+use app\components\QuadrantHelper;
 use app\components\UiIconHelper;
 
 $this->title = 'Tattica: ' . $team->name;
 $this->params['breadcrumbs'][] = ['label' => 'Squadra', 'url' => ['/team/view']];
 $this->params['breadcrumbs'][] = 'Tattica';
 
+// activeSlots keyed by LEGACY zone code (1-63) or 64 for GK.
+// Grid displays 7×9 = 63 outfield cells + 1 GK = 64 boxes total.
+// IMPORTANT: zones 21-63 overlap with both legacy (1-63) and current (row*10+lane) systems.
+// Check isCurrentZone FIRST so auto-assign new codes (21-63) convert correctly via toLegacyDisplayZone.
+// Pure legacy-only zones (e.g. 1-20 excl. GK, 24-30, 34-40…) fall through to direct key.
 $activeSlots = [];
 foreach ($slots as $slot) {
-    $activeSlots[$slot->zone] = $slot;
+    $rawZone = (int) $slot->zone;
+    if (!PitchZoneHelper::isOnPitch($rawZone)) {
+        continue;
+    }
+    if (PitchZoneHelper::isGoalkeeperZone($rawZone)) {
+        $key = PitchZoneHelper::DISPLAY_GK_ZONE; // 64
+    } elseif (PitchZoneHelper::isCurrentZone($rawZone)) {
+        // New zone code (row*10+lane); zones 21-63 fall here, not into legacy branch
+        $key = PitchZoneHelper::toLegacyDisplayZone($rawZone);
+    } elseif (PitchZoneHelper::isLegacyZone($rawZone)) {
+        $key = $rawZone; // pure-legacy-only zone (no current-zone overlap)
+    } else {
+        continue; // unknown zone, skip
+    }
+    if (!isset($activeSlots[$key])) {
+        $activeSlots[$key] = $slot;
+        continue;
+    }
+    $existing  = $activeSlots[$key]->player;
+    $candidate = $slot->player;
+    if ($candidate && (!$existing || (int) ($candidate->general_skill ?? 0) > (int) ($existing->general_skill ?? 0))) {
+        $activeSlots[$key] = $slot;
+    }
 }
 
 $playerInSlot = [];
@@ -34,29 +64,11 @@ foreach ($slots as $s) {
 }
 
 // ── Team strength calculator ─────────────────────────────────────────
-// Groups players on pitch by position, computes department averages
-$deptSkills  = ['GK' => [], 'DF' => [], 'MF' => [], 'FW' => []];
-$deptWeights = ['GK' => 15, 'DF' => 30, 'MF' => 30, 'FW' => 25];
-foreach ($slots as $slot) {
-    $p = $slot->player;
-    if ($p && isset($deptSkills[$p->position])) {
-        $deptSkills[$p->position][] = $p->general_skill;
-    }
-}
-$deptAvg = [];
-foreach ($deptSkills as $dept => $skills) {
-    $deptAvg[$dept] = count($skills) ? round(array_sum($skills) / count($skills)) : 0;
-}
-$overall = 0;
-$totalWeight = 0;
-foreach ($deptAvg as $dept => $avg) {
-    if ($avg > 0) {
-        $overall     += $avg * $deptWeights[$dept];
-        $totalWeight += $deptWeights[$dept];
-    }
-}
-$overall      = $totalWeight > 0 ? (int) round($overall / $totalWeight) : 0;
-$startersCount = count($slots);
+// Theoretical lineup strength: zone fit + readiness + tactic/focus coherence.
+$strength = FormationStrengthHelper::calculate($formation, $slots);
+$deptAvg = $strength['dept'];
+$overall = (int) $strength['overall'];
+$startersCount = (int) $strength['starters'];
 
 $formationId = $formation->id;
 
@@ -88,6 +100,23 @@ if ($currentTrainedTactic === '' || !isset($trainedTactics[$currentTrainedTactic
 }
 
 $roleSummary = is_array($roleSummary ?? null) ? $roleSummary : (new FormationRoleHelper())->resolveRolePlayers($formation);
+
+// SIP-0068: pre-load exp bonuses for all starters (no N+1)
+// keyed by player_id => ['bonusQ' => float, 'bonusC' => float]
+$starterExpBonus = [];
+$expSvc = new PlayerExperienceService();
+foreach ($activeSlots as $displayZone => $slot) {
+    if (!$slot->player_id) continue;
+    $pid = (int) $slot->player_id;
+    // Determine engine zone for this slot
+    $rawZ = (int) $slot->zone;
+    $engineZone = PitchZoneHelper::normalizeToCurrent($rawZ);
+    $quadrant   = QuadrantHelper::zoneToQuadrant($engineZone);
+    $cellZone   = (int) $displayZone; // already legacy display zone
+    $bQ = $expSvc->getQuadrantBonus($pid, $quadrant);
+    $bC = $expSvc->getCellBonus($pid, $cellZone);
+    $starterExpBonus[$pid] = ['bonusQ' => $bQ, 'bonusC' => $bC, 'displayZone' => $cellZone];
+}
 $roleIcons = [
     'captain'  => UiIconHelper::renderRoleIcon('captain', 12),
     'penalty'  => UiIconHelper::renderRoleIcon('penalty', 12),
@@ -256,9 +285,13 @@ SVG;
                             . '</div>';
                     };
                     $skillBadge = function (string $code, string $label, int $level): string {
-                        return '<span class="gm-skill-badge" title="' . Html::encode($label . ' Lv' . $level) . '" style="display:inline-flex;align-items:center;gap:.15rem;font-size:.58rem;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:.25rem;padding:.05rem .35rem">'
-                            . SvgIcons::skill($code, 14)
-                            . '<span style="letter-spacing:.02em">Lv' . $level . '</span></span>';
+                        $lvBadge = $level >= 2
+                            ? '<span style="position:absolute;top:-4px;right:-4px;font-size:.45rem;line-height:1;background:var(--gold);color:#0f172a;border-radius:999px;padding:0 2.5px;font-weight:900">' . $level . '</span>'
+                            : '';
+                        return '<span class="gm-skill-badge" title="' . Html::encode($label . ' Lv' . $level) . '" style="position:relative;display:inline-flex;align-items:center;justify-content:center;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.15);border-radius:.25rem;padding:.12rem .22rem">'
+                            . UiIconHelper::renderTalentTypeIcon($code, 14)
+                            . $lvBadge
+                            . '</span>';
                     };
                     $suggestZone = function (\app\models\Player $p): array {
                         if ($p->skill_po > 70) return ['🥅', 'Portiere'];
@@ -266,12 +299,12 @@ SVG;
                         if ($p->skill_rg >= 58 && $p->skill_pa >= 52) return ['⚙️', 'Regia/Mezzala'];
                         if ($p->skill_cr >= 58) return ['⚡', 'Ala (fascia)'];
                         if ($p->skill_tr >= 58) return ['⚽', 'Attaccante'];
-                        return ['🔄', 'Jolly'];
+                        return ['', ''];
                     };
                     $positionBadge = function (\app\models\Player $p): string {
                         $label = strtoupper((string) $p->position);
                         return '<span style="display:inline-flex;align-items:center;gap:.3rem;font-size:.62rem;font-weight:700;padding:.1rem .35rem;border-radius:.4rem;border:1px solid rgba(255,255,255,.15);background:rgba(255,255,255,.04);letter-spacing:.05em">'
-                            . SvgIcons::position((string) $p->position, 16)
+                            . UiIconHelper::renderPositionIcon((string) $p->position, 16)
                             . '<span>' . Html::encode($label) . '</span></span>';
                     };
                     $footBadge = function (\app\models\Player $p): string {
@@ -282,7 +315,7 @@ SVG;
                             default => strtoupper((string) $p->foot),
                         };
                         return '<span style="display:inline-flex;align-items:center;gap:.2rem">'
-                            . SvgIcons::foot((string) $p->foot, 14)
+                            . UiIconHelper::renderFootIcon((string) $p->foot, 14)
                             . '<span>' . Html::encode($label) . '</span></span>';
                     };
                     ?>
@@ -360,7 +393,7 @@ SVG;
                                             🧠 <?= Html::encode(CharacterTraitHelper::display((string) $player->character)) ?>
                                         </span>
                                     <?php endif; ?>
-                                    <span title="Zona suggerita: <?= $sugLabel ?>" style="font-size:.6rem;background:rgba(255,255,255,.06);border-radius:.2rem;padding:.05rem .3rem;color:var(--text-secondary)"><?= $sugIcon ?> <?= $sugLabel ?></span>
+                                    <?php if ($sugLabel !== ''): ?><span title="Zona suggerita: <?= $sugLabel ?>" style="font-size:.6rem;background:rgba(255,255,255,.06);border-radius:.2rem;padding:.05rem .3rem;color:var(--text-secondary)"><?= $sugIcon ?> <?= $sugLabel ?></span><?php endif; ?>
                                     <?= $badges ?>
                                     <?php if (($player->injury_weeks ?? 0) > 0): ?>
                                         <?php $injLabel = match ($player->injury_type) {
@@ -411,53 +444,99 @@ SVG;
 
                         <div class="pitch-container">
                             <div class="pitch-grid" id="pitch-grid">
-                                <div class="pitch-midline"></div>
-
                                 <?php
-                                // 7 cols × 9 rows = zones 1-63
-                                // Col 4 (of 7) is the center column
-                                for ($i = 1; $i <= 63; $i++):
-                                    $col = (($i - 1) % 7) + 1; // 1-7
-                                    $isCenter = ($col === 4);
+                                // 7 cols × 9 rows = 63 legacy zones (1-63), attack at top (row 1), defense at bottom (row 9)
+                                // GK rendered separately below as zone 64
+                                for ($legRow = 1; $legRow <= 9; $legRow++):
+                                    for ($col = 1; $col <= 7; $col++):
+                                        $zoneCode = ($legRow - 1) * 7 + $col;
+                                        $slotRow  = $activeSlots[$zoneCode] ?? null;
+                                        // subtle center-band highlight (cols 3-5)
+                                        $centerCls = ($col >= 3 && $col <= 5) ? ' pitch-zone-center' : '';
                                 ?>
-                                    <div class="pitch-zone <?= $isCenter ? 'pitch-zone-center' : '' ?>"
-                                        data-zone="<?= $i ?>"
-                                        data-player-id="<?= isset($activeSlots[$i]) ? (int)$activeSlots[$i]->player_id : 0 ?>"
-                                        onclick="window.selectZone(<?= $i ?>)"
-                                        ondragover="window.zoneDragOver(event,<?= $i ?>)"
-                                        ondragleave="window.zoneDragLeave(event,<?= $i ?>)"
-                                        ondrop="window.dropOnZone(event,<?= $i ?>)"
-                                        <?php if (isset($activeSlots[$i])): ?>
-                                        draggable="true"
-                                        ondragstart="window.dragFromZone(event,<?= $i ?>,<?= $activeSlots[$i]->player_id ?>)"
-                                        <?php endif; ?>>
-                                        <?php if (isset($activeSlots[$i])): ?>
-                                            <?php $p = $activeSlots[$i]->player; ?>
-                                            <div class="pitch-jersey" title="<?= Html::encode($p->name) ?> (#<?= $p->number ?>)">
-                                                <?= $jersey($p->position, (int)$p->number, 0.72) ?>
-                                                <?php if (!empty($effectiveRoleByPlayer[(int) $p->id] ?? [])): ?>
-                                                    <div style="position:absolute;top:-2px;right:-2px;display:flex;gap:2px">
-                                                        <?php foreach (($effectiveRoleByPlayer[(int) $p->id] ?? []) as $r): ?>
-                                                            <span style="font-size:.52rem;line-height:1;border:1px solid rgba(245,158,11,.5);background:rgba(15,23,42,.95);color:var(--gold);border-radius:999px;padding:1px 4px;display:inline-flex;align-items:center;justify-content:center"><?= $roleIcons[$r] ?></span>
-                                                        <?php endforeach; ?>
+                                        <div class="pitch-zone<?= $centerCls ?>"
+                                            data-zone="<?= $zoneCode ?>"
+                                            data-player-id="<?= $slotRow ? (int)$slotRow->player_id : 0 ?>"
+                                            onclick="window.selectZone(<?= $zoneCode ?>)"
+                                            ondragover="window.zoneDragOver(event,<?= $zoneCode ?>)"
+                                            ondragleave="window.zoneDragLeave(event,<?= $zoneCode ?>)"
+                                            ondrop="window.dropOnZone(event,<?= $zoneCode ?>)"
+                                            <?php if ($slotRow): ?>
+                                            draggable="true"
+                                            ondragstart="window.dragFromZone(event,<?= $zoneCode ?>,<?= $slotRow->player_id ?>)"
+                                            <?php endif; ?>>
+                                            <?php if ($slotRow): ?>
+                                                <?php $p = $slotRow->player; ?>
+                                                <?php $pStrength = max(0, min(100, (int) ($p->general_skill ?? 0))); ?>
+                                                <div class="pitch-jersey" title="<?= Html::encode($p->name) ?> (#<?= $p->number ?>)">
+                                                    <?= $jersey($p->position, (int)$p->number, 0.72) ?>
+                                                    <?php if (!empty($effectiveRoleByPlayer[(int) $p->id] ?? [])): ?>
+                                                        <div style="position:absolute;top:-2px;right:-2px;display:flex;gap:2px">
+                                                            <?php foreach (($effectiveRoleByPlayer[(int) $p->id] ?? []) as $r): ?>
+                                                                <span style="font-size:.52rem;line-height:1;border:1px solid rgba(245,158,11,.5);background:rgba(15,23,42,.95);color:var(--gold);border-radius:999px;padding:1px 4px;display:inline-flex;align-items:center;justify-content:center"><?= $roleIcons[$r] ?></span>
+                                                            <?php endforeach; ?>
+                                                        </div>
+                                                    <?php endif; ?>
+                                                </div>
+                                                <div class="player-name"><?= Html::encode($shortPitchName((string) $p->name)) ?></div>
+                                                <div class="player-strength" title="Forza <?= $pStrength ?>/100">
+                                                    <div class="player-strength-fill" style="width:<?= $pStrength ?>%"></div>
+                                                </div>
+                                                <?php if (isset($starterExpBonus[(int)$p->id])): ?>
+                                                    <?php $eb = $starterExpBonus[(int)$p->id]; $tot = round($eb['bonusQ'] + $eb['bonusC'], 1); ?>
+                                                    <?php if ($tot > 0): ?>
+                                                    <div title="Q:+<?= number_format($eb['bonusQ'],1) ?> C:+<?= number_format($eb['bonusC'],1) ?>" style="margin-top:1px;width:100%;padding:0 1px">
+                                                        <div style="background:rgba(255,255,255,.12);border-radius:2px;height:2px;overflow:hidden">
+                                                            <div style="width:<?= min(100,round($tot/13*100)) ?>%;height:100%;background:<?= $tot>=8?'var(--accent-green)':($tot>=4?'var(--gold)':'#60a5fa') ?>;border-radius:2px"></div>
+                                                        </div>
                                                     </div>
+                                                    <?php endif; ?>
                                                 <?php endif; ?>
-                                                <?php $zoneTalents = PlayerAttributeHelper::talents($p, 2); ?>
-                                                <?php if (!empty($zoneTalents)): ?>
-                                                    <div style="position:absolute;left:-2px;bottom:-2px;display:flex;gap:1px">
-                                                        <?php foreach ($zoneTalents as $talent): ?>
-                                                            <span title="<?= Html::encode((string) $talent['label']) ?> Lv<?= (int) $talent['level'] ?>"
-                                                                  style="display:inline-flex;align-items:center;justify-content:center;border:1px solid rgba(245,158,11,.45);background:rgba(15,23,42,.95);border-radius:999px;padding:1px">
-                                                                <?= UiIconHelper::renderTalentTypeIcon((string) ($talent['code'] ?? ''), 9) ?>
-                                                            </span>
-                                                        <?php endforeach; ?>
-                                                    </div>
-                                                <?php endif; ?>
+                                            <?php endif; ?>
+                                        </div>
+                                <?php endfor;
+                                endfor; ?>
+                            </div>
+
+                            <!-- GK row: outside pitch-grid, centered below outfield rows -->
+                            <?php
+                            $gkZoneCode = PitchZoneHelper::DISPLAY_GK_ZONE;
+                            $gkSlotRow  = $activeSlots[$gkZoneCode] ?? null;
+                            ?>
+                            <div class="pitch-gk-row">
+                                <div class="pitch-zone pitch-zone-gk"
+                                    data-zone="<?= $gkZoneCode ?>"
+                                    data-player-id="<?= $gkSlotRow ? (int)$gkSlotRow->player_id : 0 ?>"
+                                    onclick="window.selectZone(<?= $gkZoneCode ?>)"
+                                    ondragover="window.zoneDragOver(event,<?= $gkZoneCode ?>)"
+                                    ondragleave="window.zoneDragLeave(event,<?= $gkZoneCode ?>)"
+                                    ondrop="window.dropOnZone(event,<?= $gkZoneCode ?>)"
+                                    <?php if ($gkSlotRow): ?>
+                                    draggable="true"
+                                    ondragstart="window.dragFromZone(event,<?= $gkZoneCode ?>,<?= $gkSlotRow->player_id ?>)"
+                                    <?php endif; ?>>
+                                    <?php if ($gkSlotRow): ?>
+                                        <?php $p = $gkSlotRow->player; ?>
+                                        <?php $pStrength = max(0, min(100, (int) ($p->general_skill ?? 0))); ?>
+                                        <div class="pitch-jersey" title="<?= Html::encode($p->name) ?> (#<?= $p->number ?>)">
+                                            <?= $jersey($p->position, (int)$p->number, 0.72) ?>
+                                        </div>
+                                        <div class="player-name"><?= Html::encode($shortPitchName((string) $p->name)) ?></div>
+                                        <div class="player-strength" title="Forza <?= $pStrength ?>/100">
+                                            <div class="player-strength-fill" style="width:<?= $pStrength ?>%"></div>
+                                        </div>
+                                        <?php if (isset($starterExpBonus[(int)$p->id])): ?>
+                                            <?php $eb = $starterExpBonus[(int)$p->id]; $tot = round($eb['bonusQ'] + $eb['bonusC'], 1); ?>
+                                            <?php if ($tot > 0): ?>
+                                            <div title="Q:+<?= number_format($eb['bonusQ'],1) ?> C:+<?= number_format($eb['bonusC'],1) ?>" style="margin-top:1px;width:100%;padding:0 1px">
+                                                <div style="background:rgba(255,255,255,.12);border-radius:2px;height:2px;overflow:hidden">
+                                                    <div style="width:<?= min(100,round($tot/13*100)) ?>%;height:100%;background:<?= $tot>=8?'var(--accent-green)':($tot>=4?'var(--gold)':'#60a5fa') ?>;border-radius:2px"></div>
+                                                </div>
                                             </div>
-                                            <div class="player-name"><?= Html::encode($shortPitchName((string) $p->name)) ?></div>
+                                            <?php endif; ?>
                                         <?php endif; ?>
-                                    </div>
-                                <?php endfor; ?>
+                                    <?php endif; ?>
+                                </div>
                             </div>
                         </div>
 
@@ -478,13 +557,18 @@ SVG;
                             <div class="text-muted-gm mb-2" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em">Impostazioni tattiche</div>
                             <div class="mb-2">
                                 <label class="form-label text-muted-gm small mb-1">Modulo</label>
-                                <select id="auto-module" class="form-select form-select-sm bg-dark text-white border-secondary">
-                                    <?php foreach ($moduleOptions as $module): ?>
-                                        <option value="<?= Html::encode($module) ?>" <?= $currentModule === $module ? 'selected' : '' ?>>
-                                            <?= Html::encode($module) ?>
-                                        </option>
-                                    <?php endforeach; ?>
-                                </select>
+                                <div class="d-flex gap-1 align-items-center">
+                                    <select id="auto-module" class="form-select form-select-sm bg-dark text-white border-secondary flex-grow-1">
+                                        <?php foreach ($moduleOptions as $module): ?>
+                                            <option value="<?= Html::encode($module) ?>" <?= $currentModule === $module ? 'selected' : '' ?>>
+                                                <?= Html::encode($module) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <button type="button" class="btn btn-gold btn-sm px-2 flex-shrink-0" onclick="window.autoAssignFormation()" title="Auto formazione">
+                                        <i class="bi bi-magic"></i>
+                                    </button>
+                                </div>
                             </div>
                             <div class="mb-2">
                                 <label class="form-label text-muted-gm small mb-1">Stile gara</label>
@@ -520,19 +604,9 @@ SVG;
                                     <?php endforeach; ?>
                                 </select>
                             </div>
-                            <div class="mb-3" style="display:flex;flex-wrap:wrap;gap:.3rem">
-                                <?php foreach ($trainedTactics as $key => $info): ?>
-                                    <span style="font-size:.62rem;border:1px solid <?= $currentTrainedTactic === $key ? 'rgba(245,158,11,.55)' : 'rgba(255,255,255,.15)' ?>;color:<?= $currentTrainedTactic === $key ? 'var(--gold)' : 'var(--text-secondary)' ?>;background:<?= $currentTrainedTactic === $key ? 'rgba(245,158,11,.14)' : 'rgba(255,255,255,.03)' ?>;border-radius:.35rem;padding:.12rem .36rem">
-                                        <?= Html::encode($info['label']) ?> <?= (int) $info['level'] ?>
-                                    </span>
-                                <?php endforeach; ?>
-                            </div>
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-outline-gold btn-sm" onclick="window.saveFormationSettings()">
                                     <i class="bi bi-save me-1"></i> Salva impostazioni
-                                </button>
-                                <button type="button" class="btn btn-gold btn-sm" onclick="window.autoAssignFormation()">
-                                    <i class="bi bi-magic me-1"></i> Auto formazione
                                 </button>
                             </div>
                             <div id="auto-assign-alert" style="display:none;margin-top:.75rem;font-size:.72rem;border-radius:.5rem;padding:.55rem .7rem;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:var(--gold)"></div>
@@ -810,10 +884,12 @@ window.autoAssignFormation = function() {
 
 window.saveFormationSettings = function() {
     var gm = window._gm;
+    var moduleEl = document.getElementById('auto-module');
     var tacticEl = document.getElementById('auto-tactic');
     var markingEl = document.getElementById('marking-type');
     var offsideEl = document.getElementById('offside-trap');
     var trainedEl = document.getElementById('trained-tactic');
+    var moduleVal = moduleEl ? moduleEl.value : '4-4-2';
     var tacticVal = tacticEl ? tacticEl.value : 'balanced';
     var markingVal = markingEl ? markingEl.value : 'zone';
     var offsideVal = offsideEl ? offsideEl.value : '1';
@@ -821,6 +897,7 @@ window.saveFormationSettings = function() {
 
     var body = gm.csrfName + '=' + encodeURIComponent(gm.csrfToken)
         + '&formation_id=' + gm.formationId
+        + '&module=' + encodeURIComponent(moduleVal)
         + '&tactic=' + encodeURIComponent(tacticVal)
         + '&marking=' + encodeURIComponent(markingVal)
         + '&offside_trap=' + encodeURIComponent(offsideVal)

@@ -210,7 +210,7 @@ class MatchEngine extends Component
 
         if ($formation) {
             foreach ($formation->slots as $slot) {
-                if (!$slot->player || $slot->zone > 64)
+                if (!$slot->player || !PitchZoneHelper::isOnPitch((int) $slot->zone))
                     continue;
                 $player = $slot->player;
 
@@ -380,9 +380,6 @@ class MatchEngine extends Component
             : 30;
         if ($setPieceType) {
             $precisionCap = min(65, $precisionCap + (int) round(($atkTactics['calci_piazzati'] ?? 0) * 0.20));
-        }
-        if ($setPieceType && ($atkProfile['focus_tactic'] ?? '') === 'calci_piazzati') {
-            $precisionCap = min(60, $precisionCap + (int) round(($atkProfile['focus_level'] ?? 0) * 0.12));
         }
         $taker = null;
         if ($setPieceType === 'penalty' && $atkFormation) {
@@ -658,7 +655,7 @@ class MatchEngine extends Component
         $oppField = $side === 'home' ? 'away_score' : 'home_score';
         $isLosing = $state->$scoreField < $state->$oppField;
 
-        // Load starters from formation (zones 1–63 are outfield, zone 0 = goalkeeper)
+        // Load starters from formation using pitch helper (supports legacy + 10-row grid)
         if ($formation) {
             $slots = $formation->slots;
             $roleHelper = new FormationRoleHelper();
@@ -678,7 +675,7 @@ class MatchEngine extends Component
                 }
             }
             foreach ($slots as $slot) {
-                if (!$slot->player || $slot->zone > 64)
+                if (!$slot->player || !PitchZoneHelper::isOnPitch((int) $slot->zone))
                     continue;
                 $player = $slot->player;
                 $slotZone = (int) $slot->zone;
@@ -699,11 +696,11 @@ class MatchEngine extends Component
                 $totals['tc'] += (int) ($player->skill_tc * $multiplier);
                 $totals['tr'] += (int) ($player->skill_tr * $multiplier);
 
-                // Attack side based on zone columns in the 9×7 grid
-                $col = (($slot->zone - 1) % 7); // 0-6, left to right
-                if ($col <= 1) {
+                // Attack side based on normalized lane (L/C/R).
+                $lane = PitchZoneHelper::laneCode($slotZone);
+                if ($lane === 'L') {
                     $totals['at_L'] += (int) ($player->skill_tr * $multiplier);
-                } elseif ($col >= 5) {
+                } elseif ($lane === 'R') {
                     $totals['at_R'] += (int) ($player->skill_tr * $multiplier);
                 } else {
                     $totals['at_C'] += (int) ($player->skill_tr * $multiplier);
@@ -818,7 +815,7 @@ class MatchEngine extends Component
     {
         if (!$formation) return false;
         foreach ($formation->slots as $slot) {
-            if ((int)$slot->player_id === $playerId && $slot->zone <= 63) return true;
+            if ((int) $slot->player_id === $playerId && PitchZoneHelper::isOnPitch((int) $slot->zone)) return true;
         }
         return false;
     }
@@ -1415,9 +1412,6 @@ class MatchEngine extends Component
                 case 'fuorigioco':
                     $profile['offside_mult'] *= (1.0 + 0.16 * $focusPct);
                     break;
-                case 'calci_piazzati':
-                    $profile['attack_mult'] *= (1.0 + 0.04 * $focusPct);
-                    break;
             }
         }
 
@@ -1436,7 +1430,7 @@ class MatchEngine extends Component
     {
         $keys = [
             'pressing', 'contropiede', 'possesso', 'palla_bassa',
-            'lancio_lungo', 'catenaccio', 'fuorigioco', 'calci_piazzati',
+            'lancio_lungo', 'catenaccio', 'fuorigioco',
         ];
         $out = [];
         foreach ($keys as $k) {
@@ -1482,13 +1476,13 @@ class MatchEngine extends Component
         if ($zone <= 0) {
             return true;
         }
-        $row = intdiv(max(1, $zone) - 1, 7) + 1; // 1..9
+        $row = PitchZoneHelper::row($zone); // normalized 1..10
         $position = strtoupper($position);
         return match ($position) {
-            'GK' => $row >= 8,
-            'DF', 'DM' => $row >= 6,
-            'MF', 'AM' => $row >= 4 && $row <= 7,
-            'FW' => $row <= 4,
+            'GK' => PitchZoneHelper::isGoalkeeperZone($zone),
+            'DF', 'DM' => $row >= 2 && $row <= 4,
+            'MF', 'AM' => $row >= 5 && $row <= 7,
+            'FW' => $row >= 8,
             default => true,
         };
     }
@@ -1498,11 +1492,10 @@ class MatchEngine extends Component
         if ($a <= 0 || $b <= 0) {
             return false;
         }
-        $rowA = intdiv($a - 1, 7);
-        $colA = ($a - 1) % 7;
-        $rowB = intdiv($b - 1, 7);
-        $colB = ($b - 1) % 7;
-        return abs($rowA - $rowB) <= $distance && abs($colA - $colB) <= $distance;
+        $coordA = PitchZoneHelper::coords($a);
+        $coordB = PitchZoneHelper::coords($b);
+        return abs($coordA['row'] - $coordB['row']) <= $distance
+            && abs($coordA['lane'] - $coordB['lane']) <= $distance;
     }
 
     protected function applyPendingActions(Fixture $fixture, MatchState $state, int $min): array
@@ -1561,6 +1554,8 @@ class MatchEngine extends Component
             if (!$team || (int) ($team->is_cpu ?? 0) !== 1) {
                 continue;
             }
+            $difficulty = CpuDifficultyHelper::resolveDifficulty($team, (int) ($fixture->competition_id ?? 0));
+            $profile = CpuDifficultyHelper::profile($difficulty);
 
             $field = "pending_{$side}_actions";
             $actions = json_decode((string) ($state->$field ?? '[]'), true);
@@ -1568,12 +1563,12 @@ class MatchEngine extends Component
                 $actions = [];
             }
 
-            if ($this->cpuShouldQueueTacticChange($actions, $min)) {
-                $actions[] = $this->buildCpuTacticChangeAction($state, $side, $min);
+            if ($this->cpuShouldQueueTacticChange($actions, $min, $profile)) {
+                $actions[] = $this->buildCpuTacticChangeAction($state, $side, $min, $profile);
             }
 
-            if ($this->cpuShouldQueueSubstitution($actions, $state, $side, $min)) {
-                $subAction = $this->buildCpuSubstitutionAction($state, $side, $min);
+            if ($this->cpuShouldQueueSubstitution($actions, $state, $side, $min, $profile)) {
+                $subAction = $this->buildCpuSubstitutionAction($state, $side, $min, $profile);
                 if ($subAction !== null) {
                     $actions[] = $subAction;
                 }
@@ -1586,9 +1581,11 @@ class MatchEngine extends Component
     /**
      * @param array<int,array<string,mixed>> $actions
      */
-    private function cpuShouldQueueTacticChange(array $actions, int $min): bool
+    private function cpuShouldQueueTacticChange(array $actions, int $min, array $profile): bool
     {
-        if ($min < 30 || ($min % 10) !== 0) {
+        $start = max(1, (int) ($profile['tactic_start_min'] ?? 30));
+        $interval = max(1, (int) ($profile['tactic_interval'] ?? 10));
+        if ($min < $start || ($min % $interval) !== 0) {
             return false;
         }
         foreach ($actions as $action) {
@@ -1599,37 +1596,45 @@ class MatchEngine extends Component
         return true;
     }
 
-    private function buildCpuTacticChangeAction(MatchState $state, string $side, int $min): array
+    private function buildCpuTacticChangeAction(MatchState $state, string $side, int $min, array $profile): array
     {
         $diff = $side === 'home'
             ? ((int) $state->home_score - (int) $state->away_score)
             : ((int) $state->away_score - (int) $state->home_score);
+        $difficulty = (string) ($profile['level'] ?? 'normal');
 
         $tactic = 'balanced';
-        $marking = 'zone';
-        $offsideTrap = 1;
+        $marking = in_array($difficulty, ['competitive', 'hardcore'], true) ? 'man' : 'zone';
+        $offsideTrap = in_array($difficulty, ['competitive', 'hardcore'], true) ? 1 : 0;
         $trainedTactic = 'possesso';
+        $losingAttackMin = (int) ($profile['losing_attack_min'] ?? 68);
+        $winningDefMin = (int) ($profile['winning_def_min'] ?? 60);
 
-        if ($diff <= -2 && $min >= 55) {
+        if ($diff <= -2 && $min >= max(45, $losingAttackMin - 8)) {
             $tactic = 'all_out_attack';
             $marking = 'man';
             $offsideTrap = 1;
             $trainedTactic = 'pressing';
-        } elseif ($diff <= -1 && $min >= 70) {
+        } elseif ($diff <= -1 && $min >= $losingAttackMin) {
             $tactic = 'all_out_attack';
             $marking = 'man';
             $offsideTrap = 1;
             $trainedTactic = 'contropiede';
-        } elseif ($diff >= 2 && $min >= 60) {
+        } elseif ($diff >= 2 && $min >= max(45, $winningDefMin - 6)) {
             $tactic = 'ultra_defensive';
             $marking = 'zone';
             $offsideTrap = 0;
             $trainedTactic = 'catenaccio';
-        } elseif ($diff === 0 && $min >= 80) {
+        } elseif ($diff >= 1 && $min >= $winningDefMin) {
+            $tactic = 'ultra_defensive';
+            $marking = 'zone';
+            $offsideTrap = 0;
+            $trainedTactic = 'possesso';
+        } elseif ($diff === 0 && $min >= max(70, $winningDefMin + 14)) {
             $tactic = 'balanced';
             $marking = 'zone';
             $offsideTrap = 1;
-            $trainedTactic = 'calci_piazzati';
+            $trainedTactic = 'possesso';
         }
 
         return [
@@ -1645,13 +1650,15 @@ class MatchEngine extends Component
     /**
      * @param array<int,array<string,mixed>> $actions
      */
-    private function cpuShouldQueueSubstitution(array $actions, MatchState $state, string $side, int $min): bool
+    private function cpuShouldQueueSubstitution(array $actions, MatchState $state, string $side, int $min, array $profile): bool
     {
-        if (!in_array($min, [46, 60, 75], true)) {
+        $subMinutes = array_values(array_filter(array_map('intval', (array) ($profile['sub_minutes'] ?? [46, 60, 75]))));
+        if (!in_array($min, $subMinutes, true)) {
             return false;
         }
         $subsField = "{$side}_subs_used";
-        if ((int) ($state->$subsField ?? 0) >= 3) {
+        $maxSubs = max(1, min(5, count($subMinutes)));
+        if ((int) ($state->$subsField ?? 0) >= $maxSubs) {
             return false;
         }
         foreach ($actions as $action) {
@@ -1665,7 +1672,7 @@ class MatchEngine extends Component
     /**
      * @return array<string,mixed>|null
      */
-    private function buildCpuSubstitutionAction(MatchState $state, string $side, int $min): ?array
+    private function buildCpuSubstitutionAction(MatchState $state, string $side, int $min, array $profile): ?array
     {
         $formField = "{$side}_formation_id";
         $formationId = (int) ($state->$formField ?? 0);
@@ -1685,7 +1692,7 @@ class MatchEngine extends Component
             if (!$player) {
                 continue;
             }
-            if ((int) ($slot->zone ?? 0) > 63) {
+            if (!PitchZoneHelper::isOnPitch((int) ($slot->zone ?? 0))) {
                 $bench[] = $player;
             } else {
                 $starters[] = $player;
@@ -1696,6 +1703,8 @@ class MatchEngine extends Component
         }
 
         $freshnessThreshold = $min >= 75 ? 66 : ($min >= 60 ? 58 : 52);
+        $freshnessThreshold += (int) ($profile['freshness_threshold_adj'] ?? 0);
+        $freshnessThreshold = max(40, min(85, $freshnessThreshold));
         usort($starters, static function (Player $a, Player $b): int {
             $fa = (int) ($a->freshness ?? 0);
             $fb = (int) ($b->freshness ?? 0);
@@ -1783,6 +1792,13 @@ class MatchEngine extends Component
         if ($fixture->competition && $fixture->competition->type !== 'friendly') {
             $this->savePlayerStats($fixture, $state);
             $this->serveSuspensions($fixture);
+        }
+
+        // SIP-0068: accumulate quadrant + cell experience post-match (all match types)
+        try {
+            (new \app\components\PlayerExperienceService())->applyFixtureExperience($fixture->id);
+        } catch (\Throwable $e) {
+            Yii::warning('SIP-0068 exp accumulation failed: ' . $e->getMessage(), __METHOD__);
         }
 
         // SIP-0059: clear man-markings when match ends
@@ -2347,7 +2363,7 @@ class MatchEngine extends Component
                 ->select('player_id')
                 ->from('{{%formation_slot}}')
                 ->where(['formation_id' => $formationId])
-                ->andWhere(['<=', 'zone', 64])
+                ->andWhere(new \yii\db\Expression(PitchZoneHelper::onPitchSql('zone')))
                 ->andWhere(['not', ['player_id' => null]])
                 ->column();
             $ids = array_values(array_unique(array_map('intval', $ids)));

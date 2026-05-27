@@ -23,6 +23,7 @@ final class PlayerAttributeHelper
         'disciplina'     => ['alloc_cond', 'alloc_df'],
         'tenacia'        => ['alloc_cn', 'alloc_cond'],
         'freddezza'      => ['alloc_tc', 'alloc_cond'],
+        'calci_piazzati' => ['alloc_calci_piazzati', 'alloc_tc'],
     ];
 
     /** @return array<int,array{key:string,label:string,value:int}> */
@@ -285,6 +286,7 @@ final class PlayerAttributeHelper
             'disciplina'     => ['label' => 'Disciplina'],
             'tenacia'        => ['label' => 'Tenacia'],
             'freddezza'      => ['label' => 'Freddezza'],
+            'calci_piazzati' => ['label' => 'Calci piazzati'],
         ];
     }
 

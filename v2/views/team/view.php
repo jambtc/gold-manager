@@ -85,7 +85,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                     <?= Html::encode($player->name) ?>
                                 </div>
                                 <div class="text-muted-gm" style="font-size:.65rem">
-                                    <?= $player->age ?>a · <?= $player->foot === 'LR' ? 'Amb' : $player->foot ?>
+                                    <?= $player->age ?>a · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $player->foot, 11) ?><?= $player->foot === 'LR' ? 'Amb' : $player->foot ?></span>
                                     <?php if ($player->character): ?>
                                      · <em><?= Html::encode(ucfirst($player->character)) ?></em>
                                     <?php endif; ?>
@@ -98,13 +98,9 @@ $this->params['breadcrumbs'][] = $this->title;
                             <td>
                                 <?php $talents = PlayerAttributeHelper::talents($player, 2); ?>
                                 <?php if ($talents): ?>
-                                    <div class="d-flex flex-wrap gap-1">
+                                    <div class="d-flex flex-wrap gap-1 align-items-center">
                                         <?php foreach ($talents as $tal): ?>
-                                            <span title="<?= Html::encode((string) $tal['label']) ?> Lv<?= (int) $tal['level'] ?>"
-                                                  style="display:inline-flex;align-items:center;gap:.2rem;font-size:.62rem;background:rgba(245,158,11,.14);color:var(--gold);border:1px solid rgba(245,158,11,.35);padding:.08rem .26rem;border-radius:.35rem;white-space:nowrap">
-                                                <?= UiIconHelper::renderTalentTypeIcon((string) ($tal['code'] ?? ''), 10) ?>
-                                                <span style="font-weight:800">Lv<?= (int) $tal['level'] ?></span>
-                                            </span>
+                                            <?= UiIconHelper::renderTalentIcon((string) ($tal['code'] ?? ''), (string) ($tal['label'] ?? ''), (int) $tal['level'], 13) ?>
                                         <?php endforeach; ?>
                                     </div>
                                 <?php else: ?>

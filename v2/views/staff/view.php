@@ -9,6 +9,7 @@ declare(strict_types=1);
 /** @var app\models\StaffHistory[] $history */
 
 use app\models\Staff;
+use app\components\UiIconHelper;
 use yii\helpers\Html;
 
 $this->title = 'Gestione Staff';
@@ -25,17 +26,7 @@ $roleLabel = static function (string $role): string {
         default => $role,
     };
 };
-$roleIcon = static function (string $role): string {
-    return match ($role) {
-        Staff::ROLE_HEAD_COACH => 'bi-person-walking',
-        Staff::ROLE_ASSISTANT_COACH => 'bi-person-lines-fill',
-        Staff::ROLE_GOALKEEPING_COACH => 'bi-shield-check',
-        Staff::ROLE_DOCTOR => 'bi-hospital',
-        Staff::ROLE_FITNESS_COACH => 'bi-heart-pulse',
-        Staff::ROLE_SCOUT => 'bi-search',
-        default => 'bi-person-badge',
-    };
-};
+$roleIcon = static fn(string $role): string => UiIconHelper::renderStaffRoleIcon($role, 13);
 $dotAttempts = static function (int $n): string {
     $full = str_repeat('●', max(0, min(4, $n)));
     $empty = str_repeat('○', max(0, 4 - max(0, min(4, $n))));
@@ -97,7 +88,7 @@ $orderedRoles = [
                             <div class="d-flex justify-content-between align-items-start mb-2">
                                 <div>
                                     <div class="fw-bold text-white">
-                                        <i class="bi <?= $roleIcon($role) ?> text-gold me-1"></i>
+                                        <span class="text-gold me-1"><?= $roleIcon($role) ?></span>
                                         <?= Html::encode($roleLabel($role)) ?>
                                     </div>
                                     <div class="text-muted-gm small">
@@ -152,7 +143,7 @@ $orderedRoles = [
                                     <div>
                                         <div class="fw-bold text-white"><?= Html::encode((string) $cand->name) ?></div>
                                         <div class="text-muted-gm small">
-                                            <i class="bi <?= $roleIcon((string) $cand->role) ?> me-1"></i>
+                                            <span class="me-1 text-gold"><?= $roleIcon((string) $cand->role) ?></span>
                                             <?= Html::encode($roleLabel((string) $cand->role)) ?>
                                         </div>
                                     </div>

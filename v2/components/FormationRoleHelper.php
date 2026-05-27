@@ -7,6 +7,7 @@ namespace app\components;
 use app\models\Formation;
 use app\models\FormationSlot;
 use app\models\Player;
+use yii\db\Expression;
 
 class FormationRoleHelper
 {
@@ -136,13 +137,13 @@ class FormationRoleHelper
             ? $formation->slots
             : FormationSlot::find()
                 ->where(['formation_id' => $formation->id])
-                ->andWhere(['<=', 'zone', 63])
+                ->andWhere(new Expression(PitchZoneHelper::onPitchSql('zone')))
                 ->with('player')
                 ->all();
 
         $starters = [];
         foreach ($slots as $slot) {
-            if (!$slot->player || (int) $slot->zone > 63) {
+            if (!$slot->player || !PitchZoneHelper::isOnPitch((int) $slot->zone)) {
                 continue;
             }
             $starters[] = $slot->player;
@@ -259,4 +260,3 @@ class FormationRoleHelper
         return false;
     }
 }
-

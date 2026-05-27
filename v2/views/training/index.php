@@ -48,9 +48,10 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
                   . '<div style="height:7px;background:rgba(148,163,184,.22);border-radius:999px;overflow:hidden">'
                   . '<div id="bar_' . $name . '" style="height:100%;width:' . $displayVal . '%;background:' . $color . ';border-radius:999px;transition:width .2s ease"></div>'
                   . '</div>'
-                  . '<div style="font-size:.64rem;color:var(--text-secondary);margin-top:.15rem;display:flex;justify-content:space-between;gap:.6rem">'
-                  . 'Valore attuale: <span id="pct_' . $name . '" style="color:#fff;font-weight:700">' . $displayVal . '</span>/100'
-                  . '<span style="color:' . $deltaColor . '">Δ oggi ' . $deltaText . '</span>'
+                  . '<div style="font-size:.64rem;color:var(--text-secondary);margin-top:.15rem;display:flex;align-items:center;gap:.4rem">'
+                  . 'Attuale: <span id="pct_' . $name . '" style="color:#fff;font-weight:700">' . $displayVal . '</span>/100'
+                  . '<span style="color:var(--text-secondary)">·</span>'
+                  . '<span style="color:' . $deltaColor . '">Δ ' . $deltaText . '</span>'
                   . '</div>'
                   . '</div>';
     }
@@ -121,6 +122,7 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
                     <?= $slider('alloc_cr',    (int)($skill['alloc_cr']    ?? 10), 'Cross (CR)',    'Qualità dei cross', 'var(--gold)', true) ?>
                     <?= $slider('alloc_tc',    (int)($skill['alloc_tc']    ?? 10), 'Tecnica (TC)',  'Controllo palla', 'var(--gold)', true) ?>
                     <?= $slider('alloc_tr',    (int)($skill['alloc_tr']    ?? 5),  'Tiro (TR)',     'Potenza e precisione', 'var(--accent-red)', true) ?>
+                    <?= $slider('alloc_calci_piazzati', (int)($skill['alloc_calci_piazzati'] ?? 10), 'Calci piazzati', 'Schemi su corner e punizioni', 'var(--gold)', true) ?>
                     <div class="d-flex align-items-center justify-content-between mt-4 pt-3" style="border-top:1px solid var(--border)">
                         <div>
                             <span style="color:var(--text-secondary)">Totale: </span>
@@ -167,6 +169,7 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
                             'alloc_cr'    => 'Cross',
                             'alloc_tc'    => 'Tecnica',
                             'alloc_tr'    => 'Tiro',
+                            'alloc_calci_piazzati' => 'Calci piazzati',
                         ] as $allocKey => $allocLabel): ?>
                         <div style="font-size:.68rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem">
                             <span style="color:var(--text-secondary)"><?= Html::encode($allocLabel) ?></span>
@@ -194,13 +197,12 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
                 <form method="post" action="<?= Url::to(['/training/save-tactic']) ?>">
                     <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
                     <?= $slider('pressing',      (int)($tacticPlan['pressing']      ?? 15), 'Pressing',           '+% duello centrocampo offensivo', 'var(--accent-red)', false, true, (int)($tactic['pressing'] ?? 0), (int)($tacticDelta['pressing'] ?? 0)) ?>
-                    <?= $slider('contropiede',   (int)($tacticPlan['contropiede']   ?? 10), 'Contropiede',        '+% forza attacco in ripartenza',  '#f97316', false, true, (int)($tactic['contropiede'] ?? 0), (int)($tacticDelta['contropiede'] ?? 0)) ?>
+                    <?= $slider('contropiede',   (int)($tacticPlan['contropiede']   ?? 15), 'Contropiede',        '+% forza attacco in ripartenza',  '#f97316', false, true, (int)($tactic['contropiede'] ?? 0), (int)($tacticDelta['contropiede'] ?? 0)) ?>
                     <?= $slider('possesso',      (int)($tacticPlan['possesso']      ?? 15), 'Possesso palla',     '+% dominio centrocampo',          'var(--accent-green)', false, true, (int)($tactic['possesso'] ?? 0), (int)($tacticDelta['possesso'] ?? 0)) ?>
-                    <?= $slider('palla_bassa',   (int)($tacticPlan['palla_bassa']   ?? 10), 'Gioco palla bassa',  '−% forza attacco avversario',     'var(--accent-blue)', false, true, (int)($tactic['palla_bassa'] ?? 0), (int)($tacticDelta['palla_bassa'] ?? 0)) ?>
+                    <?= $slider('palla_bassa',   (int)($tacticPlan['palla_bassa']   ?? 15), 'Gioco palla bassa',  '−% forza attacco avversario',     'var(--accent-blue)', false, true, (int)($tactic['palla_bassa'] ?? 0), (int)($tacticDelta['palla_bassa'] ?? 0)) ?>
                     <?= $slider('lancio_lungo',  (int)($tacticPlan['lancio_lungo']  ?? 10), 'Lancio lungo',       '20% chance bypass centrocampo',   'var(--gold)', false, true, (int)($tactic['lancio_lungo'] ?? 0), (int)($tacticDelta['lancio_lungo'] ?? 0)) ?>
-                    <?= $slider('catenaccio',    (int)($tacticPlan['catenaccio']    ?? 10), 'Catenaccio',         '+% muro difensivo',               'var(--accent-blue)', false, true, (int)($tactic['catenaccio'] ?? 0), (int)($tacticDelta['catenaccio'] ?? 0)) ?>
-                    <?= $slider('fuorigioco',    (int)($tacticPlan['fuorigioco']    ?? 10), 'Trappola fuorigioco','15% chance annullare attacco',    'var(--text-secondary)', false, true, (int)($tactic['fuorigioco'] ?? 0), (int)($tacticDelta['fuorigioco'] ?? 0)) ?>
-                    <?= $slider('calci_piazzati',(int)($tacticPlan['calci_piazzati']?? 20), 'Calci piazzati',     '+20% su punizioni e corner',       'var(--gold)', false, true, (int)($tactic['calci_piazzati'] ?? 0), (int)($tacticDelta['calci_piazzati'] ?? 0)) ?>
+                    <?= $slider('catenaccio',    (int)($tacticPlan['catenaccio']    ?? 15), 'Catenaccio',         '+% muro difensivo',               'var(--accent-blue)', false, true, (int)($tactic['catenaccio'] ?? 0), (int)($tacticDelta['catenaccio'] ?? 0)) ?>
+                    <?= $slider('fuorigioco',    (int)($tacticPlan['fuorigioco']    ?? 15), 'Trappola fuorigioco','15% chance annullare attacco',    'var(--text-secondary)', false, true, (int)($tactic['fuorigioco'] ?? 0), (int)($tacticDelta['fuorigioco'] ?? 0)) ?>
                     <?php
                     // Conflict warnings (SIP-0038)
                     $press = (int)($tactic['pressing'] ?? 30);
@@ -354,7 +356,7 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
         var labels = {
             pressing:'Pressing', contropiede:'Contropiede', possesso:'Possesso',
             palla_bassa:'Palla bassa', lancio_lungo:'Lancio lungo', catenaccio:'Catenaccio',
-            fuorigioco:'Fuorigioco', calci_piazzati:'Calci piazzati'
+            fuorigioco:'Fuorigioco'
         };
         var t = data.tacticTrend || {};
         var rows = '';

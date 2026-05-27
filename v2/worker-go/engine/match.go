@@ -967,7 +967,7 @@ type lineupPlayer struct {
 	Zone         int    `db:"zone"`
 }
 
-// activeLineupPlayers returns current on-pitch players from match_state formations (zones <= 63).
+// activeLineupPlayers returns current on-pitch players from match_state formations.
 // It avoids picking bench/reserve names in commentary.
 func (e *MatchEngine) activeLineupPlayers(fixtureID int, side, posGroup string) []lineupPlayer {
 	formationCol := "ms.home_formation_id"
@@ -995,7 +995,7 @@ func (e *MatchEngine) activeLineupPlayers(fixtureID int, side, posGroup string) 
 		JOIN formation_slot fs ON fs.formation_id = %s
 		JOIN player p ON p.id = fs.player_id
 		WHERE ms.fixture_id = ?
-		  AND fs.zone <= 63
+		  AND (((fs.zone = 10) OR ((fs.zone BETWEEN 20 AND 103) AND (MOD(fs.zone,10) BETWEEN 1 AND 3))) OR (fs.zone BETWEEN 1 AND 63))
 		  AND fs.player_id IS NOT NULL
 		  %s
 		ORDER BY p.general_skill DESC, fs.zone ASC, p.id ASC
@@ -1226,7 +1226,9 @@ func (e *MatchEngine) teamTraitsProfile(fixtureID int, side string, isLosing boo
 		FROM formation f
 		JOIN formation_slot fs ON fs.formation_id = f.id
 		JOIN player p ON p.id = fs.player_id
-		WHERE f.team_id = ? AND f.is_active = 1 AND fs.zone <= 63 AND fs.player_id IS NOT NULL
+		WHERE f.team_id = ? AND f.is_active = 1
+		  AND (((fs.zone = 10) OR ((fs.zone BETWEEN 20 AND 103) AND (MOD(fs.zone,10) BETWEEN 1 AND 3))) OR (fs.zone BETWEEN 1 AND 63))
+		  AND fs.player_id IS NOT NULL
 	`, teamID)
 	if err != nil || len(rows) == 0 {
 		rows = []traitRow{}

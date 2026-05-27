@@ -138,6 +138,19 @@ h1, h2, h3, h4 {
     max-width: 440px;
 }
 
+.pitch-gk-row {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    margin: .2rem auto 0 auto;
+    max-width: 440px;
+}
+
+/* GK centrata nella colonna 4 di 7 */
+.pitch-gk-row .pitch-zone {
+    grid-column: 4;
+    min-height: 52px;
+}
+
 .pitch-zone {
     border: 1px solid rgba(255,255,255,0.06);
     display: flex;
@@ -162,6 +175,10 @@ h1, h2, h3, h4 {
     background: rgba(255, 255, 255, 0.03);
     border-left-color: rgba(255,255,255,.12) !important;
     border-right-color: rgba(255,255,255,.12) !important;
+}
+
+.pitch-zone-gk {
+    box-shadow: inset 0 0 0 1px rgba(245,158,11,.28);
 }
 
 .pitch-zone.drag-over {
@@ -208,6 +225,39 @@ h1, h2, h3, h4 {
     text-overflow: ellipsis;
 }
 
+/* Formation view only: compact name tag under jersey */
+.formation-view .player-name {
+    bottom: 9px;
+    font-size: 0.52rem;
+    padding: 0 3px;
+    background: rgba(15, 23, 42, 0.45);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 2px;
+}
+
+.formation-view .player-strength {
+    position: absolute;
+    bottom: 3px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 30px;
+    height: 2px;
+    background: rgba(255, 255, 255, 0.18);
+    border-radius: 999px;
+    overflow: hidden;
+    pointer-events: none;
+}
+
+.formation-view .player-strength-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b 0%, #22c55e 100%);
+    border-radius: 999px;
+}
+
+.formation-view .pitch-jersey {
+    transform: translateY(-11px);
+}
+
 /* Lines */
 .pitch-center-circle {
     position: absolute;
@@ -219,13 +269,6 @@ h1, h2, h3, h4 {
     pointer-events: none;
 }
 
-.pitch-midline {
-    position: absolute;
-    top: 50%; left: 0; right: 0;
-    height: 2px;
-    background: rgba(255, 255, 255, 0.4);
-    pointer-events: none;
-}
 
 
 /* Live Event Log */
@@ -792,9 +835,3 @@ h1, h2, h3, h4 {
     margin-left: 0.5rem;
     vertical-align: middle;
 }
-
-
-
-
-
-

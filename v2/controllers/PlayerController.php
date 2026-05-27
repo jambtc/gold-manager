@@ -65,16 +65,22 @@ class PlayerController extends Controller
             ->andWhere(['status' => [Transfer::STATUS_LISTED, Transfer::STATUS_BID_MADE]])
             ->one();
 
+        // SIP-0068: quadrant/cell experience heatmaps
+        $quadrantHeatmap = $player->getQuadrantHeatmap();
+        $cellHeatmap     = $player->getCellHeatmap();
+
         return $this->render('view', [
-            'player'         => $player,
-            'contract'       => $contract,
-            'valuator'       => Yii::$app->playerValuator,
-            'myTeam'         => $myTeam,
-            'isMyPlayer'     => $isMyPlayer,
-            'seasonStats'    => $seasonStats,
-            'season'         => $season,
-            'backUrl'        => $back,
-            'activeTransfer' => $activeTransfer,
+            'player'           => $player,
+            'contract'         => $contract,
+            'valuator'         => Yii::$app->playerValuator,
+            'myTeam'           => $myTeam,
+            'isMyPlayer'       => $isMyPlayer,
+            'seasonStats'      => $seasonStats,
+            'season'           => $season,
+            'backUrl'          => $back,
+            'activeTransfer'   => $activeTransfer,
+            'quadrantHeatmap'  => $quadrantHeatmap,
+            'cellHeatmap'      => $cellHeatmap,
         ]);
     }
 }

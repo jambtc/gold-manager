@@ -53,12 +53,12 @@ git config core.hooksPath .githooks
 | SIP-0009 | Economy, Transfers and Contracts | Accepted (Implemented) |
 | SIP-0010 | Docker, Environments and Delivery | Accepted |
 | SIP-0011 | Match Simulation Engine | Accepted (Implemented) |
-| SIP-0012 | AI Controlled Teams | Deferred (Backlog) |
+| SIP-0012 | AI Controlled Teams | Accepted (Implemented) |
 | SIP-0013 | Match Event Sourcing | Accepted (Implemented) |
 | SIP-0014 | Notifications and WebSocket Infrastructure | Deferred (Backlog) |
-| SIP-0015 | API Versioning | Deferred (Backlog) |
+| SIP-0015 | API Versioning | Accepted (Implemented) |
 | SIP-0016 | Plugin System | Deferred (Backlog) |
-| SIP-0017 | Mobile Application Support | Deferred (Backlog) |
+| SIP-0017 | Mobile Application Support | Deferred (Backlog — Final Phase) |
 | SIP-0018 | Multiplayer Synchronization | Deferred (Backlog) |
 | SIP-0020 | Real-Time Match Engine Architecture | Accepted |
 | SIP-0021 | Go Match Worker (Live Engine) | Accepted (Implemented) |
@@ -88,10 +88,10 @@ git config core.hooksPath .githooks
 | SIP-0045 | Statistics System: Scorers, Assists, Team Stats | Accepted (Implemented) |
 | SIP-0046 | Staff Market: Hiring, Firing and Contract Negotiation | Accepted (Implemented) |
 | SIP-0047 | Player Transfer Market v2 plus Generation Engine | Accepted (Implemented) |
-| SIP-0048 | Auto Formazione da Modulo + Tattica (v2) | Accepted (In Progress) |
+| SIP-0048 | Auto Formazione da Modulo + Tattica (v2) | Accepted (Implemented) |
 | SIP-0049 | Friendly Match System (Amichevoli Challenge) | Accepted (Implemented) |
 | SIP-0050 | News Feed (Notiziario) | Accepted (Implemented) |
-| SIP-0051 | CPU AI Behavior | Deferred (Backlog) |
+| SIP-0051 | CPU AI Behavior | Accepted (Implemented) |
 | SIP-0052 | LLM Streaming to Browser | Accepted (Implemented) |
 | SIP-0053 | Temporary Manager Test Control: Advance Day | Accepted (Implemented Temporary) |
 | SIP-0054 | Daily Training Cycle | Accepted (Implemented) |

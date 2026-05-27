@@ -5,17 +5,40 @@
         return id ? document.getElementById(id) : null;
     }
 
-    function zoneToXY(zone, side, width, height, cfg) {
-        var zoneNum = parseInt(zone, 10);
-        if (!zoneNum || zoneNum < 1) {
-            zoneNum = 1;
+    function decodeZone(zoneNum) {
+        var z = parseInt(zoneNum, 10);
+        if (!z || z < 1) {
+            z = 10;
         }
-        var col = (zoneNum - 1) % 7;
-        var row = Math.floor((zoneNum - 1) / 7);
-        var x = (col + 0.5) / 7 * (width - 24) + 12;
-        var viewerSide = cfg && (cfg.viewerSide === 'home' || cfg.viewerSide === 'away') ? cfg.viewerSide : null;
-        var shouldInvert = viewerSide ? (side !== viewerSide) : (side === 'home');
-        var ratio = (row + 0.5) / 9;
+
+        // SIP-0067 current grid: GK=10, rows 2..10 with lanes 1..3.
+        if (z === 10) {
+            return { row: 1, lane: 2, isGk: true };
+        }
+        var row = Math.floor(z / 10);
+        var lane = z % 10;
+        if (row >= 2 && row <= 10 && lane >= 1 && lane <= 3) {
+            return { row: row, lane: lane, isGk: false };
+        }
+
+        // Legacy fallback (1..63, 7x9): map to 10-row logical grid.
+        // Legacy zone 60 (row 9, col 4) was the old GK cell but is now a center-back cell.
+        // GK is only at zone 10 (GK_ZONE) or 64 (DISPLAY_GK_ZONE).
+        var legacyRow = Math.floor((z - 1) / 7) + 1; // 1..9, old top=attack
+        var legacyCol = ((z - 1) % 7) + 1; // 1..7
+        var mappedRow = 11 - legacyRow; // old 1->10, old 9->2
+        var mappedLane = legacyCol <= 2 ? 1 : (legacyCol >= 6 ? 3 : 2);
+        return { row: Math.max(2, Math.min(10, mappedRow)), lane: mappedLane, isGk: false };
+    }
+
+    function zoneToXY(zone, side, width, height, cfg) {
+        var decoded = decodeZone(zone);
+        var laneCenterCol = decoded.lane === 1 ? 1.5 : (decoded.lane === 2 ? 4 : 6.5); // 2/3/2 columns on 7-grid
+        var x = ((laneCenterCol - 0.5) / 7) * (width - 24) + 12;
+        // Home always attacks upward (GK at bottom), away always attacks downward (GK at top).
+        // Fixed orientation regardless of who is viewing — viewerSide does NOT flip the pitch.
+        var shouldInvert = (side === 'home');
+        var ratio = (decoded.row - 0.5) / 10;
         var y = shouldInvert
             ? (1 - ratio) * (height - 24) + 12
             : ratio * (height - 24) + 12;
@@ -167,9 +190,9 @@
     function drawPitch(ctx, width, height) {
         ctx.fillStyle = '#1a4731';
         ctx.fillRect(0, 0, width, height);
-        for (var i = 0; i < 9; i++) {
+        for (var i = 0; i < 10; i++) {
             ctx.fillStyle = i % 2 === 0 ? 'rgba(255,255,255,.04)' : 'transparent';
-            ctx.fillRect(0, i * height / 9, width, height / 9);
+            ctx.fillRect(0, i * height / 10, width, height / 10);
         }
         ctx.strokeStyle = 'rgba(255,255,255,.3)';
         ctx.lineWidth = 1;
@@ -330,4 +353,3 @@
 
     w.GMFixtureFormationUi = { init: init };
 }(window));
-

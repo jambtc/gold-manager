@@ -248,6 +248,7 @@ class EconomyController extends Controller
         $week = (int) date('W');
         $now = time();
         $dailyScale = $this->dailyTrainingScale();
+        $hasSetPieceAlloc = $this->hasSetPiecePhysicalAllocColumn();
 
         $statMap = [
             'alloc_po' => 'skill_po', 'alloc_df' => 'skill_df',
@@ -255,7 +256,7 @@ class EconomyController extends Controller
             'alloc_rg' => 'skill_rg', 'alloc_cr' => 'skill_cr',
             'alloc_tc' => 'skill_tc', 'alloc_tr' => 'skill_tr',
         ];
-        $tacticFields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco','calci_piazzati'];
+        $tacticFields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco'];
 
         $cpuTrainingRebalanced = $this->rebalanceCpuTrainingAllocations($season, $now);
         if ($cpuTrainingRebalanced > 0) {
@@ -292,8 +293,8 @@ class EconomyController extends Controller
             }
             if (!$tacticPlan) {
                 $tacticPlan = [
-                    'pressing' => 15, 'contropiede' => 10, 'possesso' => 15, 'palla_bassa' => 10,
-                    'lancio_lungo' => 10, 'catenaccio' => 10, 'fuorigioco' => 10, 'calci_piazzati' => 20,
+                    'pressing' => 15, 'contropiede' => 15, 'possesso' => 15, 'palla_bassa' => 15,
+                    'lancio_lungo' => 10, 'catenaccio' => 15, 'fuorigioco' => 15,
                 ];
             }
 
@@ -343,13 +344,15 @@ class EconomyController extends Controller
                 $value = max(0, min(100, (int) ($tacticRow[$field] ?? 0)));
                 $alloc = max(0, min(100, (int) ($tacticPlan[$field] ?? 0)));
                 if ($alloc > 0) {
-                    $prob = ($alloc / 100) * 0.10 * $tacticalStaffMod * $dailyScale;
+                    // levelMod: harder to improve when already high (mirrors skill growth curve)
+                    $levelMod = max(0.3, 1.0 - ($value / 100) * 0.55);
+                    $prob = ($alloc / 100) * 0.035 * $levelMod * $tacticalStaffMod * $dailyScale;
                     if (mt_rand(1, 10000) <= (int) round($prob * 10000)) {
                         $value = min(100, $value + 1);
                         $tacticChanged = true;
                     }
                 } else {
-                    $decayChance = max(1, (int) round(200 * $dailyScale));
+                    $decayChance = max(1, (int) round(150 * $dailyScale));
                     if ($value > 0 && mt_rand(1, 10000) <= $decayChance) {
                         $value = max(0, $value - 1);
                         $tacticChanged = true;
@@ -358,6 +361,27 @@ class EconomyController extends Controller
                 $tacticRow[$field] = $value;
                 $tacticUpdate[$field] = $value;
             }
+            // Calci piazzati: gestito da allenamento fisico (non da tab tattico).
+            $setPieceValue = max(0, min(100, (int) ($tacticRow['calci_piazzati'] ?? 0)));
+            $setPieceAlloc = $hasSetPieceAlloc
+                ? max(0, min(100, (int) ($skillRow['alloc_calci_piazzati'] ?? 0)))
+                : max(0, min(100, (int) ($tacticPlan['calci_piazzati'] ?? 0)));
+            if ($setPieceAlloc > 0) {
+                $levelMod = max(0.3, 1.0 - ($setPieceValue / 100) * 0.55);
+                $setPieceProb = ($setPieceAlloc / 100) * 0.035 * $levelMod * $tacticalStaffMod * $dailyScale;
+                if (mt_rand(1, 10000) <= (int) round($setPieceProb * 10000)) {
+                    $setPieceValue = min(100, $setPieceValue + 1);
+                    $tacticChanged = true;
+                }
+            } else {
+                $setPieceDecayChance = max(1, (int) round(200 * $dailyScale));
+                if ($setPieceValue > 0 && mt_rand(1, 10000) <= $setPieceDecayChance) {
+                    $setPieceValue = max(0, $setPieceValue - 1);
+                    $tacticChanged = true;
+                }
+            }
+            $tacticRow['calci_piazzati'] = $setPieceValue;
+            $tacticUpdate['calci_piazzati'] = $setPieceValue;
             if ($tacticChanged && !empty($tacticRow['id'])) {
                 Yii::$app->db->createCommand()->update(
                     '{{%training_tactic}}',
@@ -401,6 +425,9 @@ class EconomyController extends Controller
             }
             $physicalLoad += max(0, min(100, (int) ($skillRow['alloc_forma'] ?? 0)));
             $physicalLoad += max(0, min(100, (int) ($skillRow['alloc_cond'] ?? 0)));
+            if ($hasSetPieceAlloc) {
+                $physicalLoad += max(0, min(100, (int) ($skillRow['alloc_calci_piazzati'] ?? 0)));
+            }
             $physicalLoad = min(100, $physicalLoad);
 
             $tacticalLoadSum = 0;
@@ -633,6 +660,14 @@ class EconomyController extends Controller
                 . "fatica(load {$totalLoad}) freshnessAdj={$freshnessAdjusted} · "
                 . "matchSoon=" . ($matchSoon ? 'yes' : 'no') . " formPenalty=" . round($formPenalties, 2) . "\n"
             );
+        }
+
+        // SIP-0068: daily decay of quadrant + cell experience
+        try {
+            (new \app\components\PlayerExperienceService())->applyDailyDecay();
+            $this->stdout("🎯 SIP-0068: exp decay applied\n");
+        } catch (\Throwable $e) {
+            $this->stdout("⚠️ SIP-0068 decay error: {$e->getMessage()}\n");
         }
 
         return ExitCode::OK;
@@ -1064,6 +1099,9 @@ class EconomyController extends Controller
             }
 
             $skillPlan = $this->buildCpuSkillTrainingPlan((int) $team->id, $players);
+            if (!$this->hasSetPiecePhysicalAllocColumn()) {
+                unset($skillPlan['alloc_calci_piazzati']);
+            }
             $tacticPlan = $this->buildCpuTacticTrainingPlan((int) $team->id, $season);
 
             Yii::$app->db->createCommand()->upsert('{{%training_skill}}', array_merge([
@@ -1143,6 +1181,7 @@ class EconomyController extends Controller
                 $weights['alloc_cr'] += 10;
             }
         }
+        $weights['alloc_calci_piazzati'] = 8;
 
         return $this->normalizeToTotal($weights, 100);
     }
@@ -1152,7 +1191,7 @@ class EconomyController extends Controller
      */
     private function buildCpuTacticTrainingPlan(int $teamId, int $season): array
     {
-        $fields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco','calci_piazzati'];
+        $fields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco'];
         $row = Yii::$app->db->createCommand(
             'SELECT * FROM {{%training_tactic}} WHERE team_id=:t AND season=:s',
             [':t' => $teamId, ':s' => $season]
@@ -1179,7 +1218,6 @@ class EconomyController extends Controller
         } elseif ($style === 'ultra_defensive') {
             $weights['catenaccio'] += 12;
             $weights['fuorigioco'] += 8;
-            $weights['calci_piazzati'] += 8;
         } else {
             $weights['possesso'] += 8;
             $weights['palla_bassa'] += 8;
@@ -2870,6 +2908,21 @@ class EconomyController extends Controller
     private function countTeams(array $teamIds): int
     {
         return count($teamIds);
+    }
+
+    private function hasSetPiecePhysicalAllocColumn(): bool
+    {
+        static $has = null;
+        if ($has !== null) {
+            return $has;
+        }
+        try {
+            $schema = Yii::$app->db->schema->getTableSchema('{{%training_skill}}', true);
+            $has = $schema !== null && isset($schema->columns['alloc_calci_piazzati']);
+        } catch (\Throwable) {
+            $has = false;
+        }
+        return $has;
     }
 
     /**

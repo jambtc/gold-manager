@@ -73,8 +73,29 @@ class TestTimeController extends Controller
                     ->andWhere(['<=', 'match_date', $now])
                     ->count();
 
+                // Auto-finalize zombie fixtures: status=SCHEDULED but has match events
+                // (Go worker ran them but the full_time transaction failed)
+                $zombies = $db->createCommand(
+                    'SELECT DISTINCT f.id,
+                            (SELECT ms.home_score FROM match_state ms WHERE ms.fixture_id=f.id LIMIT 1) AS hs,
+                            (SELECT ms.away_score FROM match_state ms WHERE ms.fixture_id=f.id LIMIT 1) AS as_
+                     FROM {{%fixture}} f
+                     WHERE f.status = :scheduled
+                       AND EXISTS (SELECT 1 FROM {{%match_event}} me WHERE me.fixture_id = f.id)'
+                )->bindValue(':scheduled', Fixture::STATUS_SCHEDULED)->queryAll();
+                foreach ($zombies as $z) {
+                    $db->createCommand()->update('{{%fixture}}', [
+                        'status'     => \app\models\Fixture::STATUS_FINISHED,
+                        'home_score' => (int)($z['hs'] ?? 0),
+                        'away_score' => (int)($z['as_'] ?? 0),
+                    ], ['id' => $z['id']])->execute();
+                }
+
                 $shifted = (int) $db->createCommand(
-                    'UPDATE {{%fixture}} SET match_date = match_date - :delta WHERE status = :scheduled'
+                    // Exclude fixtures that have match_events (already played or in zombie state)
+                    'UPDATE {{%fixture}} SET match_date = match_date - :delta
+                     WHERE status = :scheduled
+                       AND NOT EXISTS (SELECT 1 FROM {{%match_event}} me WHERE me.fixture_id = {{%fixture}}.id)'
                 )
                     ->bindValue(':delta', self::DAY_SECONDS)
                     ->bindValue(':scheduled', Fixture::STATUS_SCHEDULED)

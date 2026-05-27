@@ -189,7 +189,7 @@ Le migration correnti risultano applicate; `./yii migrate/new` non trova nuove m
 | SIP-0045 | Statistics System | Accepted (Implemented) |
 | SIP-0046 | Staff Market | Accepted (Implemented) |
 | SIP-0047 | Transfer Market v2 + Generation Engine | Accepted (Implemented) |
-| SIP-0048 | Auto Formazione da Modulo + Tattica (v2) | Accepted (In Progress) |
+| SIP-0048 | Auto Formazione da Modulo + Tattica (v2) | Accepted (Implemented) |
 | SIP-0049 | Friendly Match System | Accepted (Implemented) |
 | SIP-0050 | News Feed | Deferred (Backlog) |
 | SIP-0051 | CPU AI Behavior | Deferred (Backlog) |

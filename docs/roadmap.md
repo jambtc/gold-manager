@@ -101,7 +101,7 @@
 
 - [x] Skill bars per Forma/Freschezza/Condizione come % (SIP-0032)
 - [x] Position suggestion basata su stat — corsa→fascia, regia→centro (SIP-0032)
-- [ ] SVG icon system per posizioni e abilità speciali (SIP-0033)
+- [x] SVG icon system per posizioni e abilità speciali (SIP-0033)
 - [x] Import nomi/cognomi italiani dal legacy — 1,043 nomi unici, 1,849 cognomi unici (SIP-0034)
 - [x] Special skill badges nel player card (SIP-0032, SIP-0033)
 
@@ -132,4 +132,7 @@
 - [ ] In-game Chat & Private Messages
 - [ ] User Profiles & Trophies
 - [ ] Clan/Federation system
-- [ ] Mobile API (SIP-0017)
+
+## Phase 13 - Mobile Apps (Final Phase) 📱
+
+- [ ] Mobile API (SIP-0017) — scheduled as last implementation block

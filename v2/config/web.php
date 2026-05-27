@@ -69,6 +69,11 @@ $config = [
             'enablePrettyUrl' => true,
             'showScriptName' => false,
             'rules' => [
+                'GET swagger' => 'swagger/index',
+                'GET swagger/openapi' => 'swagger/openapi',
+                'GET swagger/generate' => 'swagger/generate',
+                'GET api/v1/user/status' => 'api/v1/user/status',
+                'GET api/user/status' => 'api/user-status',
             ],
         ],
         

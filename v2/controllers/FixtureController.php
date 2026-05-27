@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace app\controllers;
 
 use app\components\FixtureViewHelper;
+use app\components\PitchZoneHelper;
 use app\models\Fixture;
 use app\models\MatchEvent;
 use app\models\MatchState;
 use app\models\Team;
 use Yii;
 use yii\filters\AccessControl;
+use yii\db\Expression;
 use yii\web\Controller;
 use yii\web\NotFoundHttpException;
 use yii\web\Response;
@@ -315,13 +317,17 @@ class FixtureController extends Controller
                 $slots = \app\models\FormationSlot::find()
                     ->with('player')
                     ->where(['formation_id' => $formation->id])
-                    ->andWhere(['<=', 'zone', 63])
+                    ->andWhere(new Expression(PitchZoneHelper::onPitchSql('zone')))
                     ->all();
                 foreach ($slots as $slot) {
                     if (!$slot->player) continue;
                     $p = $slot->player;
+                    $zone = PitchZoneHelper::normalizeToCurrent((int) $slot->zone);
+                    if (!PitchZoneHelper::isCurrentZone($zone)) {
+                        continue;
+                    }
                     $players[] = [
-                        'zone'       => (int)$slot->zone,
+                        'zone'       => $zone,
                         'player_id'  => (int)$p->id,
                         'name'       => $p->name,
                         'number'     => (int)$p->number,

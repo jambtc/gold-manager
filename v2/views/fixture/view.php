@@ -201,7 +201,7 @@ $awayLetter = mb_substr((string)$fixture->awayTeam->name, 0, 1);
                     <i class="bi bi-list-stars text-gold me-2"></i>Momenti Salienti
                 </h3>
 
-                <?php if (empty($displayEvents)): ?>
+                <?php if ($isScheduled || empty($displayEvents)): ?>
                     <div class="text-center py-5 text-muted-gm">
                         <i class="bi bi-calendar-x d-block fs-1 mb-2 opacity-25"></i>
                         <?= $isScheduled ? 'Partita non ancora disputata.' : 'Nessun evento da segnalare.' ?>
