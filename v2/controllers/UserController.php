@@ -161,7 +161,7 @@ class UserController extends Controller
         $ok = TelegramService::send(
             (string) $user->telegram_bot_token,
             (string) $user->telegram_chat_id,
-            "✅ <b>Gold Manager</b>\nTelegram collegato correttamente! Riceverai notifiche su questo chat."
+            "✅ <b>Gold Manager</b>\nTelegram collegato correttamente! Riceverai notifiche su questo canale."
         );
         return $this->asJson(['ok' => $ok]);
     }
