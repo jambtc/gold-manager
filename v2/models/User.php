@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace app\models;
 
+use Yii;
 use yii\db\ActiveRecord;
 use yii\web\IdentityInterface;
+use yii\filters\RateLimitInterface;
 
 /**
  * User model
@@ -23,7 +25,7 @@ use yii\web\IdentityInterface;
  * @property int    $created_at
  * @property int    $updated_at
  */
-class User extends ActiveRecord implements IdentityInterface
+class User extends ActiveRecord implements IdentityInterface, RateLimitInterface
 {
     public const ROLE_ADMIN   = 'admin';
     public const ROLE_MANAGER = 'manager';
@@ -109,5 +111,43 @@ class User extends ActiveRecord implements IdentityInterface
     public function validatePassword($password)
     {
         return \Yii::$app->security->validatePassword($password, $this->password_hash);
+    }
+
+    /**
+     * API rate limit per authenticated user.
+     *
+     * @return array{0:int,1:int}
+     */
+    public function getRateLimit($request, $action): array
+    {
+        $limit = (int) (getenv('GM_API_RATE_LIMIT') ?: 120);
+        $window = (int) (getenv('GM_API_RATE_WINDOW_SECONDS') ?: 60);
+
+        return [max(1, $limit), max(1, $window)];
+    }
+
+    /**
+     * @return array{0:int,1:int}
+     */
+    public function loadAllowance($request, $action): array
+    {
+        $cache = Yii::$app->cache;
+        $key = ['gm', 'api-rate', 'allowance', (int) $this->id];
+        $stored = $cache->get($key);
+
+        if (is_array($stored) && isset($stored[0], $stored[1])) {
+            return [(int) $stored[0], (int) $stored[1]];
+        }
+
+        [$limit] = $this->getRateLimit($request, $action);
+        return [$limit, time()];
+    }
+
+    public function saveAllowance($request, $action, $allowance, $timestamp): void
+    {
+        $cache = Yii::$app->cache;
+        $key = ['gm', 'api-rate', 'allowance', (int) $this->id];
+        [, $window] = $this->getRateLimit($request, $action);
+        $cache->set($key, [(int) $allowance, (int) $timestamp], max(2, $window * 2));
     }
 }

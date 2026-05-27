@@ -8,6 +8,7 @@ use app\models\User;
 use OpenApi\Annotations as OA;
 use Yii;
 use yii\filters\AccessControl;
+use yii\filters\RateLimiter;
 use yii\web\Controller;
 use yii\web\Response;
 
@@ -23,6 +24,10 @@ class UserController extends Controller
                 'rules' => [
                     ['allow' => true, 'roles' => ['@']],
                 ],
+            ],
+            'rateLimiter' => [
+                'class' => RateLimiter::class,
+                'enableRateLimitHeaders' => true,
             ],
         ];
     }

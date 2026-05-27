@@ -50,11 +50,25 @@ class LoginForm extends Model
      */
     public function validatePassword(string $attribute, array|null $params): void
     {
+        if ($this->isTemporarilyBlocked()) {
+            $this->addError($attribute, 'Too many attempts. Try again later.');
+            return;
+        }
+
         if (!$this->hasErrors()) {
             $user = $this->getUser();
 
             if (!$user || !$this->security->validatePassword($this->password, $user->password_hash)) {
+                $this->registerFailedAttempt();
                 $this->addError($attribute, 'Incorrect username or password.');
+                Yii::warning(
+                    sprintf(
+                        'Login failed for username="%s" ip="%s"',
+                        $this->username,
+                        $this->clientIp()
+                    ),
+                    'security.auth'
+                );
             }
         }
     }
@@ -66,7 +80,20 @@ class LoginForm extends Model
     public function login(): bool
     {
         if ($this->validate()) {
-            return Yii::$app->user->login($this->getUser(), $this->rememberMe ? 3600 * 24 * 30 : 0);
+            $ok = Yii::$app->user->login($this->getUser(), $this->rememberMe ? 3600 * 24 * 30 : 0);
+            if ($ok) {
+                $this->clearAttemptState();
+                Yii::info(
+                    sprintf(
+                        'Login success for user_id=%d username="%s" ip="%s"',
+                        (int) $this->getUser()?->id,
+                        $this->username,
+                        $this->clientIp()
+                    ),
+                    'security.auth'
+                );
+            }
+            return $ok;
         }
 
         return false;
@@ -85,5 +112,70 @@ class LoginForm extends Model
         }
 
         return $this->_user;
+    }
+
+    private function attemptWindowSeconds(): int
+    {
+        return max(60, (int) (getenv('GM_LOGIN_WINDOW_SECONDS') ?: 900));
+    }
+
+    private function maxAttempts(): int
+    {
+        return max(2, (int) (getenv('GM_LOGIN_MAX_ATTEMPTS') ?: 8));
+    }
+
+    private function blockSeconds(): int
+    {
+        return max(60, (int) (getenv('GM_LOGIN_BLOCK_SECONDS') ?: 900));
+    }
+
+    private function attemptKey(): string
+    {
+        return sprintf('gm:login:attempt:%s:%s', $this->clientIp(), strtolower(trim($this->username)));
+    }
+
+    private function blockKey(): string
+    {
+        return sprintf('gm:login:block:%s:%s', $this->clientIp(), strtolower(trim($this->username)));
+    }
+
+    private function clientIp(): string
+    {
+        $ip = Yii::$app?->request?->userIP;
+        return is_string($ip) && $ip !== '' ? $ip : 'cli';
+    }
+
+    private function isTemporarilyBlocked(): bool
+    {
+        $blockedUntil = (int) Yii::$app->cache->get($this->blockKey());
+        return $blockedUntil > time();
+    }
+
+    private function registerFailedAttempt(): void
+    {
+        $cache = Yii::$app->cache;
+        $count = (int) $cache->get($this->attemptKey());
+        $count++;
+        $cache->set($this->attemptKey(), $count, $this->attemptWindowSeconds());
+
+        if ($count >= $this->maxAttempts()) {
+            $blockedUntil = time() + $this->blockSeconds();
+            $cache->set($this->blockKey(), $blockedUntil, $this->blockSeconds());
+            Yii::warning(
+                sprintf(
+                    'Login throttled for username="%s" ip="%s" until=%d',
+                    $this->username,
+                    $this->clientIp(),
+                    $blockedUntil
+                ),
+                'security.auth'
+            );
+        }
+    }
+
+    private function clearAttemptState(): void
+    {
+        Yii::$app->cache->delete($this->attemptKey());
+        Yii::$app->cache->delete($this->blockKey());
     }
 }
