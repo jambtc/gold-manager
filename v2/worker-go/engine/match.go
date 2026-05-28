@@ -434,6 +434,16 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	homeBonus := homeTraits.Bonus
 	awayBonus := awayTraits.Bonus
 
+	// SIP-0038: tactical modifiers (parity with PHP MatchEngine::resolveTick)
+	homeTeamID, _ := e.teamID(fixtureID, "home")
+	awayTeamID, _ := e.teamID(fixtureID, "away")
+	homeTactics := e.loadTeamTactics(homeTeamID)
+	awayTactics := e.loadTeamTactics(awayTeamID)
+	homeGoalMod := tacticGoalModifier(homeTactics, awayTactics)
+	awayGoalMod := tacticGoalModifier(awayTactics, homeTactics)
+	homeGoalThreshold := 2.5 * homeBonus * homeGoalMod
+	awayGoalThreshold := homeGoalThreshold + 2.5*awayBonus*awayGoalMod
+
 	chance := rand.Float64() * 100.0
 
 	// attack_side for indicator bar (SIP-0064): home attacks first 50%, away second 50%
@@ -461,8 +471,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	var eventPlayerID *int
 
 	switch {
-	// Home goal ~2.5%
-	case chance < 2.5*homeBonus:
+	// Home goal ~2.5% × trait bonus × tactic modifier
+	case chance < homeGoalThreshold:
 		state.HomeScore++
 		eventType, teamSide = "goal", "home"
 		attackSide = "home"
@@ -489,8 +499,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 		detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
 
-		// Away goal ~2.5%
-	case chance < 5.0*awayBonus:
+		// Away goal ~2.5% × trait bonus × tactic modifier
+	case chance < awayGoalThreshold:
 		state.AwayScore++
 		eventType, teamSide = "goal", "away"
 		attackSide = "away"
@@ -517,8 +527,9 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 		detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
 
-		// Home near_miss or gk_save ~4.5%
-	case chance < 9.5:
+		// Away goal ~2.5% × trait bonus × tactic modifier
+	case chance < awayGoalThreshold:
+		state.AwayScore++
 		attackSide = "home"
 		shooter := e.randomPlayerName(fixtureID, "home", "FW")
 		gk := e.randomPlayerName(fixtureID, "away", "GK")
@@ -1370,6 +1381,102 @@ func physicalFitnessMod(heightCm, weightKg int, position string) float64 {
 		return 1.04
 	}
 	return pfi
+}
+
+// teamTactics holds the 8 tactic levels (0-100) for one team.
+type teamTactics struct {
+	Pressing      float64
+	Contropiede   float64
+	Possesso      float64
+	PallaBassa    float64
+	LancioLungo   float64
+	Catenaccio    float64
+	Fuorigioco    float64
+	CalciPiazzati float64
+}
+
+// loadTeamTactics fetches the latest tactic row for a team.
+// Returns sensible defaults if no row exists.
+func (e *MatchEngine) loadTeamTactics(teamID int) teamTactics {
+	defaults := teamTactics{
+		Pressing: 30, Contropiede: 20, Possesso: 40,
+		PallaBassa: 30, LancioLungo: 20, Catenaccio: 20,
+		Fuorigioco: 10, CalciPiazzati: 30,
+	}
+	if teamID <= 0 {
+		return defaults
+	}
+	type row struct {
+		Pressing      int `db:"pressing"`
+		Contropiede   int `db:"contropiede"`
+		Possesso      int `db:"possesso"`
+		PallaBassa    int `db:"palla_bassa"`
+		LancioLungo   int `db:"lancio_lungo"`
+		Catenaccio    int `db:"catenaccio"`
+		Fuorigioco    int `db:"fuorigioco"`
+		CalciPiazzati int `db:"calci_piazzati"`
+	}
+	var r row
+	err := e.DB.Get(&r,
+		"SELECT pressing, contropiede, possesso, palla_bassa, lancio_lungo, catenaccio, fuorigioco, calci_piazzati FROM training_tactic WHERE team_id = ? ORDER BY season DESC LIMIT 1",
+		teamID)
+	if err != nil {
+		return defaults
+	}
+	return teamTactics{
+		Pressing:      float64(r.Pressing),
+		Contropiede:   float64(r.Contropiede),
+		Possesso:      float64(r.Possesso),
+		PallaBassa:    float64(r.PallaBassa),
+		LancioLungo:   float64(r.LancioLungo),
+		Catenaccio:    float64(r.Catenaccio),
+		Fuorigioco:    float64(r.Fuorigioco),
+		CalciPiazzati: float64(r.CalciPiazzati),
+	}
+}
+
+// tacticGoalModifier returns a goal-probability multiplier in [0.70, 1.40].
+// Parity: mirrors PHP MatchEngine::resolveTick() SIP-0038 tactic effects.
+// atk = tactics of the team attacking, def = tactics of the defending team.
+func tacticGoalModifier(atk, def teamTactics) float64 {
+	pressing := atk.Pressing / 100.0
+	possesso  := atk.Possesso / 100.0
+	lancio    := atk.LancioLungo / 100.0
+	contro    := atk.Contropiede / 100.0
+	calci     := atk.CalciPiazzati / 100.0
+
+	// Conflict penalties (mirrors applyTacticConflicts in PHP)
+	if atk.Pressing > 50 && atk.Catenaccio > 50 {
+		pressing *= 0.70 // pressing −30% effective
+	}
+	if atk.LancioLungo > 50 && atk.Possesso > 50 {
+		possesso *= 0.60 // possesso −40% effective
+	}
+
+	atkMod := 1.0 +
+		pressing*0.08 +
+		possesso*0.10 +
+		lancio*0.10 + // ~50% of 20% bypass → direct probability add
+		contro*0.075 + // ~50% counter situations × 0.15
+		calci*0.05 // set piece average contribution
+
+	caten := def.Catenaccio / 100.0
+	fuo   := def.Fuorigioco / 100.0
+	palla := def.PallaBassa / 100.0
+
+	defMod := 1.0 +
+		caten*0.12 +
+		fuo*0.075 + // 15% nullification × 0.5 scaling
+		palla*0.05
+
+	mod := atkMod / defMod
+	if mod < 0.70 {
+		return 0.70
+	}
+	if mod > 1.40 {
+		return 1.40
+	}
+	return mod
 }
 
 func (e *MatchEngine) ProcessCommand(fixtureID int, state *models.MatchState, cmd models.MatchCommand) {
