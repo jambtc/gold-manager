@@ -88,29 +88,49 @@ class WorldData
         'costante', 'irrequieto',
     ];
 
-    // ── SIP-0034: DB-backed name generation with static array fallback ──
+    /** Nationality weights for random pick (SIP-0070). Sum = 100. */
+    private const NAT_WEIGHTS = [
+        'ITA' => 40, 'ESP' => 7, 'BRA' => 8, 'ARG' => 7,
+        'FRA' => 7, 'DEU' => 6, 'ENG' => 7, 'PRT' => 6,
+        'NLD' => 6, 'HRV' => 6,
+    ];
 
-    public static function randomFirstName(): string
+    public static function pickNationality(): string
+    {
+        $roll = random_int(1, 100);
+        $cum = 0;
+        foreach (self::NAT_WEIGHTS as $nat => $w) {
+            $cum += $w;
+            if ($roll <= $cum) return $nat;
+        }
+        return 'ITA';
+    }
+
+    // ── SIP-0034 / SIP-0070: DB-backed name generation with static array fallback ──
+
+    public static function randomFirstName(string $nationality = 'ITA'): string
     {
         try {
             $name = \Yii::$app->db->createCommand(
-                'SELECT name FROM {{%name_first}} ORDER BY RAND() LIMIT 1'
+                'SELECT name FROM {{%name_first}} WHERE nationality=:nat ORDER BY RAND() LIMIT 1',
+                [':nat' => $nationality]
             )->queryScalar();
             if ($name) return (string)$name;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // fallback
         }
         return self::FIRST_NAMES[array_rand(self::FIRST_NAMES)];
     }
 
-    public static function randomLastName(): string
+    public static function randomLastName(string $nationality = 'ITA'): string
     {
         try {
             $name = \Yii::$app->db->createCommand(
-                'SELECT name FROM {{%name_last}} ORDER BY RAND() LIMIT 1'
+                'SELECT name FROM {{%name_last}} WHERE nationality=:nat ORDER BY RAND() LIMIT 1',
+                [':nat' => $nationality]
             )->queryScalar();
             if ($name) return (string)$name;
-        } catch (\Throwable $e) {
+        } catch (\Throwable) {
             // fallback
         }
         return self::LAST_NAMES[array_rand(self::LAST_NAMES)];

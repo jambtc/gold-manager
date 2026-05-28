@@ -18,6 +18,7 @@ declare(strict_types=1);
 /** @var array<int, array{official_credits:int, friendly_credits:int, bonus:float}> $cellHeatmap */
 
 use yii\helpers\Html;
+use app\components\PhysicalHelper;
 use app\components\PlayerAttributeHelper;
 use app\components\UiIconHelper;
 use app\components\QuadrantHelper;
@@ -122,9 +123,9 @@ $trainingLogs = Yii::$app->db->createCommand(
                         <path d="M17,5 L22,13 L27,5" fill="<?= $posColor ?>aa" stroke="rgba(0,0,0,0.4)" stroke-width="0.8" />
                         <text x="22" y="35" text-anchor="middle" dominant-baseline="middle" fill="#fff" font-size="11" font-weight="900" font-family="system-ui,sans-serif"><?= $player->number ?></text>
                     </svg>
-                    <!-- Skill circle -->
+                    <!-- OVR circle -->
                     <div style="position:absolute;top:-8px;right:-12px;width:36px;height:36px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-weight:900;font-size:.9rem;color:#000;border:2px solid rgba(0,0,0,0.3)">
-                        <?= $player->general_skill ?>
+                        <?= $player->getNaturalOverall() ?>
                     </div>
                 </div>
             </div>
@@ -140,10 +141,24 @@ $trainingLogs = Yii::$app->db->createCommand(
                         <?= UiIconHelper::renderPositionIcon((string) $player->position, 20) ?>
                         <span><?= Html::encode(strtoupper((string) $player->position)) ?></span>
                     </span>
+                    <?php if (!empty($player->nationality)): ?>
+                    <span style="display:inline-flex;align-items:center;gap:.35rem"><?= UiIconHelper::flagImg((string)$player->nationality, 22) ?> <span class="text-muted-gm" style="font-size:.72rem"><?= Html::encode($player->nationality) ?></span></span>
+                    <?php endif; ?>
                     <span class="text-muted-gm small"><i class="bi bi-calendar3"></i> <?= $player->age ?> anni</span>
-                    <span class="text-muted-gm small" style="display:inline-flex;align-items-center;gap:.3rem">
+                    <span class="text-muted-gm small" style="display:inline-flex;align-items:center;gap:.3rem">
                         <?= $playerFootIcon ?> <?= Html::encode($footLabel) ?>
                     </span>
+                    <?php if (!empty($player->height_cm) && !empty($player->weight_kg)):
+                        $bmi = PhysicalHelper::bmi((int)$player->height_cm, (int)$player->weight_kg);
+                        $pfi = PhysicalHelper::pfi((int)$player->height_cm, (int)$player->weight_kg, (string)$player->position);
+                        $pfiColor = $pfi >= 1.02 ? 'var(--gold)' : ($pfi >= 0.98 ? 'var(--bs-body-color)' : '#f87171');
+                    ?>
+                    <span class="text-muted-gm small" title="PFI <?= round($pfi, 2) ?>">
+                        <i class="bi bi-rulers"></i> <?= $player->height_cm ?>cm
+                        <i class="bi bi-speedometer2 ms-1"></i> <?= $player->weight_kg ?>kg
+                        <span class="ms-1" style="color:<?= $pfiColor ?>;font-weight:700">BMI <?= $bmi ?></span>
+                    </span>
+                    <?php endif; ?>
                     <span class="text-muted-gm small" style="font-style:italic"><?= Html::encode(ucfirst($player->character ?? '')) ?></span>
                 </div>
             </div>

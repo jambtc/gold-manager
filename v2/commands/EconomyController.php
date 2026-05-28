@@ -7,6 +7,7 @@ namespace app\commands;
 use app\components\seeders\FixtureSeeder;
 use app\components\AuctionService;
 use app\components\CharacterTraitHelper;
+use app\components\PhysicalHelper;
 use app\components\FriendlyChallengeService;
 use app\components\PlayerAttributeHelper;
 use app\components\ScoutingService;
@@ -58,6 +59,8 @@ class EconomyController extends Controller
 {
     private const BASE_SEASON_GRANT = 500000;
     private const POSITION_BONUS = 50000;
+    private const DEFAULT_TRANSFER_POOL_MIN_PLAYERS = 80;
+    private const DEFAULT_TRANSFER_POOL_MAX_PLAYERS = 140;
     private const ALL_SKILL_STATS = [
         'skill_po', 'skill_df', 'skill_cn', 'skill_pa',
         'skill_rg', 'skill_cr', 'skill_tc', 'skill_tr',
@@ -145,7 +148,7 @@ class EconomyController extends Controller
                 \app\components\NewsService::create(
                     (int)$team->user_id,
                     \app\models\NewsItem::CAT_FINANCE,
-                    $delta >= 0 ? '💰' : '📉',
+                    $delta >= 0 ? '$' : '!',
                     $delta >= 0
                         ? sprintf('Bilancio settimanale: +€%s', number_format($delta, 0, ',', '.'))
                         : sprintf('Bilancio settimanale: −€%s', number_format(abs($delta), 0, ',', '.')),
@@ -171,7 +174,7 @@ class EconomyController extends Controller
             ));
         }
 
-        ['generated' => $generated, 'pool' => $poolCount] = $this->maintainPlayerPool(50);
+        ['generated' => $generated, 'pool' => $poolCount] = $this->maintainPlayerPool();
         $cpuFilled = $this->maintainCpuRostersFromPool(18);
         $cpuTransfers = $this->runCpuTransferMarketCycle();
         $cpuStaffHired = $this->runCpuStaffHiringCycle();
@@ -613,6 +616,15 @@ class EconomyController extends Controller
                 }
                 if ($playerFreshDelta < 0) {
                     $playerFreshDelta += min(2, (int) floor($fitnessCoachEff / 50));
+                    // SIP-0073: BMI deviation increases fatigue cost
+                    $bmiPenalty = PhysicalHelper::trainingFatiguePenalty(
+                        (int) ($player->height_cm ?? 180),
+                        (int) ($player->weight_kg ?? 75),
+                        (string) $player->position
+                    );
+                    if ($bmiPenalty > 0) {
+                        $playerFreshDelta -= $bmiPenalty;
+                    }
                 }
                 if ($playerFreshDelta !== 0) {
                     $player->freshness = max(0, min(100, (int) $player->freshness + $playerFreshDelta));
@@ -867,7 +879,7 @@ class EconomyController extends Controller
             $fixturesCreated = $this->generateNextSeasonFixtures($competition, $nextSeasonTeamIds);
             $this->stdout("📅 Nuovo calendario generato: {$fixturesCreated} fixture\n");
 
-            ['generated' => $generatedYouth, 'pool' => $poolCount] = $this->maintainPlayerPool(50);
+            ['generated' => $generatedYouth, 'pool' => $poolCount] = $this->maintainPlayerPool();
             $cpuFilled = $this->maintainCpuRostersFromPool(18);
             $staffRestocked = $this->restockStaffMarketForManagers();
             $this->stdout("🌱 Post-rollover pool: +{$generatedYouth}, totale {$poolCount}\n");
@@ -935,17 +947,30 @@ class EconomyController extends Controller
     /**
      * @return array{generated:int,pool:int}
      */
-    private function maintainPlayerPool(int $target): array
+    private function maintainPlayerPool(?int $forcedTarget = null): array
     {
         $now = time();
+        $auctionHours = max(1, AuctionService::hoursForType(MarketBid::TYPE_TRANSFER_MARKET));
+        $ttlSeconds = $auctionHours * 3600;
+        ['min' => $minPool, 'max' => $maxPool, 'target' => $targetPool] = $this->transferPoolBounds($forcedTarget);
 
-        // Cleanup expired/invalid pool entries.
-        $expiredIds = PlayerPool::find()
+        // Expired pool rows leave the market; corresponding free agents are removed.
+        $expiredRows = PlayerPool::find()
             ->where(['<', 'expires_at', $now])
-            ->select('id')
-            ->column();
-        if (!empty($expiredIds)) {
-            PlayerPool::deleteAll(['id' => $expiredIds]);
+            ->all();
+        if (!empty($expiredRows)) {
+            $expiredPoolIds = [];
+            $expiredPlayerIds = [];
+            foreach ($expiredRows as $row) {
+                $expiredPoolIds[] = (int) $row->id;
+                if ((int) $row->player_id > 0) {
+                    $expiredPlayerIds[] = (int) $row->player_id;
+                }
+            }
+            PlayerPool::deleteAll(['id' => $expiredPoolIds]);
+            if (!empty($expiredPlayerIds)) {
+                Player::deleteAll(['and', ['id' => array_unique($expiredPlayerIds)], ['team_id' => null]]);
+            }
         }
 
         $invalidPool = PlayerPool::find()
@@ -958,6 +983,15 @@ class EconomyController extends Controller
             PlayerPool::deleteAll(['id' => $invalidPool]);
         }
 
+        // Normalize very old/legacy far future expiries to current auction horizon.
+        Yii::$app->db->createCommand(
+            'UPDATE {{%player_pool}} SET expires_at = :expiresAt WHERE expires_at > :maxAllowed',
+            [
+                ':expiresAt' => $now + $ttlSeconds,
+                ':maxAllowed' => $now + $ttlSeconds,
+            ]
+        )->execute();
+
         $current = (int) PlayerPool::find()
             ->alias('pp')
             ->innerJoin(['p' => Player::tableName()], 'p.id = pp.player_id')
@@ -965,16 +999,48 @@ class EconomyController extends Controller
             ->andWhere(['>', 'pp.expires_at', $now])
             ->count();
 
-        $toGenerate = max(0, $target - $current);
+        if ($current > $maxPool) {
+            $overflow = $current - $maxPool;
+            $overflowRows = PlayerPool::find()
+                ->alias('pp')
+                ->innerJoin(['p' => Player::tableName()], 'p.id = pp.player_id')
+                ->where(['p.team_id' => null])
+                ->orderBy(['pp.expires_at' => SORT_DESC, 'pp.id' => SORT_DESC])
+                ->limit($overflow)
+                ->all();
+            $overflowPoolIds = [];
+            $overflowPlayerIds = [];
+            foreach ($overflowRows as $row) {
+                $overflowPoolIds[] = (int) $row->id;
+                if ((int) $row->player_id > 0) {
+                    $overflowPlayerIds[] = (int) $row->player_id;
+                }
+            }
+            if (!empty($overflowPoolIds)) {
+                PlayerPool::deleteAll(['id' => $overflowPoolIds]);
+            }
+            if (!empty($overflowPlayerIds)) {
+                Player::deleteAll(['and', ['id' => array_unique($overflowPlayerIds)], ['team_id' => null]]);
+            }
+            $current = max(0, $current - count($overflowPoolIds));
+        }
+
+        if ($current < $minPool) {
+            $targetPool = max($targetPool, $minPool);
+        }
+
+        $toGenerate = max(0, $targetPool - $current);
         for ($i = 0; $i < $toGenerate; $i++) {
-            $this->createGeneratedFreeAgentIntoPool();
+            $minExpiry = max(3600, (int) floor($ttlSeconds * 0.75));
+            $expiresAt = $now + random_int($minExpiry, $ttlSeconds);
+            $this->createGeneratedFreeAgentIntoPool($expiresAt);
         }
 
         $total = (int) PlayerPool::find()->count();
         return ['generated' => $toGenerate, 'pool' => $total];
     }
 
-    private function createGeneratedFreeAgentIntoPool(): void
+    private function createGeneratedFreeAgentIntoPool(?int $expiresAt = null): void
     {
         $stats = [
             'skill_po' => random_int(20, 40),
@@ -1005,14 +1071,18 @@ class EconomyController extends Controller
 
         $footRoll = random_int(1, 100);
         $foot = $footRoll <= 80 ? 'R' : ($footRoll <= 95 ? 'L' : 'LR');
-        $name = WorldData::randomFirstName() . ' ' . WorldData::randomLastName();
+        $nationality = WorldData::pickNationality();
+        $name = WorldData::randomFirstName($nationality) . ' ' . WorldData::randomLastName($nationality);
         $age = random_int(17, 21);
 
         $player = new Player();
         $player->team_id = null;
         $player->number = random_int(1, 99);
         $player->name = $name;
+        $player->nationality = $nationality;
         $player->age = $age;
+        $player->height_cm = PhysicalHelper::randomHeight($position);
+        $player->weight_kg = PhysicalHelper::randomWeight($position);
         $player->position = $position;
         $player->foot = $foot;
         $player->skill_po = $stats['skill_po'];
@@ -1043,10 +1113,46 @@ class EconomyController extends Controller
         $pool->asking_fee = $asking;
         $pool->salary_ask = $salaryAsk;
         $pool->available_since = time();
-        $pool->expires_at = time() + (3600 * 24 * 365 * 2);
+        $pool->expires_at = $expiresAt ?? (time() + (AuctionService::hoursForType(MarketBid::TYPE_TRANSFER_MARKET) * 3600));
         $pool->save(false);
 
-        ScoutingService::notifyTeamsForNewPoolPlayer($player, $pool);
+        ScoutingService::notifyTeamsForNewMarketPlayer($player, $pool);
+    }
+
+    /**
+     * @return array{min:int,max:int,target:int}
+     */
+    private function transferPoolBounds(?int $forcedTarget = null): array
+    {
+        if ($forcedTarget !== null) {
+            $forced = max(1, (int) $forcedTarget);
+            return ['min' => $forced, 'max' => $forced, 'target' => $forced];
+        }
+
+        $min = $this->envInt('GM_TRANSFER_POOL_MIN_PLAYERS', self::DEFAULT_TRANSFER_POOL_MIN_PLAYERS);
+        $max = $this->envInt('GM_TRANSFER_POOL_MAX_PLAYERS', self::DEFAULT_TRANSFER_POOL_MAX_PLAYERS);
+        if ($max < $min) {
+            $max = $min;
+        }
+        $defaultTarget = (int) round(($min + $max) / 2);
+        $target = $this->envInt('GM_TRANSFER_POOL_TARGET_PLAYERS', $defaultTarget);
+        if ($target < $min) {
+            $target = $min;
+        } elseif ($target > $max) {
+            $target = $max;
+        }
+
+        return ['min' => $min, 'max' => $max, 'target' => $target];
+    }
+
+    private function envInt(string $key, int $default): int
+    {
+        $raw = trim((string) getenv($key));
+        if ($raw === '' || !is_numeric($raw)) {
+            return $default;
+        }
+        $value = (int) $raw;
+        return $value > 0 ? $value : $default;
     }
 
     private function randomPositionForPool(): string
@@ -1656,9 +1762,11 @@ class EconomyController extends Controller
                 $salaryBase = (int) ($roleBaseSalary[$role] ?? 35000);
                 $salary = max(24000, (int) round($salaryBase * ($ability / 55)));
 
+                $staffNat = WorldData::pickNationality();
                 $staff = new Staff();
                 $staff->team_id = (int) $team->id;
-                $staff->name = WorldData::randomFirstName() . ' ' . WorldData::randomLastName();
+                $staff->name = WorldData::randomFirstName($staffNat) . ' ' . WorldData::randomLastName($staffNat);
+                $staff->nationality = $staffNat;
                 $staff->role = $role;
                 $staff->ability = $ability;
                 $staff->experience = $experience;
@@ -1759,7 +1867,7 @@ class EconomyController extends Controller
                         '-',
                         $challenged->name . ' ha declinato l’amichevole',
                         $reason,
-                        Yii::$app->urlManager->createUrl(['/friendly/index'])
+                        $this->safeUrl('/friendly/index')
                     );
                 }
                 continue;
@@ -1779,7 +1887,7 @@ class EconomyController extends Controller
                     '+',
                     $challenged->name . ' ha accettato l’amichevole',
                     sprintf('Partita programmata per %s.', date('d/m H:i', (int) $challenge->proposed_at)),
-                    Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id]),
+                    $this->safeUrl('/fixture/live', ['id' => (int) $fixture->id]),
                     1
                 );
             }
@@ -1886,7 +1994,7 @@ class EconomyController extends Controller
                         'I',
                         'Invito amichevole ricevuto',
                         sprintf('%s ti sfida per %s.', $cpuTeam->name, date('d/m H:i', $slot)),
-                        Yii::$app->urlManager->createUrl(['/friendly/index']),
+                        $this->safeUrl('/friendly/index'),
                         1
                     );
                 }
@@ -1924,11 +2032,13 @@ class EconomyController extends Controller
 
     private function generatePlayerForCpuTeam(int $teamId, string $position, int $season): void
     {
+        $nat = WorldData::pickNationality();
         $seed = new PlayerSeeder();
         $attrs = $seed->buildAttributes(
             $position,
             random_int(1, 99),
-            WorldData::randomFirstName() . ' ' . WorldData::randomLastName()
+            WorldData::randomFirstName($nat) . ' ' . WorldData::randomLastName($nat),
+            $nat
         );
 
         $player = new Player();
@@ -1958,6 +2068,7 @@ class EconomyController extends Controller
             Staff::ROLE_ASSISTANT_COACH,
             Staff::ROLE_GOALKEEPING_COACH,
             Staff::ROLE_FITNESS_COACH,
+            Staff::ROLE_DOCTOR,
             Staff::ROLE_SCOUT,
         ];
         $baseSalary = [
@@ -1965,6 +2076,7 @@ class EconomyController extends Controller
             Staff::ROLE_ASSISTANT_COACH => 40000,
             Staff::ROLE_GOALKEEPING_COACH => 45000,
             Staff::ROLE_FITNESS_COACH => 30000,
+            Staff::ROLE_DOCTOR => 42000,
             Staff::ROLE_SCOUT => 25000,
         ];
 
@@ -1985,9 +2097,11 @@ class EconomyController extends Controller
                     $motivation = random_int(60, 100);
                     $salary = (int) round(($baseSalary[$role] ?? 30000) * ($ability / 50));
 
+                    $candNat = WorldData::pickNationality();
                     $cand = new StaffMarket();
                     $cand->team_id = (int) $team->id;
-                    $cand->name = WorldData::randomFirstName() . ' ' . WorldData::randomLastName();
+                    $cand->name = WorldData::randomFirstName($candNat) . ' ' . WorldData::randomLastName($candNat);
+                    $cand->nationality = $candNat;
                     $cand->role = $role;
                     $cand->ability = $ability;
                     $cand->experience = $experience;
@@ -2151,7 +2265,7 @@ class EconomyController extends Controller
     }
 
     /**
-     * Resolve expired bids for player_pool, staff and sponsor auctions.
+     * Resolve expired bids for transfer market, staff and sponsor auctions.
      *
      * @return array{resolved:int,won:int,lost:int}
      */
@@ -2169,7 +2283,8 @@ class EconomyController extends Controller
 
         $grouped = [];
         foreach ($bids as $bid) {
-            $key = $bid->market_type . ':' . (int) $bid->market_ref_id;
+            $normalizedType = MarketBid::normalizeMarketType((string) $bid->market_type);
+            $key = $normalizedType . ':' . (int) $bid->market_ref_id;
             $grouped[$key][] = $bid;
         }
 
@@ -2177,9 +2292,9 @@ class EconomyController extends Controller
         $won = 0;
         $lost = 0;
         foreach ($grouped as $group) {
-            $type = (string) ($group[0]->market_type ?? '');
+            $type = MarketBid::normalizeMarketType((string) ($group[0]->market_type ?? ''));
             $result = match ($type) {
-                MarketBid::TYPE_PLAYER_POOL => $this->resolvePlayerPoolAuction($group, $now),
+                MarketBid::TYPE_TRANSFER_MARKET => $this->resolveTransferMarketAuction($group, $now),
                 MarketBid::TYPE_STAFF => $this->resolveStaffAuction($group, $now),
                 MarketBid::TYPE_SPONSOR => $this->resolveSponsorAuction($group, $now),
                 default => $this->resolveAsLost($group, 'Tipo asta non supportato', $now),
@@ -2196,7 +2311,7 @@ class EconomyController extends Controller
      * @param MarketBid[] $bids
      * @return array{resolved:int,won:int,lost:int}
      */
-    private function resolvePlayerPoolAuction(array $bids, int $now): array
+    private function resolveTransferMarketAuction(array $bids, int $now): array
     {
         $poolId = (int) $bids[0]->market_ref_id;
         $pool = PlayerPool::findOne($poolId);
@@ -2256,7 +2371,7 @@ class EconomyController extends Controller
             if ($tx->isActive) {
                 $tx->rollBack();
             }
-            Yii::warning('Auction player_pool failed: ' . $e->getMessage(), 'economy');
+            Yii::warning('Auction transfer_market failed: ' . $e->getMessage(), 'economy');
             return $this->resolveAsLost($bids, 'Errore sistema in assegnazione', $now);
         }
 
@@ -2272,7 +2387,7 @@ class EconomyController extends Controller
                 '🏁',
                 "Asta vinta: {$player->name}",
                 sprintf('Acquisto completato a €%s.', number_format((int) $winner->bid_amount, 0, ',', '.')),
-                Yii::$app->urlManager->createUrl(['/transfer/market']),
+                $this->safeUrl('/transfer/market'),
                 1
             );
             TelegramService::sendToUser(
@@ -2366,7 +2481,7 @@ class EconomyController extends Controller
                 '🧑‍💼',
                 "Staff assunto: {$staff->name}",
                 sprintf('Ruolo %s · costo asta €%s.', $staff->role, number_format((int) $winner->bid_amount, 0, ',', '.')),
-                Yii::$app->urlManager->createUrl(['/staff/view'])
+                $this->safeUrl('/staff/view')
             );
             TelegramService::sendToUser(
                 (int) $team->user_id,
@@ -2483,7 +2598,7 @@ class EconomyController extends Controller
                 '🤝',
                 "Sponsor acquisito: {$sponsor->name}",
                 sprintf('Asta vinta con €%s.', number_format((int) $winner->bid_amount, 0, ',', '.')),
-                Yii::$app->urlManager->createUrl(['/sponsor/index']),
+                $this->safeUrl('/sponsor/index'),
                 1
             );
             TelegramService::sendToUser(
@@ -3375,26 +3490,32 @@ class EconomyController extends Controller
     {
         $base = 0.60; // base 60%
 
-        // ── Home team standing position ──────────────────────────────────
-        $homeStanding = Standing::find()
-            ->where(['team_id' => $fixture->home_team_id, 'competition_id' => $fixture->competition_id])
-            ->one();
-        $totalTeams = (int) Standing::find()
+        // ── Home/Away standing rank (derived from ordered table) ────────
+        $table = Standing::find()
             ->where(['competition_id' => $fixture->competition_id])
-            ->count();
+            ->orderBy([
+                'points' => SORT_DESC,
+                new \yii\db\Expression('(goals_for - goals_against) DESC'),
+                'goals_for' => SORT_DESC,
+                'team_id' => SORT_ASC,
+            ])
+            ->all();
+        $totalTeams = count($table);
+        $positionMap = [];
+        foreach ($table as $idx => $row) {
+            $positionMap[(int) $row->team_id] = $idx + 1;
+        }
 
-        if ($homeStanding && $totalTeams > 0) {
-            $posRatio = 1 - (($homeStanding->position - 1) / max(1, $totalTeams - 1));
+        $homePos = $positionMap[(int) $fixture->home_team_id] ?? null;
+        if ($homePos !== null && $totalTeams > 0) {
+            $posRatio = 1 - (($homePos - 1) / max(1, $totalTeams - 1));
             // top team: +15%, bottom team: -15%
             $base += ($posRatio - 0.5) * 0.30;
         }
 
-        // ── Away team appeal ─────────────────────────────────────────────
-        $awayStanding = Standing::find()
-            ->where(['team_id' => $fixture->away_team_id, 'competition_id' => $fixture->competition_id])
-            ->one();
-        if ($awayStanding && $totalTeams > 0) {
-            $awayRatio = 1 - (($awayStanding->position - 1) / max(1, $totalTeams - 1));
+        $awayPos = $positionMap[(int) $fixture->away_team_id] ?? null;
+        if ($awayPos !== null && $totalTeams > 0) {
+            $awayRatio = 1 - (($awayPos - 1) / max(1, $totalTeams - 1));
             // top away team: +10%
             $base += ($awayRatio - 0.5) * 0.20;
         }
@@ -3416,5 +3537,19 @@ class EconomyController extends Controller
         }
 
         return max(0.10, min(1.0, $base));
+    }
+
+    /**
+     * Build route URL in both web and console contexts.
+     *
+     * @param array<string, scalar> $params
+     */
+    private function safeUrl(string $route, array $params = []): string
+    {
+        if (Yii::$app instanceof \yii\console\Application) {
+            $q = http_build_query($params);
+            return $q !== '' ? ($route . '?' . $q) : $route;
+        }
+        return Yii::$app->urlManager->createUrl(array_merge([$route], $params));
     }
 }

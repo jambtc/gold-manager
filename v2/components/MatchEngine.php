@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\components;
 
+use app\components\PhysicalHelper;
 use app\models\Fixture;
 use app\models\Formation;
 use app\models\MatchEvent;
@@ -647,6 +648,7 @@ class MatchEngine extends Component
             'at_C' => 0,
             'at_R' => 0,
         ];
+        $physicalPlayers = [];
 
         if (!$team)
             return $totals;
@@ -679,6 +681,11 @@ class MatchEngine extends Component
                     continue;
                 $player = $slot->player;
                 $slotZone = (int) $slot->zone;
+                $physicalPlayers[] = [
+                    'height_cm' => (int) ($player->height_cm ?? 180),
+                    'weight_kg' => (int) ($player->weight_kg ?? 75),
+                    'position'  => (string) $player->position,
+                ];
                 $multiplier = $this->computePlayerMultiplier($player, $formation->effort, $isLosing, $side === 'home', $slotZone);
                 if ($captainBoost > 0.0 && (int) $player->id !== $captainId) {
                     $multiplier *= (1.0 + $captainBoost);
@@ -745,6 +752,11 @@ class MatchEngine extends Component
             }
 
             foreach ($starters as $player) {
+                $physicalPlayers[] = [
+                    'height_cm' => (int) ($player->height_cm ?? 180),
+                    'weight_kg' => (int) ($player->weight_kg ?? 75),
+                    'position'  => (string) $player->position,
+                ];
                 $multiplier = $this->computePlayerMultiplier($player, 3, $isLosing);
                 $totals['po'] += (int) ($player->skill_po * $multiplier);
                 $totals['df'] += (int) ($player->skill_df * $multiplier);
@@ -804,6 +816,16 @@ class MatchEngine extends Component
                     foreach (['tr','cr','at_L','at_C','at_R'] as $k) {
                         $totals[$k] = (int)($totals[$k] * 0.88);
                     }
+                }
+            }
+        }
+
+        // SIP-0073: Physical Fitness Index — scale all totals by team average PFI
+        if (!empty($physicalPlayers)) {
+            $teamPFI = PhysicalHelper::teamPfi($physicalPlayers);
+            if (abs($teamPFI - 1.0) > 0.001) {
+                foreach (array_keys($totals) as $k) {
+                    $totals[$k] = (int) round($totals[$k] * $teamPFI);
                 }
             }
         }
@@ -893,6 +915,24 @@ class MatchEngine extends Component
         if ($state) {
             // Normalize phase to lowercase — Go worker writes uppercase ('FINISHED', 'HALF_TIME', etc.)
             $state->phase = strtolower($state->phase);
+            if ($state->phase === 'not_started') {
+                $homeFormationId = Formation::find()
+                    ->select('id')
+                    ->where(['team_id' => $fixture->home_team_id, 'is_active' => true])
+                    ->orderBy(['updated_at' => SORT_DESC, 'id' => SORT_DESC])
+                    ->scalar() ?: null;
+                $awayFormationId = Formation::find()
+                    ->select('id')
+                    ->where(['team_id' => $fixture->away_team_id, 'is_active' => true])
+                    ->orderBy(['updated_at' => SORT_DESC, 'id' => SORT_DESC])
+                    ->scalar() ?: null;
+                if ((int) ($state->home_formation_id ?? 0) !== (int) ($homeFormationId ?? 0)
+                    || (int) ($state->away_formation_id ?? 0) !== (int) ($awayFormationId ?? 0)) {
+                    $state->home_formation_id = $homeFormationId;
+                    $state->away_formation_id = $awayFormationId;
+                    $state->save(false, ['home_formation_id', 'away_formation_id', 'updated_at']);
+                }
+            }
             return $state;
         }
 
@@ -908,10 +948,14 @@ class MatchEngine extends Component
         $state->pending_away_actions = '[]';
 
         $state->home_formation_id = Formation::find()
+            ->select('id')
             ->where(['team_id' => $fixture->home_team_id, 'is_active' => true])
+            ->orderBy(['updated_at' => SORT_DESC, 'id' => SORT_DESC])
             ->scalar() ?: null;
         $state->away_formation_id = Formation::find()
+            ->select('id')
             ->where(['team_id' => $fixture->away_team_id, 'is_active' => true])
+            ->orderBy(['updated_at' => SORT_DESC, 'id' => SORT_DESC])
             ->scalar() ?: null;
 
         // save(false) skips validation — avoid silent failure loops

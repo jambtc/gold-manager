@@ -23,7 +23,14 @@ $this->params['breadcrumbs'][] = $this->title;
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h1 class="mb-0"><?= Html::encode($this->title) ?></h1>
-            <p class="text-muted-gm"><?= count($players) ?> Giocatori • Media Skill: <?= number_format(array_sum(array_column($players, 'general_skill')) / max(1, count($players)), 1) ?></p>
+            <?php
+            $sumOvr = 0;
+            foreach ($players as $_p) {
+                $sumOvr += (int) $_p->getNaturalOverall();
+            }
+            $avgOvr = count($players) > 0 ? ($sumOvr / count($players)) : 0;
+            ?>
+            <p class="text-muted-gm"><?= count($players) ?> Giocatori • Media OVR: <?= number_format($avgOvr, 1) ?></p>
         </div>
         <div class="d-flex gap-2">
             <?= Html::a('<i class="bi bi-grid-3x3"></i> Gestione Tattica', ['/formation/view'], ['class' => 'btn btn-outline-gold']) ?>
@@ -43,7 +50,7 @@ $this->params['breadcrumbs'][] = $this->title;
                 usort($players, function($a, $b) use ($posOrder) {
                     $pa = $posOrder[$a->position] ?? 9;
                     $pb = $posOrder[$b->position] ?? 9;
-                    return $pa !== $pb ? $pa - $pb : $b->general_skill - $a->general_skill;
+                    return $pa !== $pb ? $pa - $pb : $b->getNaturalOverall() - $a->getNaturalOverall();
                 });
                 ?>
                 <thead>
@@ -51,7 +58,7 @@ $this->params['breadcrumbs'][] = $this->title;
                         <th style="width:44px">Pos</th>
                         <th>Giocatore</th>
                         <th class="text-center" style="width:32px" title="Età">Età</th>
-                        <th class="text-center" style="width:36px" title="Skill Generale">Gen</th>
+                        <th class="text-center" style="width:36px" title="Valore di Ruolo (Overall)">Ovr</th>
                         <th style="width:170px" title="Talenti giocatore (separati dalle skill)">Talenti</th>
                         <!-- Individual skills -->
                         <th class="text-center" style="width:32px;color:#ea580c" title="Parate">PO</th>
@@ -82,7 +89,7 @@ $this->params['breadcrumbs'][] = $this->title;
                             </td>
                             <td>
                                 <div class="fw-semibold text-white" style="font-size:.85rem;white-space:nowrap">
-                                    <?= Html::encode($player->name) ?>
+                                    <?php if (!empty($player->nationality)): ?><?= UiIconHelper::flagImg((string)$player->nationality, 16) ?> <?php endif; ?><?= Html::encode($player->name) ?>
                                 </div>
                                 <div class="text-muted-gm" style="font-size:.65rem">
                                     <?= $player->age ?>a · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $player->foot, 11) ?><?= $player->foot === 'LR' ? 'Amb' : $player->foot ?></span>
@@ -93,7 +100,7 @@ $this->params['breadcrumbs'][] = $this->title;
                             </td>
                             <td class="text-center text-muted-gm" style="font-size:.82rem"><?= $player->age ?></td>
                             <td class="text-center">
-                                <span style="font-weight:800;font-size:.85rem;color:var(--gold)"><?= $player->general_skill ?></span>
+                                <span style="font-weight:800;font-size:.85rem;color:var(--gold)"><?= $player->getNaturalOverall() ?></span>
                             </td>
                             <td>
                                 <?php $talents = PlayerAttributeHelper::talents($player, 2); ?>

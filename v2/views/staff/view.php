@@ -93,7 +93,9 @@ $orderedRoles = [
                                         <?= Html::encode($roleLabel($role)) ?>
                                     </div>
                                     <div class="text-muted-gm small">
-                                        <?= $member ? Html::encode((string) $member->name) : 'Nessuno' ?>
+                                        <?php if ($member): ?>
+                                            <?php if (!empty($member->nationality)): ?><?= UiIconHelper::flagImg((string)$member->nationality, 14) ?> <?php endif; ?><?= Html::encode((string) $member->name) ?>
+                                        <?php else: ?>Nessuno<?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="text-end">
@@ -136,66 +138,77 @@ $orderedRoles = [
             <?php if (empty($market)): ?>
                 <div class="gm-card text-muted-gm">Nessun candidato disponibile.</div>
             <?php else: ?>
-                <div class="row g-3">
-                    <?php foreach ($market as $cand): ?>
-                        <?php $pendingBid = $pendingByCandidate[(int) $cand->id] ?? null; ?>
-                        <div class="col-lg-6">
-                            <div class="gm-card h-100">
-                                <div class="d-flex justify-content-between align-items-start mb-2">
-                                    <div>
-                                        <div class="fw-bold text-white"><?= Html::encode((string) $cand->name) ?></div>
-                                        <div class="text-muted-gm small">
-                                            <span class="me-1 text-gold"><?= $roleIcon((string) $cand->role) ?></span>
-                                            <?= Html::encode($roleLabel((string) $cand->role)) ?>
+                <div class="gm-card p-0 overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table-gm w-100 mb-0">
+                            <thead>
+                                <tr data-expire-lock="order">
+                                    <th>Candidato</th>
+                                    <th>Ruolo</th>
+                                    <th class="text-center">Ab</th>
+                                    <th class="text-center">Exp</th>
+                                    <th class="text-center">Mot</th>
+                                    <th class="text-center">Eff.</th>
+                                    <th class="text-center">Stag.</th>
+                                    <th>Scadenza</th>
+                                    <th class="text-end">Richiesta</th>
+                                    <th class="text-end">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                            <?php foreach ($market as $cand): ?>
+                                <?php $pendingBid = $pendingByCandidate[(int) $cand->id] ?? null; ?>
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold text-white"><?php if (!empty($cand->nationality)): ?><?= UiIconHelper::flagImg((string)$cand->nationality, 14) ?> <?php endif; ?><?= Html::encode((string) $cand->name) ?></div>
+                                        <div class="text-muted-gm small">Tentativi: <span class="text-gold fw-bold"><?= $dotAttempts((int) $cand->negotiations) ?></span></div>
+                                    </td>
+                                    <td>
+                                        <span class="me-1 text-gold"><?= $roleIcon((string) $cand->role) ?></span>
+                                        <?= Html::encode($roleLabel((string) $cand->role)) ?>
+                                    </td>
+                                    <td class="text-center"><?= (int) $cand->ability ?></td>
+                                    <td class="text-center"><?= (int) $cand->experience ?></td>
+                                    <td class="text-center"><?= (int) $cand->motivation ?></td>
+                                    <td class="text-center text-gold fw-bold"><?= number_format($cand->getEfficiencyPreview(), 1) ?></td>
+                                    <td class="text-center"><?= (int) $cand->contract_length ?></td>
+                                    <td>
+                                        <div class="text-muted-gm" style="font-size:.72rem">scade <?= date('d/m/Y H:i', (int) $cand->expires_at) ?></div>
+                                        <div class="auction-countdown text-warning" data-expires="<?= (int) $cand->expires_at ?>" data-prefix="tra " data-expire-lock="order">--</div>
+                                        <?php if ($pendingBid): ?>
+                                            <div class="text-warning" style="font-size:.72rem">
+                                                Tua: €<?= number_format((int) $pendingBid->bid_amount, 0, ',', '.') ?>
+                                                · <span class="auction-countdown" data-expires="<?= (int) $pendingBid->expires_at ?>" data-prefix="scade tra ">--</span>
+                                            </div>
+                                        <?php endif; ?>
+                                    </td>
+                                    <td class="text-end text-white fw-bold">€<?= number_format((int) $cand->salary, 0, ',', '.') ?></td>
+                                    <td class="text-end">
+                                        <div class="d-inline-flex gap-1 align-items-center">
+                                            <?= Html::beginForm(['/staff/negotiate', 'id' => $cand->id], 'post', ['class' => 'd-inline-flex gap-1']) ?>
+                                            <input type="number"
+                                                   name="offered_fee"
+                                                   min="1"
+                                                   step="1000"
+                                                   value="<?= (int) ($pendingBid ? $pendingBid->bid_amount : max(1000, (int) $cand->salary)) ?>"
+                                                   class="form-control form-control-sm bg-dark text-white border-secondary"
+                                                   style="max-width:120px">
+                                            <button class="btn btn-gold btn-sm" type="submit">Offerta</button>
+                                            <?= Html::endForm() ?>
+                                            <?= Html::beginForm(['/staff/raise-offer', 'id' => $cand->id], 'post', ['class' => 'd-inline']) ?>
+                                            <button class="btn btn-outline-gold btn-sm"
+                                                    type="submit"
+                                                    data-confirm="Alzare l'offerta del 15%?">
+                                                +15%
+                                            </button>
+                                            <?= Html::endForm() ?>
                                         </div>
-                                    </div>
-                                    <div class="text-end">
-                                        <div class="text-gold fw-bold">Eff. <?= number_format($cand->getEfficiencyPreview(), 1) ?></div>
-                                        <div class="text-muted-gm" style="font-size:.72rem">Contratto: <?= (int) $cand->contract_length ?> stag.</div>
-                                    </div>
-                                </div>
-
-                                <div class="small text-muted-gm mb-2">
-                                    Ab. <?= (int) $cand->ability ?> · Mot. <?= (int) $cand->motivation ?> · Exp <?= (int) $cand->experience ?>
-                                </div>
-                                <div class="small mb-3">
-                                    <span class="text-muted-gm">Richiesta:</span>
-                                    <span class="text-white fw-bold">€<?= number_format((int) $cand->salary, 0, ',', '.') ?></span>
-                                    <span class="ms-2 text-muted-gm">Tentativi:</span>
-                                    <span class="text-gold fw-bold"><?= $dotAttempts((int) $cand->negotiations) ?></span>
-                                </div>
-                                <?php if ($pendingBid): ?>
-                                <div class="small text-warning mb-2">
-                                    Tua offerta: €<?= number_format((int) $pendingBid->bid_amount, 0, ',', '.') ?>
-                                    · <span class="auction-countdown" data-expires="<?= (int) $pendingBid->expires_at ?>">scade <?= date('d/m H:i', (int) $pendingBid->expires_at) ?></span>
-                                </div>
-                                <?php endif; ?>
-
-                                <div class="d-flex gap-2">
-                                    <?= Html::beginForm(['/staff/negotiate', 'id' => $cand->id], 'post', ['class' => 'd-inline d-flex gap-1']) ?>
-                                        <input type="number"
-                                               name="offered_fee"
-                                               min="1"
-                                               step="1000"
-                                               value="<?= (int) ($pendingBid ? $pendingBid->bid_amount : max(1000, (int) $cand->salary)) ?>"
-                                               class="form-control form-control-sm bg-dark text-white border-secondary"
-                                               style="max-width:120px">
-                                        <button class="btn btn-gold btn-sm" type="submit">
-                                            Offerta
-                                        </button>
-                                    <?= Html::endForm() ?>
-
-                                    <?= Html::beginForm(['/staff/raise-offer', 'id' => $cand->id], 'post', ['class' => 'd-inline']) ?>
-                                        <button class="btn btn-outline-gold btn-sm"
-                                                type="submit"
-                                                data-confirm="Alzare l'offerta del 15%?">
-                                            Rialza offerta
-                                        </button>
-                                    <?= Html::endForm() ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
+                                    </td>
+                                </tr>
+                            <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

@@ -1307,7 +1307,69 @@ func (e *MatchEngine) teamTraitsProfile(fixtureID int, side string, isLosing boo
 	}
 	profile.DisciplineScalar = clampFloat(profile.DisciplineScalar, 0.50, 1.50)
 	profile.InjuryScalar = clampFloat(profile.InjuryScalar, 0.60, 1.40)
+
+	// SIP-0073: Physical Fitness Index — same formula as PhysicalHelper::teamPfi() in PHP.
+	// Parity: clamp [0.92, 1.04], BMI deviation × 0.02 penalty from 1.04 peak.
+	type physRow struct {
+		HeightCm int    `db:"height_cm"`
+		WeightKg int    `db:"weight_kg"`
+		Position string `db:"position"`
+	}
+	var physRows []physRow
+	_ = e.DB.Select(&physRows, `
+		SELECT COALESCE(p.height_cm, 180) AS height_cm,
+		       COALESCE(p.weight_kg, 75)  AS weight_kg,
+		       p.position
+		FROM formation f
+		JOIN formation_slot fs ON fs.formation_id = f.id
+		JOIN player p ON p.id = fs.player_id
+		WHERE f.team_id = ? AND f.is_active = 1
+		  AND (((fs.zone = 10) OR ((fs.zone BETWEEN 20 AND 103) AND (MOD(fs.zone,10) BETWEEN 1 AND 3))) OR (fs.zone BETWEEN 1 AND 63) OR (fs.zone BETWEEN 1001 AND 1063))
+		  AND fs.player_id IS NOT NULL
+	`, teamID)
+	if len(physRows) > 0 {
+		pfiSum := 0.0
+		for _, pr := range physRows {
+			pfiSum += physicalFitnessMod(pr.HeightCm, pr.WeightKg, pr.Position)
+		}
+		teamPFI := pfiSum / float64(len(physRows))
+		profile.Bonus = clampFloat(profile.Bonus*teamPFI, 0.80, 1.25)
+	}
+
 	return profile
+}
+
+// physicalFitnessMod returns PFI in [0.92, 1.04].
+// Parity: mirrors PhysicalHelper::pfi() in PHP (SIP-0073).
+func physicalFitnessMod(heightCm, weightKg int, position string) float64 {
+	if heightCm <= 0 {
+		return 1.0
+	}
+	h := float64(heightCm) / 100.0
+	bmi := float64(weightKg) / (h * h)
+	refBmi := map[string]float64{"GK": 24.0, "DF": 23.5, "MF": 22.5, "FW": 22.0}
+	pos := "FW"
+	switch {
+	case position == "GK" || position == "PO":
+		pos = "GK"
+	case position == "DF" || position == "DS" || position == "DD" || position == "DC" || position == "D":
+		pos = "DF"
+	case position == "MF" || position == "CS" || position == "CD" || position == "CC" || position == "C":
+		pos = "MF"
+	}
+	ref := refBmi[pos]
+	dev := bmi - ref
+	if dev < 0 {
+		dev = -dev
+	}
+	pfi := 1.04 - dev*0.02
+	if pfi < 0.92 {
+		return 0.92
+	}
+	if pfi > 1.04 {
+		return 1.04
+	}
+	return pfi
 }
 
 func (e *MatchEngine) ProcessCommand(fixtureID int, state *models.MatchState, cmd models.MatchCommand) {

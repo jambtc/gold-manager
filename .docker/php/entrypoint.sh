@@ -51,6 +51,38 @@ run_seed_once() {
   fi
 }
 
+enrich_names_async() {
+  if [ "${GM_DISABLE_NAME_ENRICHMENT:-0}" = "1" ]; then
+    return
+  fi
+  local ollama_host="${GM_OLLAMA_HOST:-ollama}"
+  local ollama_port="${GM_OLLAMA_PORT:-11434}"
+  # Check Ollama reachable
+  if ! php -r "exit(@fsockopen('${ollama_host}', ${ollama_port}) ? 0 : 1);" >/dev/null 2>&1; then
+    echo "[entrypoint] Ollama not reachable — skipping name enrichment."
+    return
+  fi
+  # Check if names DB is already enriched (>100 rows means LLM already ran)
+  local count
+  count=$(php -r '
+    $host=getenv("DB_HOST") ?: "mariadb";
+    $db=getenv("DB_NAME") ?: "gold_manager";
+    $user=getenv("DB_USER") ?: "root";
+    $pass=getenv("DB_PASSWORD") ?: "";
+    try {
+      $pdo = new PDO("mysql:host={$host};dbname={$db}", $user, $pass);
+      echo (int)$pdo->query("SELECT COUNT(*) FROM name_first WHERE nationality != '"'"'ITA'"'"'")->fetchColumn();
+    } catch (Throwable $e) { echo 0; }
+  ')
+  if [ "${count:-0}" -gt 100 ]; then
+    echo "[entrypoint] Name DB already enriched (${count} non-ITA rows) — skipping."
+    return
+  fi
+  echo "[entrypoint] Starting LLM name enrichment in background..."
+  nohup php /var/www/html/v2/yii generate-names/run --count=60 \
+    > /var/www/html/v2/runtime/logs/name-enrichment.log 2>&1 &
+}
+
 PROJECT_ROOT="/var/www/html"
 APP_DIR="$PROJECT_ROOT/v2"
 
@@ -77,6 +109,7 @@ done
 wait_for_db
 run_migrations
 run_seed_once
+enrich_names_async
 
 cd "$PROJECT_ROOT"
 if [ $# -eq 0 ]; then

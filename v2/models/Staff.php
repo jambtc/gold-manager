@@ -11,6 +11,7 @@ use yii\db\ActiveRecord;
  * @property int      $id
  * @property int      $team_id
  * @property string   $name
+ * @property string   $nationality
  * @property string   $role            head_coach|assistant_coach|goalkeeping_coach|fitness_coach|scout
  * @property int      $ability         1-100
  * @property int      $experience
@@ -43,6 +44,7 @@ class Staff extends ActiveRecord
             [['team_id', 'name', 'role'], 'required'],
             [['team_id', 'ability', 'experience', 'age', 'motivation', 'contract_ends', 'salary', 'efficiency'], 'integer'],
             [['name', 'philosophy'], 'string'],
+            [['nationality'], 'string', 'max' => 3],
             [['role'], 'string', 'max' => 30],
             [['specialisation'], 'string', 'max' => 20],
             [['role'], 'in', 'range' => [
@@ -59,6 +61,7 @@ class Staff extends ActiveRecord
             'id'          => 'ID',
             'team_id'     => 'Team',
             'name'        => 'Name',
+            'nationality' => 'Nationality',
             'role'        => 'Role',
             'ability'     => 'Ability',
             'experience'  => 'Experience',

@@ -10,6 +10,7 @@ use yii\db\ActiveRecord;
  * @property int $id
  * @property int $team_id
  * @property string $name
+ * @property string $nationality
  * @property string $role
  * @property int $ability
  * @property int $experience
@@ -36,12 +37,14 @@ class StaffMarket extends ActiveRecord
             [['team_id', 'name', 'role', 'generated_at', 'expires_at'], 'required'],
             [['team_id', 'ability', 'experience', 'motivation', 'salary', 'contract_length', 'negotiations', 'raise_used', 'generated_at', 'expires_at'], 'integer'],
             [['name'], 'string', 'max' => 80],
+            [['nationality'], 'string', 'max' => 3],
             [['role'], 'string', 'max' => 30],
             [['role'], 'in', 'range' => [
                 Staff::ROLE_HEAD_COACH,
                 Staff::ROLE_ASSISTANT_COACH,
                 Staff::ROLE_GOALKEEPING_COACH,
                 Staff::ROLE_FITNESS_COACH,
+                Staff::ROLE_DOCTOR,
                 Staff::ROLE_SCOUT,
             ]],
         ];
@@ -57,4 +60,3 @@ class StaffMarket extends ActiveRecord
         return round((0.9 * $this->ability * $this->motivation / 100) + ($this->experience / 8), 1);
     }
 }
-

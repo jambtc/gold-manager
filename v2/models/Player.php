@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace app\models;
 
-use Yii;
 use yii\behaviors\TimestampBehavior;
 use yii\db\ActiveRecord;
 
@@ -17,6 +16,9 @@ use yii\db\ActiveRecord;
  * @property string $name
  * @property int $age
  * @property string $position
+ * @property string $nationality
+ * @property int    $height_cm
+ * @property int    $weight_kg
  * @property string $foot
  * @property int $skill_po
  * @property int $skill_df
@@ -72,6 +74,8 @@ class Player extends ActiveRecord
             [['team_id', 'number', 'age', 'skill_po', 'skill_df', 'skill_cn', 'skill_pa', 'skill_rg', 'skill_cr', 'skill_tc', 'skill_tr', 'experience', 'general_skill', 'form', 'freshness', 'condition'], 'integer'],
             [['name', 'character'], 'string', 'max' => 255],
             [['position'], 'string', 'max' => 5],
+            [['nationality'], 'string', 'max' => 3],
+            [['height_cm', 'weight_kg'], 'integer', 'min' => 1, 'max' => 255],
             [['foot'], 'string', 'max' => 2],
             [['team_id'], 'exist', 'skipOnError' => true, 'targetClass' => Team::class, 'targetAttribute' => ['team_id' => 'id']],
         ];
@@ -89,6 +93,9 @@ class Player extends ActiveRecord
             'name' => 'Name',
             'age' => 'Age',
             'position' => 'Position',
+            'nationality' => 'Nationality',
+            'height_cm'  => 'Height (cm)',
+            'weight_kg'  => 'Weight (kg)',
             'foot' => 'Foot',
             'skill_po' => 'Goalkeeping',
             'skill_df' => 'Defending',
@@ -172,11 +179,7 @@ class Player extends ActiveRecord
 
     public function getOverallForPosition(int $positionOrd): float
     {
-        $positionOrd = \app\components\PitchZoneHelper::normalizeToCurrent($positionOrd);
-        $coeffs = Yii::$app->db->createCommand(
-            'SELECT * FROM {{%calcolatore}} WHERE formula = :f AND ord = :ord',
-            [':f' => 'Formula 2', ':ord' => $positionOrd]
-        )->queryOne();
+        $coeffs = \app\components\PitchZoneHelper::getCoefficientsForZone($positionOrd);
 
         if (!$coeffs) {
             return 0.0;
@@ -207,5 +210,20 @@ class Player extends ActiveRecord
             + ($this->skill_tr * (float)$coeffs['tr']);
 
         return round($totalScore / (101 - $controllo), 1);
+    }
+
+    /**
+     * Calcola l'overall sulla posizione naturale ideale del giocatore.
+     */
+    public function getNaturalOverall(): int
+    {
+        $zone = match (strtoupper((string)$this->position)) {
+            'GK' => \app\components\PitchZoneHelper::GK_ZONE,
+            'DF' => \app\components\PitchZoneHelper::zone(3, 2), // Riga 3, Centro
+            'MF' => \app\components\PitchZoneHelper::zone(6, 2), // Riga 6, Centro
+            'FW' => \app\components\PitchZoneHelper::zone(9, 2), // Riga 9, Centro
+            default => \app\components\PitchZoneHelper::zone(6, 2),
+        };
+        return (int) round($this->getOverallForPosition($zone));
     }
 }

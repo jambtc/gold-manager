@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\components\seeders;
 
+use app\components\PhysicalHelper;
 use app\components\WorldData;
 use app\models\Contract;
 use app\models\Player;
@@ -14,9 +15,9 @@ class PlayerSeeder
      * Builds a Player and its Contract for a team, without saving.
      * Returns ['player' => Player, 'contract' => Contract].
      */
-    public function buildPlayer(int $teamId, string $position, int $number, string $name): array
+    public function buildPlayer(int $teamId, string $position, int $number, string $name, string $nationality = 'ITA'): array
     {
-        $attrs = $this->buildAttributes($position, $number, $name);
+        $attrs = $this->buildAttributes($position, $number, $name, $nationality);
 
         $player = new Player();
         $player->team_id = $teamId;
@@ -39,7 +40,7 @@ class PlayerSeeder
      * Pure function: builds attribute array for a player of given position.
      * No DB access. Useful for unit testing.
      */
-    public function buildAttributes(string $position, int $number, string $name): array
+    public function buildAttributes(string $position, int $number, string $name, string $nationality = 'ITA'): array
     {
         $profile = WorldData::statProfile($position);
         [$ageMin, $ageMax] = WorldData::ageRange($position);
@@ -69,7 +70,10 @@ class PlayerSeeder
             'name'          => $name,
             'number'        => $number,
             'position'      => $position,
+            'nationality'   => $nationality,
             'age'           => $age,
+            'height_cm'     => PhysicalHelper::randomHeight($position),
+            'weight_kg'     => PhysicalHelper::randomWeight($position),
             'foot'          => $foot,
             'experience'    => $experience,
             'general_skill' => $generalSkill,

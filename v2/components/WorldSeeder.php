@@ -127,11 +127,12 @@ class WorldSeeder
 
         foreach ($roster as $position => $count) {
             for ($i = 0; $i < $count; $i++) {
-                $name        = $this->uniqueName($usedNames);
+                $nationality = WorldData::pickNationality();
+                $name        = $this->uniqueName($usedNames, $nationality);
                 $usedNames[] = $name;
 
                 ['player' => $player, 'contract' => $contract] =
-                    $this->playerSeeder->buildPlayer($teamId, $position, $number, $name);
+                    $this->playerSeeder->buildPlayer($teamId, $position, $number, $name, $nationality);
 
                 if (!$player->save()) {
                     throw new \RuntimeException("WorldSeeder: player save failed: " . json_encode($player->errors));
@@ -148,12 +149,12 @@ class WorldSeeder
         }
     }
 
-    private function uniqueName(array $usedNames): string
+    private function uniqueName(array $usedNames, string $nationality = 'ITA'): string
     {
         $attempts = 0;
         do {
-            $first = WorldData::randomFirstName();
-            $last  = WorldData::randomLastName();
+            $first = WorldData::randomFirstName($nationality);
+            $last  = WorldData::randomLastName($nationality);
             $name  = "$first $last";
             $attempts++;
             if ($attempts > 50) {
