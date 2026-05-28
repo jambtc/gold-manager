@@ -1600,7 +1600,7 @@
             + '<div class="sub-player-row">'
             + '<span class="sub-pos-pill" style="background:' + posColor + '22;color:' + posColor + '">' + p.position + '</span>'
             + '<span class="sub-player-name">' + p.name + '</span>'
-            + '<span class="sub-player-skill">' + p.general_skill + '</span>'
+            + '<span class="sub-player-skill">' + (p.natural_overall || '—') + '</span>'
             + '</div>'
             + '<div class="sub-player-meta">'
             + '<span class="sub-player-fresh" style="color:' + freshColor + '">Fresch. ' + p.freshness + '%</span>'

@@ -44,8 +44,8 @@ $footLbl = ['R' => 'Destro', 'L' => 'Sinistro', 'LR' => 'Ambidestro'];
                         </div>
                     </div>
                     <div class="ms-auto text-end">
-                        <div class="fw-black text-gold" style="font-size:1.8rem"><?= Html::encode($data['general_skill'] ?? '?') ?></div>
-                        <div class="text-muted-gm" style="font-size:.68rem">SKILL STIMATA</div>
+                        <div class="fw-black text-gold" style="font-size:1.8rem"><?= Html::encode($data['natural_overall'] ?? $data['general_skill'] ?? '?') ?></div>
+                        <div class="text-muted-gm" style="font-size:.68rem">OVR STIMATO</div>
                     </div>
                 </div>
 

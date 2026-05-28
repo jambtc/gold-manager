@@ -389,8 +389,21 @@ JS;
     $progressUrl = Url::to(['/training/progress']);
     $players = \app\models\Player::find()
         ->where(['team_id' => $team->id])
-        ->orderBy(['position' => SORT_ASC, 'general_skill' => SORT_DESC, 'name' => SORT_ASC])
         ->all();
+    usort($players, static function($a, $b): int {
+        $order = ['GK' => 0, 'DF' => 1, 'MF' => 2, 'FW' => 3];
+        $pa = $order[strtoupper((string) $a->position)] ?? 9;
+        $pb = $order[strtoupper((string) $b->position)] ?? 9;
+        if ($pa !== $pb) {
+            return $pa <=> $pb;
+        }
+        $oa = (int) $a->getNaturalOverall();
+        $ob = (int) $b->getNaturalOverall();
+        if ($oa !== $ob) {
+            return $ob <=> $oa;
+        }
+        return strcmp((string) $a->name, (string) $b->name);
+    });
     ?>
     <div class="row g-4">
         <div class="col-lg-4">
@@ -406,7 +419,7 @@ JS;
                             <span class="fw-semibold text-white" style="font-size:.84rem"><?= Html::encode($p->name) ?></span>
                             <?= UiIconHelper::renderPositionBadge((string) $p->position, true, 10, 'font-size:.6rem;padding:.12rem .34rem') ?>
                         </div>
-                        <div class="text-muted-gm" style="font-size:.7rem">GEN <?= (int)$p->general_skill ?></div>
+                        <div class="text-muted-gm" style="font-size:.7rem">OVR <?= (int)$p->getNaturalOverall() ?></div>
                     </button>
                     <?php endforeach; ?>
                 </div>

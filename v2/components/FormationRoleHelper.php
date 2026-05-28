@@ -77,11 +77,14 @@ class FormationRoleHelper
         }
 
         if (!$taker) {
-            return 30;
+            return $setPieceType === 'penalty' ? 45 : 30;
         }
 
-        $bonus = (($taker->skill_tc * 0.2) + ($taker->skill_tr * 0.3)) / 10;
-        return min(60, 30 + (int) $bonus);
+        $skillCp = (int) ($taker->skill_cp ?? 0);
+        if ($setPieceType === 'penalty') {
+            return min(70, 45 + (int) floor($skillCp * 0.25));
+        }
+        return min(60, 30 + (int) floor($skillCp * 0.30));
     }
 
     /**

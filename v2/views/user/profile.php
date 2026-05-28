@@ -251,10 +251,20 @@ $tgEnabled = (bool) ($user->telegram_enabled ?? true);
     var revokeBtn = document.getElementById('tg-btn-revoke');
     if (revokeBtn) {
         revokeBtn.addEventListener('click', function () {
-            if (!confirm('Revocare il collegamento Telegram?')) return;
-            post(root.dataset.revokeUrl, {}, function (r) {
-                if (r.ok) location.reload();
-            });
+            var run = function () {
+                post(root.dataset.revokeUrl, {}, function (r) {
+                    if (r.ok) location.reload();
+                });
+            };
+            if (typeof window.gmConfirm === 'function') {
+                window.gmConfirm('Revocare il collegamento Telegram?').then(function (ok) {
+                    if (ok) run();
+                });
+                return;
+            }
+            if (confirm('Revocare il collegamento Telegram?')) {
+                run();
+            }
         });
     }
 

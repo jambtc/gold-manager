@@ -17,6 +17,7 @@ declare(strict_types=1);
 /** @var int $maxAge */
 /** @var bool $windowOpen */
 /** @var int $nextOpenAt */
+/** @var array{type:string, isOpen:bool, open_at:int, close_at:int}|null $windowBounds */
 /** @var int $pendingCount */
 /** @var string $activeTab */
 /** @var int $perPage */
@@ -92,6 +93,33 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
             </div>
         </div>
     </div>
+
+    <?php if ($windowBounds): ?>
+        <div class="gm-card p-3 mb-4 d-flex align-items-center gap-3 border-start border-4 <?= $windowOpen ? 'border-success' : 'border-danger' ?>" style="background: linear-gradient(90deg, rgba(30,41,59,0.9) 0%, rgba(15,23,42,0.9) 100%);">
+            <div class="fs-2 <?= $windowOpen ? 'text-success' : 'text-danger' ?>">
+                <i class="bi <?= $windowOpen ? 'bi-unlock-fill' : 'bi-lock-fill' ?>"></i>
+            </div>
+            <div class="flex-grow-1">
+                <div class="d-flex align-items-center gap-2">
+                    <h5 class="mb-1 fw-bold text-white">
+                        <?= $windowOpen ? 'Sessione di Mercato Aperta' : 'Sessione di Mercato Chiusa' ?>
+                    </h5>
+                    <span class="badge <?= $windowOpen ? 'bg-success' : 'bg-danger' ?> text-uppercase small" style="font-size:0.65rem">
+                        <?= $windowBounds['type'] === 'pre-season' ? 'Estiva / Pre-Season' : 'Invernale' ?>
+                    </span>
+                </div>
+                <p class="text-muted-gm mb-0" style="font-size:0.85rem">
+                    <?php if ($windowOpen): ?>
+                        Il mercato è attualmente attivo per tutte le squadre. Puoi acquistare svincolati all'asta e negoziare trasferimenti con altri club. 
+                        La finestra di mercato chiuderà il <strong><?= date('d/m/Y \a\l\l\e H:i', $windowBounds['close_at']) ?></strong>.
+                    <?php else: ?>
+                        Le trattative di mercato sono temporaneamente sospese per tutti i club.
+                        La prossima finestra di mercato riaprirà il <strong><?= date('d/m/Y \a\l\l\e H:i', $windowBounds['open_at']) ?></strong> e rimarrà attiva fino al <strong><?= date('d/m/Y \a\l\l\e H:i', $windowBounds['close_at']) ?></strong>.
+                    <?php endif; ?>
+                </p>
+            </div>
+        </div>
+    <?php endif; ?>
 
     <form method="get" action="<?= Html::encode(Url::to(['/transfer/market'])) ?>" class="gm-card py-3 px-4 mb-4 d-flex align-items-center gap-3 flex-wrap">
         <input type="hidden" name="tab" id="filter-tab" value="<?= Html::encode($activeTab) ?>">

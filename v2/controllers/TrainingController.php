@@ -84,7 +84,7 @@ class TrainingController extends Controller
                 'team_id' => $team->id, 'season' => $season,
                 'pressing' => 30, 'contropiede' => 20, 'possesso' => 40,
                 'palla_bassa' => 30, 'lancio_lungo' => 20, 'catenaccio' => 20,
-                'fuorigioco' => 10, 'calci_piazzati' => 30,
+                'fuorigioco' => 10,
                 'updated_at' => time(),
             ])->execute();
             $tactic = Yii::$app->db->createCommand(
@@ -369,6 +369,7 @@ class TrainingController extends Controller
             $players = Player::find()
                 ->select(['id', 'name', 'position'])
                 ->where(['id' => array_keys($playerIds)])
+                ->orderBy(new Expression("FIELD(position,'GK','DF','MF','FW'), general_skill DESC, name ASC"))
                 ->indexBy('id')
                 ->all();
         }

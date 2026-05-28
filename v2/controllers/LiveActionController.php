@@ -81,7 +81,7 @@ class LiveActionController extends Controller
             'id'            => $p->id,
             'name'          => $p->name,
             'position'      => $p->position,
-            'general_skill' => $p->general_skill,
+            'natural_overall' => $p->getNaturalOverall(),
             'freshness'     => $p->freshness,
             'form'          => $p->form,
             'subbed_off'    => in_array($p->id, $substitutedOut, true),
@@ -105,8 +105,8 @@ class LiveActionController extends Controller
             }
         }
 
-        // Sort bench by general_skill desc
-        usort($bench, fn($a, $b) => $b['general_skill'] - $a['general_skill']);
+        // Sort bench by OVR desc
+        usort($bench, fn($a, $b) => ((int) $b['natural_overall']) <=> ((int) $a['natural_overall']));
 
         return $this->asJson([
             'starters'  => $starters,

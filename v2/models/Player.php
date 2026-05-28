@@ -28,6 +28,7 @@ use yii\db\ActiveRecord;
  * @property int $skill_cr
  * @property int $skill_tc
  * @property int $skill_tr
+ * @property int $skill_cp
  * @property int $experience
  * @property int $general_skill
  * @property int $form
@@ -71,7 +72,7 @@ class Player extends ActiveRecord
     {
         return [
             [['name', 'position'], 'required'],
-            [['team_id', 'number', 'age', 'skill_po', 'skill_df', 'skill_cn', 'skill_pa', 'skill_rg', 'skill_cr', 'skill_tc', 'skill_tr', 'experience', 'general_skill', 'form', 'freshness', 'condition'], 'integer'],
+            [['team_id', 'number', 'age', 'skill_po', 'skill_df', 'skill_cn', 'skill_pa', 'skill_rg', 'skill_cr', 'skill_tc', 'skill_tr', 'skill_cp', 'experience', 'general_skill', 'form', 'freshness', 'condition'], 'integer'],
             [['name', 'character'], 'string', 'max' => 255],
             [['position'], 'string', 'max' => 5],
             [['nationality'], 'string', 'max' => 3],
@@ -105,6 +106,7 @@ class Player extends ActiveRecord
             'skill_cr' => 'Crossing',
             'skill_tc' => 'Technique',
             'skill_tr' => 'Shooting',
+            'skill_cp' => 'Set Pieces',
             'experience' => 'Experience',
             'general_skill' => 'General Skill',
             'form' => 'Form',

@@ -19,6 +19,9 @@ return [
     'language' => 'en-US',
     'components' => [
         'db' => $db,
+        'cache' => [
+            'class' => \yii\caching\DummyCache::class,
+        ],
         'mailer' => [
             'class' => \yii\symfonymailer\Mailer::class,
             'messageClass' => \yii\symfonymailer\Message::class,

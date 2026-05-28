@@ -142,7 +142,7 @@ class ScoutingService
         return $count;
     }
 
-    public static function notifyTeamsForNewPoolPlayer(Player $player, PlayerPool $pool): int
+    public static function notifyTeamsForNewMarketPlayer(Player $player, PlayerPool $marketEntry): int
     {
         $position = strtoupper((string) $player->position);
         if (!in_array($position, ['GK', 'DF', 'MF', 'FW'], true)) {
@@ -197,15 +197,21 @@ class ScoutingService
                     $position,
                     (int) $player->general_skill,
                     (int) $player->age,
-                    number_format((int) $pool->asking_fee, 0, ',', '.')
+                    number_format((int) $marketEntry->asking_fee, 0, ',', '.')
                 ),
-                self::safeUrl('/transfer/market', ['tab' => 'pool', 'pos' => $position]),
+                self::safeUrl('/transfer/market', ['tab' => 'listed', 'pos' => $position]),
                 1
             );
             $notified++;
         }
 
         return $notified;
+    }
+
+    // Backward compatibility alias.
+    public static function notifyTeamsForNewPoolPlayer(Player $player, PlayerPool $marketEntry): int
+    {
+        return self::notifyTeamsForNewMarketPlayer($player, $marketEntry);
     }
 
     /**
@@ -238,6 +244,7 @@ class ScoutingService
             'position'        => $player->position,
             'foot'            => $player->foot,
             'general_skill'   => $fuzz($player->general_skill),
+            'natural_overall' => $fuzz($player->getNaturalOverall()),
             'skill_po'        => $fmt($player->skill_po),
             'skill_df'        => $fmt($player->skill_df),
             'skill_cn'        => $fmt($player->skill_cn),

@@ -55,7 +55,7 @@ foreach ($slots as $slot) {
     }
     $existing  = $activeSlots[$key]->player;
     $candidate = $slot->player;
-    if ($candidate && (!$existing || (int) ($candidate->general_skill ?? 0) > (int) ($existing->general_skill ?? 0))) {
+    if ($candidate && (!$existing || (int) $candidate->getNaturalOverall() > (int) $existing->getNaturalOverall())) {
         $activeSlots[$key] = $slot;
     }
 }
@@ -200,38 +200,13 @@ SVG;
 };
 
 // ── Best-zone map: playerId → display zone (1-64) with highest score ──────
-$_calcoRows = Yii::$app->db->createCommand(
-    'SELECT ord, po, df, cn, pa, rg, cr, tc, tr FROM {{%calcolatore}} WHERE formula=:f',
-    [':f' => 'Formula 2']
-)->queryAll();
-$_coeffs = [];
-foreach ($_calcoRows as $_r) {
-    $_coeffs[(int)$_r['ord']] = $_r;
-}
 $_allDz = array_merge(range(1, 63), [PitchZoneHelper::DISPLAY_GK_ZONE]);
 $_bestZoneMap = [];
 foreach ($players as $_pl) {
     $_bestScore = PHP_INT_MIN; $_scores = [];
     foreach ($_allDz as $_dz) {
         $_ez = PitchZoneHelper::normalizeDisplayZone($_dz);
-        $_co = $_coeffs[$_ez] ?? null;
-        if (!$_co) { continue; }
-        $_lane = PitchZoneHelper::laneCode($_ez);
-        $_pdd  = match (true) {
-            $_lane === 'L' => $_pl->foot === 'R' ? -6 : ($_pl->foot === 'L' ? 6 : 4),
-            $_lane === 'R' => $_pl->foot === 'R' ? 6  : ($_pl->foot === 'L' ? -6 : 4),
-            $_lane === 'C' => $_pl->foot === 'LR' ? 7 : 4,
-            default        => 4,
-        };
-        $_sc = $_pdd
-            + $_pl->skill_po * (float)$_co['po']
-            + $_pl->skill_df * (float)$_co['df']
-            + $_pl->skill_cn * (float)$_co['cn']
-            + $_pl->skill_pa * (float)$_co['pa']
-            + $_pl->skill_rg * (float)$_co['rg']
-            + $_pl->skill_cr * (float)$_co['cr']
-            + $_pl->skill_tc * (float)$_co['tc']
-            + $_pl->skill_tr * (float)$_co['tr'];
+        $_sc = $_pl->getOverallForPosition($_ez);
         $_scores[$_dz] = $_sc;
         if ($_sc > $_bestScore) { $_bestScore = $_sc; }
     }
@@ -480,7 +455,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                 </div>
                             </div>
                             <div style="flex-shrink:0;text-align:right">
-                                <div style="font-weight:900;font-size:.9rem;color:var(--gold)"><?= $player->general_skill ?></div>
+                                <div style="font-weight:900;font-size:.9rem;color:var(--gold)"><?= $player->getNaturalOverall() ?></div>
                                 <div style="font-size:.55rem;color:var(--text-secondary)">#<?= $player->number ?></div>
                             </div>
                         </div>
@@ -537,7 +512,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                             <?php endif; ?>>
                                             <?php if ($slotRow): ?>
                                                 <?php $p = $slotRow->player; ?>
-                                                <?php $pStrength = max(0, min(100, (int) ($p->general_skill ?? 0))); ?>
+                                                <?php $pStrength = max(0, min(100, (int) $p->getNaturalOverall())); ?>
                                                 <div class="pitch-jersey" title="<?= Html::encode($p->name) ?> (#<?= $p->number ?>)">
                                                     <?= $jersey($p->position, (int)$p->number, 0.72) ?>
                                                     <?php if (!empty($effectiveRoleByPlayer[(int) $p->id] ?? [])): ?>
@@ -587,7 +562,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                     <?php endif; ?>>
                                     <?php if ($gkSlotRow): ?>
                                         <?php $p = $gkSlotRow->player; ?>
-                                        <?php $pStrength = max(0, min(100, (int) ($p->general_skill ?? 0))); ?>
+                                        <?php $pStrength = max(0, min(100, (int) $p->getNaturalOverall())); ?>
                                         <div class="pitch-jersey" title="<?= Html::encode($p->name) ?> (#<?= $p->number ?>)">
                                             <?= $jersey($p->position, (int)$p->number, 0.72) ?>
                                         </div>

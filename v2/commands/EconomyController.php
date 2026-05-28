@@ -63,7 +63,7 @@ class EconomyController extends Controller
     private const DEFAULT_TRANSFER_POOL_MAX_PLAYERS = 140;
     private const ALL_SKILL_STATS = [
         'skill_po', 'skill_df', 'skill_cn', 'skill_pa',
-        'skill_rg', 'skill_cr', 'skill_tc', 'skill_tr',
+        'skill_rg', 'skill_cr', 'skill_tc', 'skill_tr', 'skill_cp',
     ];
     private const SPONSOR_NAME_PREFIXES = [
         'Aurora', 'Nordic', 'Linea', 'Vetta', 'Orion', 'Borgo', 'Alpina', 'Nuova',
@@ -277,6 +277,7 @@ class EconomyController extends Controller
             'alloc_cn' => 'skill_cn', 'alloc_pa' => 'skill_pa',
             'alloc_rg' => 'skill_rg', 'alloc_cr' => 'skill_cr',
             'alloc_tc' => 'skill_tc', 'alloc_tr' => 'skill_tr',
+            'alloc_calci_piazzati' => 'skill_cp',
         ];
         $tacticFields = ['pressing','contropiede','possesso','palla_bassa','lancio_lungo','catenaccio','fuorigioco'];
 
@@ -310,7 +311,7 @@ class EconomyController extends Controller
             if (!$tacticRow) {
                 $tacticRow = [
                     'pressing' => 30, 'contropiede' => 20, 'possesso' => 40, 'palla_bassa' => 30,
-                    'lancio_lungo' => 20, 'catenaccio' => 20, 'fuorigioco' => 10, 'calci_piazzati' => 30,
+                    'lancio_lungo' => 20, 'catenaccio' => 20, 'fuorigioco' => 10,
                 ];
             }
             if (!$tacticPlan) {
@@ -383,27 +384,6 @@ class EconomyController extends Controller
                 $tacticRow[$field] = $value;
                 $tacticUpdate[$field] = $value;
             }
-            // Calci piazzati: gestito da allenamento fisico (non da tab tattico).
-            $setPieceValue = max(0, min(100, (int) ($tacticRow['calci_piazzati'] ?? 0)));
-            $setPieceAlloc = $hasSetPieceAlloc
-                ? max(0, min(100, (int) ($skillRow['alloc_calci_piazzati'] ?? 0)))
-                : max(0, min(100, (int) ($tacticPlan['calci_piazzati'] ?? 0)));
-            if ($setPieceAlloc > 0) {
-                $levelMod = max(0.3, 1.0 - ($setPieceValue / 100) * 0.55);
-                $setPieceProb = ($setPieceAlloc / 100) * 0.035 * $levelMod * $tacticalStaffMod * $dailyScale;
-                if (mt_rand(1, 10000) <= (int) round($setPieceProb * 10000)) {
-                    $setPieceValue = min(100, $setPieceValue + 1);
-                    $tacticChanged = true;
-                }
-            } else {
-                $setPieceDecayChance = max(1, (int) round(200 * $dailyScale));
-                if ($setPieceValue > 0 && mt_rand(1, 10000) <= $setPieceDecayChance) {
-                    $setPieceValue = max(0, $setPieceValue - 1);
-                    $tacticChanged = true;
-                }
-            }
-            $tacticRow['calci_piazzati'] = $setPieceValue;
-            $tacticUpdate['calci_piazzati'] = $setPieceValue;
             if ($tacticChanged && !empty($tacticRow['id'])) {
                 Yii::$app->db->createCommand()->update(
                     '{{%training_tactic}}',
@@ -424,7 +404,6 @@ class EconomyController extends Controller
                     'lancio_lungo' => (int) ($tacticRow['lancio_lungo'] ?? 0),
                     'catenaccio' => (int) ($tacticRow['catenaccio'] ?? 0),
                     'fuorigioco' => (int) ($tacticRow['fuorigioco'] ?? 0),
-                    'calci_piazzati' => (int) ($tacticRow['calci_piazzati'] ?? 0),
                     'created_at' => $now,
                 ], [
                     'pressing' => (int) ($tacticRow['pressing'] ?? 0),
@@ -434,7 +413,6 @@ class EconomyController extends Controller
                     'lancio_lungo' => (int) ($tacticRow['lancio_lungo'] ?? 0),
                     'catenaccio' => (int) ($tacticRow['catenaccio'] ?? 0),
                     'fuorigioco' => (int) ($tacticRow['fuorigioco'] ?? 0),
-                    'calci_piazzati' => (int) ($tacticRow['calci_piazzati'] ?? 0),
                     'created_at' => $now,
                 ])->execute();
             } catch (\Throwable) {
@@ -447,9 +425,6 @@ class EconomyController extends Controller
             }
             $physicalLoad += max(0, min(100, (int) ($skillRow['alloc_forma'] ?? 0)));
             $physicalLoad += max(0, min(100, (int) ($skillRow['alloc_cond'] ?? 0)));
-            if ($hasSetPieceAlloc) {
-                $physicalLoad += max(0, min(100, (int) ($skillRow['alloc_calci_piazzati'] ?? 0)));
-            }
             $physicalLoad = min(100, $physicalLoad);
 
             $tacticalLoadSum = 0;
@@ -1051,6 +1026,7 @@ class EconomyController extends Controller
             'skill_cr' => random_int(20, 40),
             'skill_tc' => random_int(20, 40),
             'skill_tr' => random_int(20, 40),
+            'skill_cp' => random_int(5, 30),
         ];
 
         $position = $this->randomPositionForPool();
@@ -1093,6 +1069,7 @@ class EconomyController extends Controller
         $player->skill_cr = $stats['skill_cr'];
         $player->skill_tc = $stats['skill_tc'];
         $player->skill_tr = $stats['skill_tr'];
+        $player->skill_cp = $stats['skill_cp'];
         $player->experience = random_int(1, 20);
         $player->general_skill = $general;
         $player->form = random_int(78, 100);
@@ -1229,9 +1206,6 @@ class EconomyController extends Controller
             }
 
             $skillPlan = $this->buildCpuSkillTrainingPlan((int) $team->id, $players);
-            if (!$this->hasSetPiecePhysicalAllocColumn()) {
-                unset($skillPlan['alloc_calci_piazzati']);
-            }
             $tacticPlan = $this->buildCpuTacticTrainingPlan((int) $team->id, $season);
 
             Yii::$app->db->createCommand()->upsert('{{%training_skill}}', array_merge([
@@ -1271,6 +1245,7 @@ class EconomyController extends Controller
             'alloc_cr' => 'skill_cr',
             'alloc_tc' => 'skill_tc',
             'alloc_tr' => 'skill_tr',
+            'alloc_calci_piazzati' => 'skill_cp',
         ];
         $weights = [];
 
@@ -1311,8 +1286,6 @@ class EconomyController extends Controller
                 $weights['alloc_cr'] += 10;
             }
         }
-        $weights['alloc_calci_piazzati'] = 8;
-
         return $this->normalizeToTotal($weights, 100);
     }
 
@@ -1329,7 +1302,7 @@ class EconomyController extends Controller
         if (!$row) {
             $row = [
                 'pressing' => 30, 'contropiede' => 20, 'possesso' => 40, 'palla_bassa' => 30,
-                'lancio_lungo' => 20, 'catenaccio' => 20, 'fuorigioco' => 10, 'calci_piazzati' => 30,
+                'lancio_lungo' => 20, 'catenaccio' => 20, 'fuorigioco' => 10,
             ];
         }
 

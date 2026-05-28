@@ -96,8 +96,12 @@ class StaffController extends Controller
         if (!$team) return $this->redirect(['/site/index']);
 
         $candidate = StaffMarket::findOne(['id' => $id, 'team_id' => $team->id]);
-        if (!$candidate || $candidate->expires_at <= time()) {
+        if (!$candidate) {
             Yii::$app->session->setFlash('error', 'Candidato non disponibile.');
+            return $this->redirect(['view']);
+        }
+        if ((int) $candidate->expires_at <= time()) {
+            Yii::$app->session->setFlash('error', 'Asta scaduta: non puoi più piazzare offerte su questo candidato.');
             return $this->redirect(['view']);
         }
 
@@ -136,8 +140,12 @@ class StaffController extends Controller
         if (!$team) return $this->redirect(['/site/index']);
 
         $candidate = StaffMarket::findOne(['id' => $id, 'team_id' => $team->id]);
-        if (!$candidate || $candidate->expires_at <= time()) {
+        if (!$candidate) {
             Yii::$app->session->setFlash('error', 'Candidato non disponibile.');
+            return $this->redirect(['view']);
+        }
+        if ((int) $candidate->expires_at <= time()) {
+            Yii::$app->session->setFlash('error', 'Asta scaduta: non puoi più rialzare l\'offerta.');
             return $this->redirect(['view']);
         }
         $existing = MarketBid::findOne([
@@ -197,54 +205,80 @@ class StaffController extends Controller
 
     private function ensureMarketForTeam(int $teamId): void
     {
-        $active = (int) StaffMarket::find()
-            ->where(['team_id' => $teamId])
-            ->andWhere(['>', 'expires_at', time()])
-            ->count();
-        if ($active >= 8) {
-            return;
-        }
+        StaffMarket::deleteAll([
+            'and',
+            ['team_id' => $teamId],
+            ['<=', 'expires_at', time()],
+        ]);
 
         $now = time();
-        $expiresAt = $now + (AuctionService::hoursForType(MarketBid::TYPE_STAFF) * 3600);
+        $maxTtlSeconds = max(3600, AuctionService::hoursForType(MarketBid::TYPE_STAFF) * 3600);
+        $minTtlSeconds = max(3600, (int) floor($maxTtlSeconds * 0.55));
         $roles = [
             Staff::ROLE_HEAD_COACH,
             Staff::ROLE_FITNESS_COACH,
+            Staff::ROLE_DOCTOR,
             Staff::ROLE_SCOUT,
             Staff::ROLE_ASSISTANT_COACH,
             Staff::ROLE_GOALKEEPING_COACH,
         ];
+        $targetTotal = 8;
 
-        $toCreate = 8 - $active;
+        // Ensure at least one active candidate per role.
+        foreach ($roles as $role) {
+            $availableRole = (int) StaffMarket::find()
+                ->where(['team_id' => $teamId, 'role' => $role])
+                ->andWhere(['>', 'expires_at', $now])
+                ->count();
+            if ($availableRole <= 0) {
+                $this->createMarketCandidate($teamId, $role, $now, $minTtlSeconds, $maxTtlSeconds);
+            }
+        }
+
+        $active = (int) StaffMarket::find()
+            ->where(['team_id' => $teamId])
+            ->andWhere(['>', 'expires_at', $now])
+            ->count();
+        if ($active >= $targetTotal) {
+            return;
+        }
+
+        $toCreate = $targetTotal - $active;
         for ($i = 0; $i < $toCreate; $i++) {
             $role = $roles[array_rand($roles)];
-            $ability = random_int(40, 92);
-            $experience = random_int(5, 40);
-            $motivation = random_int(55, 98);
-            $baseSalary = [
-                Staff::ROLE_HEAD_COACH => 80000,
-                Staff::ROLE_ASSISTANT_COACH => 40000,
-                Staff::ROLE_GOALKEEPING_COACH => 45000,
-                Staff::ROLE_FITNESS_COACH => 30000,
-                Staff::ROLE_SCOUT => 25000,
-            ];
-            $salary = (int) round(($baseSalary[$role] ?? 30000) * ($ability / 50));
-
-            $cand = new StaffMarket();
-            $cand->team_id = $teamId;
-            $cand->name = $this->randomNameByRole($role);
-            $cand->role = $role;
-            $cand->ability = $ability;
-            $cand->experience = $experience;
-            $cand->motivation = $motivation;
-            $cand->salary = $salary;
-            $cand->contract_length = random_int(1, 3);
-            $cand->negotiations = 4;
-            $cand->raise_used = 0;
-            $cand->generated_at = $now;
-            $cand->expires_at = $expiresAt;
-            $cand->save(false);
+            $this->createMarketCandidate($teamId, $role, $now, $minTtlSeconds, $maxTtlSeconds);
         }
+    }
+
+    private function createMarketCandidate(int $teamId, string $role, int $now, int $minTtlSeconds, int $maxTtlSeconds): void
+    {
+        $ability = random_int(40, 92);
+        $experience = random_int(5, 40);
+        $motivation = random_int(55, 98);
+        $baseSalary = [
+            Staff::ROLE_HEAD_COACH => 80000,
+            Staff::ROLE_ASSISTANT_COACH => 40000,
+            Staff::ROLE_GOALKEEPING_COACH => 45000,
+            Staff::ROLE_FITNESS_COACH => 30000,
+            Staff::ROLE_DOCTOR => 42000,
+            Staff::ROLE_SCOUT => 25000,
+        ];
+        $salary = (int) round(($baseSalary[$role] ?? 30000) * ($ability / 50));
+
+        $cand = new StaffMarket();
+        $cand->team_id = $teamId;
+        $cand->name = $this->randomNameByRole($role);
+        $cand->role = $role;
+        $cand->ability = $ability;
+        $cand->experience = $experience;
+        $cand->motivation = $motivation;
+        $cand->salary = $salary;
+        $cand->contract_length = random_int(1, 3);
+        $cand->negotiations = 4;
+        $cand->raise_used = 0;
+        $cand->generated_at = $now;
+        $cand->expires_at = $now + random_int($minTtlSeconds, $maxTtlSeconds);
+        $cand->save(false);
     }
 
     private function randomNameByRole(string $role): string
@@ -252,6 +286,7 @@ class StaffController extends Controller
         $prefix = match ($role) {
             Staff::ROLE_HEAD_COACH => 'Mister',
             Staff::ROLE_FITNESS_COACH => 'Prep.',
+            Staff::ROLE_DOCTOR => 'Dott.',
             Staff::ROLE_SCOUT => 'Scout',
             Staff::ROLE_ASSISTANT_COACH => 'Vice',
             Staff::ROLE_GOALKEEPING_COACH => 'All. Portieri',

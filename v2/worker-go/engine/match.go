@@ -441,8 +441,11 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	awayTactics := e.loadTeamTactics(awayTeamID)
 	homeGoalMod := tacticGoalModifier(homeTactics, awayTactics)
 	awayGoalMod := tacticGoalModifier(awayTactics, homeTactics)
-	homeGoalThreshold := 2.5 * homeBonus * homeGoalMod
-	awayGoalThreshold := homeGoalThreshold + 2.5*awayBonus*awayGoalMod
+	// SIP-0075: set piece skill modifier
+	homeSetPieceMod := e.teamSetPieceMod(homeTeamID, fixtureID)
+	awaySetPieceMod := e.teamSetPieceMod(awayTeamID, fixtureID)
+	homeGoalThreshold := 2.5 * homeBonus * homeGoalMod * homeSetPieceMod
+	awayGoalThreshold := homeGoalThreshold + 2.5*awayBonus*awayGoalMod*awaySetPieceMod
 
 	chance := rand.Float64() * 100.0
 
@@ -1391,8 +1394,7 @@ type teamTactics struct {
 	PallaBassa    float64
 	LancioLungo   float64
 	Catenaccio    float64
-	Fuorigioco    float64
-	CalciPiazzati float64
+	Fuorigioco float64
 }
 
 // loadTeamTactics fetches the latest tactic row for a team.
@@ -1401,7 +1403,7 @@ func (e *MatchEngine) loadTeamTactics(teamID int) teamTactics {
 	defaults := teamTactics{
 		Pressing: 30, Contropiede: 20, Possesso: 40,
 		PallaBassa: 30, LancioLungo: 20, Catenaccio: 20,
-		Fuorigioco: 10, CalciPiazzati: 30,
+		Fuorigioco: 10,
 	}
 	if teamID <= 0 {
 		return defaults
@@ -1414,24 +1416,22 @@ func (e *MatchEngine) loadTeamTactics(teamID int) teamTactics {
 		LancioLungo   int `db:"lancio_lungo"`
 		Catenaccio    int `db:"catenaccio"`
 		Fuorigioco    int `db:"fuorigioco"`
-		CalciPiazzati int `db:"calci_piazzati"`
 	}
 	var r row
 	err := e.DB.Get(&r,
-		"SELECT pressing, contropiede, possesso, palla_bassa, lancio_lungo, catenaccio, fuorigioco, calci_piazzati FROM training_tactic WHERE team_id = ? ORDER BY season DESC LIMIT 1",
+		"SELECT pressing, contropiede, possesso, palla_bassa, lancio_lungo, catenaccio, fuorigioco FROM training_tactic WHERE team_id = ? ORDER BY season DESC LIMIT 1",
 		teamID)
 	if err != nil {
 		return defaults
 	}
 	return teamTactics{
-		Pressing:      float64(r.Pressing),
-		Contropiede:   float64(r.Contropiede),
-		Possesso:      float64(r.Possesso),
-		PallaBassa:    float64(r.PallaBassa),
-		LancioLungo:   float64(r.LancioLungo),
-		Catenaccio:    float64(r.Catenaccio),
-		Fuorigioco:    float64(r.Fuorigioco),
-		CalciPiazzati: float64(r.CalciPiazzati),
+		Pressing:    float64(r.Pressing),
+		Contropiede: float64(r.Contropiede),
+		Possesso:    float64(r.Possesso),
+		PallaBassa:  float64(r.PallaBassa),
+		LancioLungo: float64(r.LancioLungo),
+		Catenaccio:  float64(r.Catenaccio),
+		Fuorigioco:  float64(r.Fuorigioco),
 	}
 }
 
@@ -1443,7 +1443,6 @@ func tacticGoalModifier(atk, def teamTactics) float64 {
 	possesso  := atk.Possesso / 100.0
 	lancio    := atk.LancioLungo / 100.0
 	contro    := atk.Contropiede / 100.0
-	calci     := atk.CalciPiazzati / 100.0
 
 	// Conflict penalties (mirrors applyTacticConflicts in PHP)
 	if atk.Pressing > 50 && atk.Catenaccio > 50 {
@@ -1456,9 +1455,8 @@ func tacticGoalModifier(atk, def teamTactics) float64 {
 	atkMod := 1.0 +
 		pressing*0.08 +
 		possesso*0.10 +
-		lancio*0.10 + // ~50% of 20% bypass → direct probability add
-		contro*0.075 + // ~50% counter situations × 0.15
-		calci*0.05 // set piece average contribution
+		lancio*0.10 +
+		contro*0.075
 
 	caten := def.Catenaccio / 100.0
 	fuo   := def.Fuorigioco / 100.0
@@ -1477,6 +1475,27 @@ func tacticGoalModifier(atk, def teamTactics) float64 {
 		return 1.40
 	}
 	return mod
+}
+
+// teamSetPieceMod returns a goal-probability multiplier in [1.0, 1.06] based on the
+// best skill_cp in the team's active XI. Parity: PHP FormationRoleHelper::precisionCapForSetPiece (SIP-0075).
+func (e *MatchEngine) teamSetPieceMod(teamID, fixtureID int) float64 {
+	if teamID <= 0 {
+		return 1.0
+	}
+	var maxSkillCp int
+	err := e.DB.Get(&maxSkillCp,
+		`SELECT COALESCE(MAX(p.skill_cp), 0)
+		 FROM formation f
+		 JOIN formation_slot fs ON fs.formation_id = f.id
+		 JOIN player p ON p.id = fs.player_id
+		 WHERE f.team_id = ? AND f.is_active = 1 AND fs.player_id IS NOT NULL`,
+		teamID)
+	if err != nil || maxSkillCp == 0 {
+		return 1.0
+	}
+	// 14% of shots are set pieces; skill_cp 100 → +30% precision cap → ~4.2% extra conversion
+	return 1.0 + float64(maxSkillCp)/100.0*0.06
 }
 
 func (e *MatchEngine) ProcessCommand(fixtureID int, state *models.MatchState, cmd models.MatchCommand) {

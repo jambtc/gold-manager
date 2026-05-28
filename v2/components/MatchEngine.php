@@ -380,7 +380,7 @@ class MatchEngine extends Component
             ? $roleHelper->precisionCapForSetPiece($atkFormation, $setPieceType)
             : 30;
         if ($setPieceType) {
-            $precisionCap = min(65, $precisionCap + (int) round(($atkTactics['calci_piazzati'] ?? 0) * 0.20));
+            $precisionCap = min(65, $precisionCap);
         }
         $taker = null;
         if ($setPieceType === 'penalty' && $atkFormation) {
@@ -1371,7 +1371,7 @@ class MatchEngine extends Component
         return $row ?: [
             'pressing' => 30, 'contropiede' => 20, 'possesso' => 40,
             'palla_bassa' => 30, 'lancio_lungo' => 20, 'catenaccio' => 20,
-            'fuorigioco' => 10, 'calci_piazzati' => 30,
+            'fuorigioco' => 10,
         ];
     }
 

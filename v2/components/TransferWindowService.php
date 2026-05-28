@@ -93,6 +93,65 @@ class TransferWindowService
         return $last + 86400;
     }
 
+    /**
+     * Ritorna i confini temporali della finestra di mercato corrente o futura.
+     *
+     * @return array{type:string, isOpen:bool, open_at:int, close_at:int}|null
+     */
+    public static function getActiveWindowBounds(?int $ts = null, ?int $teamId = null, ?int $competitionId = null): ?array
+    {
+        $ts = $ts ?? time();
+        $resolvedCompetitionId = $competitionId ?? self::resolveCompetitionIdForTeam($teamId);
+        if ($resolvedCompetitionId === null) {
+            return null;
+        }
+
+        $fixtures = self::competitionFixtures($resolvedCompetitionId, $ts);
+        if (empty($fixtures)) {
+            return null;
+        }
+
+        $first = $fixtures[0];
+        if ($ts < $first) {
+            return [
+                'type' => 'pre-season',
+                'isOpen' => true,
+                'open_at' => $first - (30 * 86400),
+                'close_at' => $first,
+            ];
+        }
+
+        $winter = self::winterWindowBounds($fixtures);
+        if ($winter !== null) {
+            [$winterOpen, $winterClose] = $winter;
+            if ($ts >= $winterOpen && $ts <= $winterClose) {
+                return [
+                    'type' => 'winter',
+                    'isOpen' => true,
+                    'open_at' => $winterOpen,
+                    'close_at' => $winterClose,
+                ];
+            }
+
+            if ($ts < $winterOpen) {
+                return [
+                    'type' => 'winter',
+                    'isOpen' => false,
+                    'open_at' => $winterOpen,
+                    'close_at' => $winterClose,
+                ];
+            }
+        }
+
+        $last = $fixtures[count($fixtures) - 1];
+        return [
+            'type' => 'pre-season',
+            'isOpen' => false,
+            'open_at' => $last + 86400,
+            'close_at' => $last + 86400 + (30 * 86400),
+        ];
+    }
+
     private static function resolveCompetitionIdForTeam(?int $teamId): ?int
     {
         if (!$teamId) {

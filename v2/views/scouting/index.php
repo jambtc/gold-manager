@@ -51,7 +51,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <span class="text-muted-gm" style="font-size:.75rem">Efficienza scout: <?= (int) $scoutEff ?></span>
         </div>
         <p class="text-muted-gm mb-3" style="font-size:.78rem">
-            Seleziona fino a 3 ruoli: quando entra un profilo interessante nel pool, ricevi una news automatica.
+            Seleziona fino a 3 ruoli: quando entra un profilo interessante nel mercato unico, ricevi una news automatica.
         </p>
         <?= Html::beginForm(['/scouting/save-needs'], 'post', ['class' => 'd-flex flex-wrap align-items-center gap-3']) ?>
             <?php foreach (['GK' => 'Portiere', 'DF' => 'Difensore', 'MF' => 'Centrocampista', 'FW' => 'Attaccante'] as $code => $label): ?>
@@ -96,7 +96,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <div style="flex:1;min-width:0">
                 <div class="fw-bold text-white" style="font-size:.85rem"><?= Html::encode($d['name'] ?? 'Giocatore') ?></div>
                 <div class="text-muted-gm" style="font-size:.72rem">
-                    <?= Html::encode($d['position'] ?? '') ?> · <?= Html::encode($d['age'] ?? '') ?> anni · Skill ~<?= Html::encode($d['general_skill'] ?? '?') ?>
+                    <?= Html::encode($d['position'] ?? '') ?> · <?= Html::encode($d['age'] ?? '') ?> anni · OVR ~<?= Html::encode($d['natural_overall'] ?? $d['general_skill'] ?? '?') ?>
                 </div>
             </div>
             <div class="d-flex gap-1">
@@ -125,7 +125,7 @@ $this->params['breadcrumbs'][] = $this->title;
             <span>📁</span>
             <div style="flex:1;font-size:.78rem;color:var(--text-secondary)">
                 <?= Html::encode($d['name'] ?? $r->player->name ?? '#'.$r->player_id) ?>
-                — Skill ~<?= Html::encode($d['general_skill'] ?? '?') ?>
+                — OVR ~<?= Html::encode($d['natural_overall'] ?? $d['general_skill'] ?? '?') ?>
             </div>
         </div>
         <?php endforeach; ?>

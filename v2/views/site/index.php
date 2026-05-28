@@ -115,7 +115,11 @@ $crest = function (?\app\models\Team $club, int $width = 30, int $height = 34): 
 
 <?php
 $players   = $team->players;
-$avgSkill  = count($players) ? round(array_sum(array_column($players, 'general_skill')) / count($players), 1) : 0;
+$sumOvr = 0;
+foreach ($players as $_p) {
+    $sumOvr += (int) $_p->getNaturalOverall();
+}
+$avgSkill  = count($players) ? round($sumOvr / count($players), 1) : 0;
 $wageBill  = $team->totalWageBill();
 $stadium   = $team->stadium;
 $timeTravelEnabled = YII_ENV_DEV && getenv('GM_TEST_TIME_TRAVEL') === '1';
@@ -168,7 +172,7 @@ foreach ($leagueTable as $i => $s) {
             <div class="row g-3 mb-4">
                 <?php foreach ([
                     ['Giocatori',    count($players),                   'bi-people'],
-                    ['Media skill',  $avgSkill,                         'bi-bar-chart'],
+                    ['Media OVR',    $avgSkill,                         'bi-bar-chart'],
                     ['Ingaggi/sett', $eur($wageBill),                   'bi-cash-stack'],
                     ['Capienza std', $stadium ? number_format($stadium->capacity) : '—', 'bi-building'],
                 ] as [$label, $val, $icon]): ?>
@@ -185,7 +189,7 @@ foreach ($leagueTable as $i => $s) {
             <!-- Top 3 players -->
             <?php
             $sorted = $players;
-            usort($sorted, fn($a, $b) => $b->general_skill <=> $a->general_skill);
+            usort($sorted, fn($a, $b) => $b->getNaturalOverall() <=> $a->getNaturalOverall());
             $top3 = array_slice($sorted, 0, 3);
             ?>
             <div class="small text-muted-gm text-uppercase fw-bold mb-2" style="letter-spacing:.06em">Top player</div>
@@ -196,7 +200,7 @@ foreach ($leagueTable as $i => $s) {
                         <span class="badge-gm pos-<?= strtolower($p->position) ?>"><?= $p->position ?></span>
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="text-truncate fw-semibold small"><?= Html::encode($p->name) ?></div>
-                            <div class="text-gold" style="font-size:.7rem">Skill <?= $p->general_skill ?> · <?= $p->age ?> anni</div>
+                            <div class="text-gold" style="font-size:.7rem">OVR <?= $p->getNaturalOverall() ?> · <?= $p->age ?> anni</div>
                         </div>
                         <?php if ($rank === 0): ?><i class="bi bi-star-fill text-gold" style="font-size:.75rem"></i><?php endif; ?>
                     </div>

@@ -61,6 +61,7 @@ class PlayerSeeder
 
         $allStats = ['skill_po', 'skill_df', 'skill_cn', 'skill_pa', 'skill_rg', 'skill_cr', 'skill_tc', 'skill_tr'];
         $generalSkill = (int) round(array_sum(array_map(fn($k) => $stats[$k], $allStats)) / 8);
+        $stats['skill_cp'] = $this->clamp(random_int(5, 25), 0, 99);
 
         $foot = $this->randomFoot();
         $experience = $this->clamp(random_int(5, 40) + (int) round(($age - 19) * 1.5), 1, 99);

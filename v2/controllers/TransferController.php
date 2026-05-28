@@ -240,6 +240,7 @@ class TransferController extends Controller
             'maxAge'         => $maxAge,
             'windowOpen'     => TransferWindowService::isOpen(null, (int) $team->id),
             'nextOpenAt'     => TransferWindowService::nextOpeningTimestamp(null, (int) $team->id),
+            'windowBounds'   => TransferWindowService::getActiveWindowBounds(null, (int) $team->id),
             'activeTab'      => $activeTab,
             'marketBidMap'   => $marketBidMap,
             'myAuctionBids'  => $marketBidRows,
