@@ -17,6 +17,20 @@
     const INITIAL_OFFSIDE = Number(cfg.initialOffside || 0);
     const INITIAL_FOCUS = String(cfg.initialFocus || '');
     const TRAINED_LABELS = cfg.trainedLabels || {};
+    const I18N = Object.assign({
+        stylePrefix: 'Style',
+        markingPrefix: 'Marking',
+        offsidePrefix: 'Offside trap',
+        tacticPrefix: 'Tactic',
+        defensive: 'Defensive',
+        offensive: 'Offensive',
+        balanced: 'Balanced',
+        manMarking: 'Man marking',
+        zonalMarking: 'Zonal marking',
+        yes: 'Yes',
+        no: 'No',
+        na: 'N/A'
+    }, cfg.labels || {});
     const FIXTURE_STATUS = Number(cfg.fixtureStatus || 0);
     const STATUS_SCHEDULED = 0;
     const STATUS_PLAYING = 1;
@@ -241,9 +255,9 @@
     }
 
     function styleLabel(style) {
-        if (style === 'ultra_defensive') return 'Difensivo';
-        if (style === 'all_out_attack') return 'Offensivo';
-        return 'Bilanciato';
+        if (style === 'ultra_defensive') return I18N.defensive;
+        if (style === 'all_out_attack') return I18N.offensive;
+        return I18N.balanced;
     }
 
     function updateHalfTimeUi(state) {
@@ -263,15 +277,15 @@
     }
 
     function markingLabel(marking) {
-        return marking === 'man' ? 'A uomo' : 'A zona';
+        return marking === 'man' ? I18N.manMarking : I18N.zonalMarking;
     }
 
     function offsideLabel(offside) {
-        return parseInt(offside, 10) > 0 ? 'Sì' : 'No';
+        return parseInt(offside, 10) > 0 ? I18N.yes : I18N.no;
     }
 
     function focusLabel(focus) {
-        return (TRAINED_LABELS && TRAINED_LABELS[focus]) ? TRAINED_LABELS[focus] : 'N/D';
+        return (TRAINED_LABELS && TRAINED_LABELS[focus]) ? TRAINED_LABELS[focus] : I18N.na;
     }
 
     var LIVE_STYLE = INITIAL_STYLE || 'balanced';
@@ -308,10 +322,10 @@
         var bMark = document.getElementById('live-badge-marking');
         var bOff = document.getElementById('live-badge-offside');
         var bFocus = document.getElementById('live-badge-focus');
-        if (bStyle) bStyle.textContent = 'Stile: ' + styleLabel(LIVE_STYLE);
-        if (bMark) bMark.textContent = 'Marcatura: ' + markingLabel(LIVE_MARKING);
-        if (bOff) bOff.textContent = 'Fuorigioco: ' + offsideLabel(LIVE_OFFSIDE);
-        if (bFocus) bFocus.textContent = 'Tattica: ' + focusLabel(LIVE_FOCUS);
+        if (bStyle) bStyle.textContent = I18N.stylePrefix + ': ' + styleLabel(LIVE_STYLE);
+        if (bMark) bMark.textContent = I18N.markingPrefix + ': ' + markingLabel(LIVE_MARKING);
+        if (bOff) bOff.textContent = I18N.offsidePrefix + ': ' + offsideLabel(LIVE_OFFSIDE);
+        if (bFocus) bFocus.textContent = I18N.tacticPrefix + ': ' + focusLabel(LIVE_FOCUS);
         syncLiveButtons(LIVE_STYLE, LIVE_MARKING, LIVE_OFFSIDE);
     }
 

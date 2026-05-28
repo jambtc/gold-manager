@@ -67,7 +67,7 @@ $stat = function(string $label, string $value, string $color = 'var(--text-prima
             <!-- Ticket price editor -->
             <div class="gm-card">
                 <h3 class="h5 fw-bold text-white mb-1"><i class="bi bi-ticket-perforated text-gold me-2"></i><?= Yii::t('app', 'Ticket prices') ?></h3>
-                <p class="text-muted-gm small mb-4"><?= Yii::t('app', "L'affluenza in campionato varia in base alla classifica, all'avversario e alla giornata (apertura/chiusura stagione).") ?></p>
+                <p class="text-muted-gm small mb-4"><?= Yii::t('app', 'League attendance varies by ranking, opponent, and matchday phase (season opening/closing).') ?></p>
 
                 <?= Html::beginForm(['stadium/update-price'], 'post') ?>
 
@@ -82,7 +82,7 @@ $stat = function(string $label, string $value, string $color = 'var(--text-prima
                            style="width:100%;accent-color:var(--gold);margin-bottom:.3rem"
                            oninput="window.updateComp(this.value)">
                     <div style="display:flex;justify-content:space-between;font-size:.63rem;color:var(--text-secondary);margin-bottom:.5rem">
-                        <span><?= Yii::t('app', '€5 massima affluenza') ?></span><span><?= Yii::t('app', '€200 massimo ricavo/biglietto') ?></span>
+                        <span><?= Yii::t('app', '€5 max attendance') ?></span><span><?= Yii::t('app', '€200 max revenue/ticket') ?></span>
                     </div>
                     <div id="comp-preview" style="font-size:.75rem;color:var(--text-secondary)"></div>
                 </div>
@@ -98,7 +98,7 @@ $stat = function(string $label, string $value, string $color = 'var(--text-prima
                            style="width:100%;accent-color:var(--accent-blue);margin-bottom:.3rem"
                            oninput="window.updateFriendly(this.value)">
                     <div style="display:flex;justify-content:space-between;font-size:.63rem;color:var(--text-secondary);margin-bottom:.5rem">
-                        <span><?= Yii::t('app', '€0 gratuito (più spettatori)') ?></span><span><?= Yii::t('app', '€100 premium') ?></span>
+                        <span><?= Yii::t('app', '€0 free (more spectators)') ?></span><span><?= Yii::t('app', '€100 premium') ?></span>
                     </div>
                     <div id="friendly-preview" style="font-size:.75rem;color:var(--text-secondary)"></div>
                 </div>

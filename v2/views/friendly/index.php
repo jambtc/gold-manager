@@ -14,6 +14,7 @@
 
 use app\models\FriendlyChallenge;
 use app\models\Fixture;
+use app\components\FixtureViewHelper;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
@@ -150,10 +151,21 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
                     <?php else: ?>
                         <div class="d-flex flex-column gap-2">
                             <?php foreach ($incomingChallenges as $row): ?>
+                                <?php
+                                $challengerTeam = $row->challenger;
+                                $challengerStrength = $challengerTeam ? FixtureViewHelper::computeStrength($challengerTeam) : ['ovr' => 0];
+                                $cl = \app\models\Team::sanitizeHexColor($challengerTeam->color_left ?? null, \app\models\Team::DEFAULT_COLOR_LEFT);
+                                $cr = \app\models\Team::sanitizeHexColor($challengerTeam->color_right ?? null, \app\models\Team::DEFAULT_COLOR_RIGHT);
+                                $letter = $challengerTeam ? mb_substr((string) $challengerTeam->name, 0, 1) : '?';
+                                ?>
                                 <div class="d-flex align-items-center justify-content-between p-2 rounded" style="border:1px solid var(--border);background:rgba(255,255,255,.03)">
-                                    <div>
-                                        <div class="text-white fw-bold"><?= Html::encode($row->challenger?->name ?? 'N/D') ?></div>
-                                        <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Proposal') ?>: <?= date('d/m H:i', (int) $row->proposed_at) ?></div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <span style="line-height:0"><?= FixtureViewHelper::renderShieldSvg($cl, $cr, $letter, 28, 32, 'friendlyInvite') ?></span>
+                                        <div>
+                                            <div class="text-white fw-bold"><?= Html::encode($row->challenger?->name ?? 'N/D') ?></div>
+                                            <div class="text-muted-gm" style="font-size:.68rem"><?= Yii::t('app', 'Avg OVR') ?>: <span class="text-gold fw-bold"><?= (int) ($challengerStrength['ovr'] ?? 0) ?></span></div>
+                                            <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Proposal') ?>: <?= date('d/m H:i', (int) $row->proposed_at) ?></div>
+                                        </div>
                                     </div>
                                     <div class="d-flex gap-2">
                                         <form method="post" action="<?= Url::to(['/friendly/respond', 'id' => $row->id, 'decision' => 'accept']) ?>">

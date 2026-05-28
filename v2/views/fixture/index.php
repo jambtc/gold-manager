@@ -10,6 +10,8 @@ declare(strict_types=1);
 /** @var int|null $myTeamId */
 
 use app\models\Fixture;
+use app\models\Team;
+use app\components\FixtureViewHelper;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
@@ -95,35 +97,41 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
                         $isMyAway = $myTeamId && $f->away_team_id === $myTeamId;
                         $isMyMatch = $isMyHome || $isMyAway;
                         $rowStyle = $isMyMatch ? 'background:rgba(245,158,11,.05)' : '';
+                        $hcl = Team::sanitizeHexColor($f->homeTeam->color_left  ?? null, Team::DEFAULT_COLOR_LEFT);
+                        $hcr = Team::sanitizeHexColor($f->homeTeam->color_right ?? null, Team::DEFAULT_COLOR_RIGHT);
+                        $acl = Team::sanitizeHexColor($f->awayTeam->color_left  ?? null, Team::DEFAULT_COLOR_LEFT);
+                        $acr = Team::sanitizeHexColor($f->awayTeam->color_right ?? null, Team::DEFAULT_COLOR_RIGHT);
+                        $hLetter = mb_substr((string) $f->homeTeam->name, 0, 1);
+                        $aLetter = mb_substr((string) $f->awayTeam->name, 0, 1);
                     ?>
                     <tr style="<?= $rowStyle ?>">
                         <td class="text-muted-gm" style="font-size:.8rem">
                             <?= date('d/m H:i', $f->match_date) ?>
                         </td>
                         <td class="text-end">
-                            <span class="<?= $isMyHome ? 'text-gold fw-bold' : 'text-white' ?>">
-                                <?= Html::encode($f->homeTeam->name) ?>
-                            </span>
+                            <div class="d-flex align-items-center justify-content-end gap-2">
+                                <span class="<?= $isMyHome ? 'text-gold fw-bold' : 'text-white' ?>" style="font-size:.88rem">
+                                    <?= Html::encode($f->homeTeam->name) ?>
+                                </span>
+                                <?= FixtureViewHelper::renderShieldSvg($hcl, $hcr, $hLetter, 22, 24, 'idx') ?>
+                            </div>
                         </td>
                         <td class="text-center">
                             <?php if ($f->status === Fixture::STATUS_FINISHED): ?>
-                                <span class="fw-black text-gold"><?= $f->home_score ?>–<?= $f->away_score ?></span>
-                                <?php
-                                $s = \app\components\ScorerSheetService::buildForFixture($f->id);
-                                $c = \app\components\ScorerSheetService::compactString($s);
-                                if ($c): ?>
-                                <div style="font-size:.62rem;color:var(--text-secondary);margin-top:1px"><?= Html::encode($c) ?></div>
-                                <?php endif; ?>
+                                <span class="fw-black" style="font-size:1.15rem;color:var(--gold);letter-spacing:.02em"><?= $f->home_score ?>–<?= $f->away_score ?></span>
                             <?php elseif ($f->status === Fixture::STATUS_PLAYING): ?>
-                                <span class="fw-black text-danger">LIVE</span>
+                                <span class="fw-black" style="font-size:1.15rem;color:var(--accent-red)">LIVE</span>
                             <?php else: ?>
-                                <span class="text-muted-gm">vs</span>
+                                <span class="text-muted-gm" style="font-size:.9rem">vs</span>
                             <?php endif; ?>
                         </td>
                         <td>
-                            <span class="<?= $isMyAway ? 'text-gold fw-bold' : 'text-white' ?>">
-                                <?= Html::encode($f->awayTeam->name) ?>
-                            </span>
+                            <div class="d-flex align-items-center gap-2">
+                                <?= FixtureViewHelper::renderShieldSvg($acl, $acr, $aLetter, 22, 24, 'idx') ?>
+                                <span class="<?= $isMyAway ? 'text-gold fw-bold' : 'text-white' ?>" style="font-size:.88rem">
+                                    <?= Html::encode($f->awayTeam->name) ?>
+                                </span>
+                            </div>
                         </td>
                         <td class="text-center">
                             <?php if ($f->status === Fixture::STATUS_PLAYING): ?>

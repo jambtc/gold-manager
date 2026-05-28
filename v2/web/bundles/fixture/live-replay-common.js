@@ -8,33 +8,37 @@
     function decodeZone(zoneNum) {
         var z = parseInt(zoneNum, 10);
         if (!z || z < 1) {
-            z = 10;
+            z = 32;
         }
 
-        // SIP-0067 current grid: GK=10, rows 2..10 with lanes 1..3.
+        // Canonical display grid used by formation/view:
+        // outfield 1..63 (7x9), GK at 64.
+        if (z === 64) {
+            return { row: 1, col: 4, isGk: true };
+        }
+        if (z >= 1 && z <= 63) {
+            var legacyRow = Math.floor((z - 1) / 7) + 1; // 1..9 (top=attack)
+            var legacyCol = ((z - 1) % 7) + 1;           // 1..7
+            return { row: 11 - legacyRow, col: legacyCol, isGk: false }; // row 10 top .. row 2 bottom
+        }
+
+        // Backward compatibility with old current-zones (row*10+lane) and GK=10.
         if (z === 10) {
-            return { row: 1, lane: 2, isGk: true };
+            return { row: 1, col: 4, isGk: true };
         }
         var row = Math.floor(z / 10);
         var lane = z % 10;
         if (row >= 2 && row <= 10 && lane >= 1 && lane <= 3) {
-            return { row: row, lane: lane, isGk: false };
+            var mappedCol = lane === 1 ? 2 : (lane === 2 ? 4 : 6);
+            return { row: row, col: mappedCol, isGk: false };
         }
 
-        // Legacy fallback (1..63, 7x9): map to 10-row logical grid.
-        // Legacy zone 60 (row 9, col 4) was the old GK cell but is now a center-back cell.
-        // GK is only at zone 10 (GK_ZONE) or 64 (DISPLAY_GK_ZONE).
-        var legacyRow = Math.floor((z - 1) / 7) + 1; // 1..9, old top=attack
-        var legacyCol = ((z - 1) % 7) + 1; // 1..7
-        var mappedRow = 11 - legacyRow; // old 1->10, old 9->2
-        var mappedLane = legacyCol <= 2 ? 1 : (legacyCol >= 6 ? 3 : 2);
-        return { row: Math.max(2, Math.min(10, mappedRow)), lane: mappedLane, isGk: false };
+        return { row: 6, col: 4, isGk: false };
     }
 
     function zoneToXY(zone, side, width, height, cfg) {
         var decoded = decodeZone(zone);
-        var laneCenterCol = decoded.lane === 1 ? 1.5 : (decoded.lane === 2 ? 4 : 6.5); // 2/3/2 columns on 7-grid
-        var x = ((laneCenterCol - 0.5) / 7) * (width - 24) + 12;
+        var x = ((decoded.col - 0.5) / 7) * (width - 24) + 12;
         // Home always attacks upward (GK at bottom), away always attacks downward (GK at top).
         // Fixed orientation regardless of who is viewing — viewerSide does NOT flip the pitch.
         var shouldInvert = (side === 'home');

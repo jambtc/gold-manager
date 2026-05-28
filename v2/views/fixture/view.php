@@ -243,7 +243,7 @@ $awayLetter = mb_substr((string)$fixture->awayTeam->name, 0, 1);
                 <ul class="attribute-list">
                     <li>
                         <span class="text-muted-gm"><?= Yii::t('app', 'Status') ?></span>
-                        <span class="text-white"><?= Yii::t('app', 'Awaiting kick-off'inizio') ?></span>
+                        <span class="text-white"><?= Yii::t('app', 'Awaiting kick-off') ?></span>
                     </li>
                     <li>
                         <span class="text-muted-gm"><?= Yii::t('app', 'Time') ?></span>

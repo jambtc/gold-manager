@@ -14,9 +14,13 @@ declare(strict_types=1);
 /** @var bool  $matchSoon */
 
 use yii\helpers\Html;
+use yii\helpers\Json;
 use yii\helpers\Url;
+use yii\web\View;
 use app\components\PlayerAttributeHelper;
 use app\components\UiIconHelper;
+use app\assets\TrainingProgressAsset;
+use app\assets\TrainingStatsAsset;
 
 $this->title = Yii::t('app', 'Training');
 $this->params['breadcrumbs'][] = $this->title;
@@ -49,7 +53,7 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
                   . '<div id="bar_' . $name . '" style="height:100%;width:' . $displayVal . '%;background:' . $color . ';border-radius:999px;transition:width .2s ease"></div>'
                   . '</div>'
                   . '<div style="font-size:.64rem;color:var(--text-secondary);margin-top:.15rem;display:flex;align-items:center;gap:.4rem">'
-                  . 'Attuale: <span id="pct_' . $name . '" style="color:#fff;font-weight:700">' . $displayVal . '</span>/100'
+                  . Yii::t('app','Current') . ': <span id="pct_' . $name . '" style="color:#fff;font-weight:700">' . $displayVal . '</span>/100'
                   . '<span style="color:var(--text-secondary)">·</span>'
                   . '<span style="color:' . $deltaColor . '">Δ ' . $deltaText . '</span>'
                   . '</div>'
@@ -92,12 +96,24 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
     <?php endif; ?>
 
     <!-- Tab switcher -->
-    <div class="d-flex gap-2 mb-4">
-        <a href="<?= Url::to(['/training/index', 'tab' => 'fisico']) ?>"      class="btn btn-sm <?= $tab === 'fisico'      ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-person-arms-up me-1"></i><?= Yii::t('app', 'Physical') ?></a>
-        <a href="<?= Url::to(['/training/index', 'tab' => 'tattico']) ?>"     class="btn btn-sm <?= $tab === 'tattico'     ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-grid-3x3 me-1"></i><?= Yii::t('app', 'Tactical') ?></a>
-        <a href="<?= Url::to(['/training/index', 'tab' => 'statistiche']) ?>" class="btn btn-sm <?= $tab === 'statistiche' ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-graph-up me-1"></i><?= Yii::t('app', 'Statistics') ?></a>
-        <a href="<?= Url::to(['/training/index', 'tab' => 'progressione']) ?>" class="btn btn-sm <?= $tab === 'progressione' ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-activity me-1"></i><?= Yii::t('app', 'Progression') ?></a>
-    </div>
+    <?php
+    $trainingTabs = [
+        'fisico' => ['icon' => 'bi-person-arms-up', 'label' => Yii::t('app', 'Physical')],
+        'tattico' => ['icon' => 'bi-grid-3x3', 'label' => Yii::t('app', 'Tactical')],
+        'statistiche' => ['icon' => 'bi-graph-up', 'label' => Yii::t('app', 'Statistics')],
+        'progressione' => ['icon' => 'bi-activity', 'label' => Yii::t('app', 'Progression')],
+    ];
+    ?>
+    <ul class="nav nav-tabs mb-4" role="tablist">
+        <?php foreach ($trainingTabs as $tabId => $tabMeta): ?>
+        <li class="nav-item" role="presentation">
+            <a class="nav-link <?= $tab === $tabId ? 'active' : '' ?>"
+               href="<?= Url::to(['/training/index', 'tab' => $tabId]) ?>">
+                <i class="bi <?= Html::encode($tabMeta['icon']) ?> me-1"></i><?= Html::encode($tabMeta['label']) ?>
+            </a>
+        </li>
+        <?php endforeach; ?>
+    </ul>
 
     <?php if ($tab === 'fisico'): ?>
     <!-- ── FISICO TAB ─────────────────────────────────── -->
@@ -144,7 +160,7 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
         <div class="col-lg-4">
             <div class="gm-card sticky-top" style="top:80px">
                 <h5 class="text-white mb-3"><i class="bi bi-info-circle text-gold me-2"></i><?= Yii::t('app', 'How it works') ?></h5>
-                <p class="text-muted-gm small"><?= Yii::t('app', 'Every day') ?> <code>EconomyController</code> <?= Yii::t('app', "applica l'XP guadagnato a tutti i giocatori in rosa") ?>.</p>
+                <p class="text-muted-gm small"><?= Yii::t('app', 'Every day') ?> <code>EconomyController</code> <?= Yii::t('app', 'applies earned XP to all players in your squad') ?>.</p>
                 <p class="text-muted-gm small mb-2"><?= Yii::t('app', 'Talents: daily progress only if related allocation') ?> <strong class="text-white">&gt; 80</strong> <?= Yii::t('app', 'and still with probability') ?>.</p>
                 <ul class="attribute-list small">
                     <li><span class="text-muted-gm"><?= Yii::t('app', 'Staff bonus') ?></span><span style="color:var(--gold)">×<?= round(1 + $staffBonus['physical']/100, 2) ?></span></li>
@@ -249,6 +265,15 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
     <!-- ── STATISTICHE TAB ───────────────────────────────────── -->
     <?php
     $statsUrl = Url::to(['/training/stats']);
+    $tacticLabels = [
+        'pressing'    => Yii::t('app', 'Pressing'),
+        'contropiede' => Yii::t('app', 'Counter-attack'),
+        'possesso'    => Yii::t('app', 'Ball Possession'),
+        'palla_bassa' => Yii::t('app', 'Low Ball'),
+        'lancio_lungo'=> Yii::t('app', 'Long Ball'),
+        'catenaccio'  => Yii::t('app', 'Catenaccio'),
+        'fuorigioco'  => Yii::t('app', 'Offside Trap'),
+    ];
     ?>
     <div class="row g-4">
         <div class="col-lg-8">
@@ -287,105 +312,27 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <?php
-    $jsStats = <<<JS
-(function(){
-    var STATS_URL = '$statsUrl';
-    var teamTrendChart = null;
-
-    function renderPlayerRows(targetId, rows, invert) {
-        var out = '';
-        (rows || []).forEach(function(p, i){
-            var d = parseInt(p.delta || 0, 10);
-            var sign = d > 0 ? '+' : '';
-            var col = d > 0 ? 'var(--accent-green)' : (d < 0 ? 'var(--accent-red)' : 'var(--text-secondary)');
-            if (invert && d > 0) col = 'var(--text-secondary)';
-            out += '<div style="display:flex;justify-content:space-between;padding:.4rem 0;'+(i>0?'border-top:1px solid var(--border)':'')+'">'
-                + '<div><span class="fw-bold text-white" style="font-size:.82rem">'+p.name+'</span> '
-                + '<span class="text-muted-gm" style="font-size:.72rem">'+p.position+'</span></div>'
-                + '<span style="color:'+col+';font-weight:800;font-size:.85rem">'+sign+d+'</span></div>';
-        });
-        document.getElementById(targetId).innerHTML = out || '<p class="text-muted-gm small">Dati non disponibili.</p>';
-    }
-
-    function metricChip(label, value) {
-        return '<div style="display:flex;justify-content:space-between;align-items:center;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:.55rem;padding:.45rem .55rem">'
-            + '<span class="text-muted-gm" style="font-size:.74rem">'+label+'</span>'
-            + '<span class="text-white fw-bold" style="font-size:.86rem">'+value+'</span></div>';
-    }
-
-    // ── Dashboard stats ───────────────────────────────────────
-    fetch(STATS_URL, {credentials:'same-origin'})
-    .then(function(r){return r.json();})
-    .then(function(data){
-        var trend = data.trend || {};
-        var dates = trend.dates || [];
-        var formData = trend.form || [];
-        var condData = trend.condition || [];
-        var ctx = document.getElementById('teamTrendChart').getContext('2d');
-        if (teamTrendChart) teamTrendChart.destroy();
-        teamTrendChart = new Chart(ctx, {
-            type:'line',
-            data:{
-                labels: dates.map(function(d){ return String(d).slice(5); }),
-                datasets: [
-                    { label:'<?= Yii::t('app','Form') ?>', data: formData, borderColor:'#22c55e', backgroundColor:'transparent', tension:.35, pointRadius:2.8, borderWidth:2 },
-                    { label:'Condizione', data: condData, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.35, pointRadius:2.8, borderWidth:2 }
-                ]
-            },
-            options:{
-                responsive:true,
-                plugins:{legend:{labels:{color:'#94a3b8'}}},
-                scales:{
-                    x:{ticks:{color:'#64748b'}},
-                    y:{ticks:{color:'#64748b'}, suggestedMin:0, suggestedMax:99}
-                }
-            }
-        });
-
-        var kpi = data.kpi || {};
-        document.getElementById('kpi-today').innerHTML =
-            metricChip('<?= Yii::t('app','Average form') ?>', (kpi.avg_form || 0).toFixed ? (kpi.avg_form).toFixed(1) : kpi.avg_form) +
-            metricChip('<?= Yii::t('app','Average condition') ?>', (kpi.avg_condition || 0).toFixed ? (kpi.avg_condition).toFixed(1) : kpi.avg_condition) +
-            metricChip('<?= Yii::t('app','Average freshness') ?>', (kpi.avg_freshness || 0).toFixed ? (kpi.avg_freshness).toFixed(1) : kpi.avg_freshness);
-
-        renderPlayerRows('top-growth', data.topGrowth || [], false);
-        renderPlayerRows('top-drop', data.topDrop || [], true);
-
-        var labels = <?= \yii\helpers\Json::htmlEncode([
-            'pressing'    => Yii::t('app', 'Pressing'),
-            'contropiede' => Yii::t('app', 'Counter-attack'),
-            'possesso'    => Yii::t('app', 'Ball Possession'),
-            'palla_bassa' => Yii::t('app', 'Low Ball'),
-            'lancio_lungo'=> Yii::t('app', 'Long Ball'),
-            'catenaccio'  => Yii::t('app', 'Catenaccio'),
-            'fuorigioco'  => Yii::t('app', 'Offside Trap'),
-        ]) ?>;
-        var t = data.tacticTrend || {};
-        var rows = '';
-        Object.keys(labels).forEach(function(k){
-            var r = t[k] || {current:0, delta_7d:0, alloc:0};
-            var d = parseInt(r.delta_7d || 0, 10);
-            var sign = d > 0 ? '+' : '';
-            var col = d > 0 ? 'var(--accent-green)' : (d < 0 ? 'var(--accent-red)' : 'var(--text-secondary)');
-            rows += '<tr>'
-                + '<td class="text-white">'+labels[k]+'</td>'
-                + '<td class="text-gold fw-bold">'+(r.current || 0)+'/100</td>'
-                + '<td style="color:'+col+';font-weight:700">'+sign+d+'</td>'
-                + '<td class="text-muted-gm">'+(r.alloc || 0)+'/100</td>'
-                + '</tr>';
-        });
-        var tableHtml = '<table class="table table-dark table-sm align-middle mb-0" style="--bs-table-bg:transparent">'
-            + '<thead><tr><th>Tattica</th><th>Livello</th><th>Δ 7g</th><th>Alloc Oggi</th></tr></thead>'
-            + '<tbody>'+rows+'</tbody></table>';
-        document.getElementById('tactic-trend-table').innerHTML = rows ? tableHtml : '<p class="text-muted-gm small">Nessun dato tattico disponibile.</p>';
-    })
-    .catch(function(){});
-
-}());
-JS;
-    $this->registerJs($jsStats);
+    TrainingStatsAsset::register($this);
+    $this->registerJs(
+        'window.GM_TRAINING_STATS_CFG = ' . Json::htmlEncode([
+            'enabled' => true,
+            'statsUrl' => $statsUrl,
+            'labels' => [
+                'form' => Yii::t('app', 'Form'),
+                'condition' => Yii::t('app', 'Condition'),
+                'avgForm' => Yii::t('app', 'Average form'),
+                'avgCondition' => Yii::t('app', 'Average condition'),
+                'avgFreshness' => Yii::t('app', 'Average freshness'),
+                'tactic' => Yii::t('app', 'Tactic'),
+                'level' => Yii::t('app', 'Level'),
+                'delta7d' => Yii::t('app', 'Δ 7d'),
+                'allocToday' => Yii::t('app', 'Alloc today'),
+            ],
+            'tacticLabels' => $tacticLabels,
+        ]) . ';',
+        View::POS_HEAD
+    );
     ?>
     <?php elseif ($tab === 'progressione'): ?>
     <!-- ── PROGRESSIONE GIOCATORE TAB ────────────────────────── -->
@@ -442,109 +389,29 @@ JS;
         </div>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <?php
+    TrainingProgressAsset::register($this);
     $firstPlayerId = !empty($players) ? (int)$players[0]->id : 0;
-    $jsProgress = <<<JS
-(function(){
-    var PROGRESS_URL = '$progressUrl';
-    var FIRST_PLAYER_ID = $firstPlayerId;
-    var STAT_LABELS = {
-        skill_po:'PO', skill_df:'DF', skill_cn:'CN', skill_pa:'PA',
-        skill_rg:'RG', skill_cr:'CR', skill_tc:'TC', skill_tr:'TR',
-        form:'<?= Yii::t('app','Form') ?>', condition_val:'<?= Yii::t('app','Cond.') ?>'
-    };
-    var COLORS = ['#f59e0b','#3b82f6','#22c55e','#ef4444','#a855f7','#06b6d4','#f97316','#84cc16','#ec4899','#94a3b8'];
-    var playerChart = null;
-
-    function markActive(playerId) {
-        document.querySelectorAll('.player-progress-item').forEach(function(btn){
-            var isActive = parseInt(btn.getAttribute('data-player-id') || '0', 10) === playerId;
-            btn.classList.toggle('active', isActive);
-            btn.style.borderColor = isActive ? 'rgba(245,158,11,.55)' : 'var(--border)';
-            btn.style.background = isActive ? 'rgba(245,158,11,.12)' : '';
-        });
-    }
-
-    function loadPlayer(playerId) {
-        if (!playerId) return;
-        fetch(PROGRESS_URL + '?playerId=' + playerId + '&weeks=14', {credentials:'same-origin'})
-        .then(function(r){ return r.json(); })
-        .then(function(data){
-            var nameEl = document.getElementById('progress-player-name');
-            if (nameEl) {
-                var pname = data.player && data.player.name ? data.player.name : '—';
-                var ppos = data.player && data.player.position ? (' (' + data.player.position + ')') : '';
-                nameEl.textContent = pname + ppos;
-            }
-
-            var snaps = data.snapshots || [];
-            if (snaps.length < 2) {
-                document.getElementById('delta-badges').innerHTML = '<span class="text-muted-gm small">Non abbastanza dati (servono almeno 2 snapshot giornalieri).</span>';
-                if (playerChart) { playerChart.destroy(); playerChart = null; }
-                return;
-            }
-
-            var labels = snaps.map(function(s){ return s.snapshot_date.slice(5); });
-            var statKeys = ['skill_po','skill_df','skill_cn','skill_pa','skill_rg','skill_cr','skill_tc','skill_tr','form','condition_val'];
-            var datasets = statKeys.map(function(k, i){
-                return {
-                    label: STAT_LABELS[k],
-                    data: snaps.map(function(s){ return s[k]; }),
-                    borderColor: COLORS[i % COLORS.length],
-                    backgroundColor: 'transparent',
-                    tension: .35,
-                    pointRadius: 2.8,
-                    borderWidth: 2
-                };
-            });
-
-            var ctx = document.getElementById('playerChart').getContext('2d');
-            if (playerChart) playerChart.destroy();
-            playerChart = new Chart(ctx, {
-                type: 'line',
-                data: { labels: labels, datasets: datasets },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { labels: { color: '#94a3b8', boxWidth: 11 } } },
-                    scales: {
-                        x: { ticks: { color: '#64748b' } },
-                        y: { ticks: { color: '#64748b' }, suggestedMin: 0, suggestedMax: 99 }
-                    }
-                }
-            });
-
-            var last = snaps[snaps.length - 1];
-            var deltas = last.deltas || {};
-            var html = '';
-            Object.keys(STAT_LABELS).forEach(function(k){
-                var d = deltas[k];
-                if (d === null || d === undefined) {
-                    html += '<span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:.4rem;padding:.2rem .5rem;font-size:.72rem;color:var(--text-secondary)"><strong>'+STAT_LABELS[k]+'</strong> —</span>';
-                    return;
-                }
-                d = parseInt(d, 10);
-                var col = d > 0 ? 'var(--accent-green)' : (d < 0 ? 'var(--accent-red)' : 'var(--text-secondary)');
-                var sign = d > 0 ? '+' : '';
-                html += '<span style="background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:.4rem;padding:.2rem .5rem;font-size:.72rem;color:'+col+'"><strong>'+STAT_LABELS[k]+'</strong> '+sign+d+'</span>';
-            });
-            document.getElementById('delta-badges').innerHTML = html;
-            markActive(playerId);
-        })
-        .catch(function(){});
-    }
-
-    document.querySelectorAll('.player-progress-item').forEach(function(btn){
-        btn.addEventListener('click', function(){
-            var id = parseInt(this.getAttribute('data-player-id') || '0', 10);
-            loadPlayer(id);
-        });
-    });
-
-    if (FIRST_PLAYER_ID > 0) loadPlayer(FIRST_PLAYER_ID);
-}());
-JS;
-    $this->registerJs($jsProgress);
+    $this->registerJs(
+        'window.GM_TRAINING_PROGRESS_CFG = ' . Json::htmlEncode([
+            'enabled' => true,
+            'progressUrl' => $progressUrl,
+            'firstPlayerId' => $firstPlayerId,
+            'statLabels' => [
+                'skill_po' => 'PO',
+                'skill_df' => 'DF',
+                'skill_cn' => 'CN',
+                'skill_pa' => 'PA',
+                'skill_rg' => 'RG',
+                'skill_cr' => 'CR',
+                'skill_tc' => 'TC',
+                'skill_tr' => 'TR',
+                'form' => Yii::t('app', 'Form'),
+                'condition_val' => Yii::t('app', 'Cond.'),
+            ],
+        ]) . ';',
+        View::POS_HEAD
+    );
     ?>
     <?php endif; ?>
 </div>

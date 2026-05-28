@@ -93,7 +93,7 @@ PROMPT;
     private static function clean(string $text): string
     {
         $text = preg_replace('/\s+/u', ' ', $text) ?? '';
-        $text = trim($text, " \t\n\r\0\x0B\"'“”");
+        $text = trim($text, " \t\n\r\0\x0B\"'");
         return mb_substr($text, 0, 220);
     }
 

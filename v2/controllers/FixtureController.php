@@ -295,15 +295,30 @@ class FixtureController extends Controller
             if (!empty($d['out'])) $subbedOff[$ev->team_side][] = (int)$d['out'];
         }
 
-        $buildSide = function(string $side) use ($fixture, $state, $subbedOff) {
-            $formId = $side === 'home'
-                ? $state?->home_formation_id
-                : $state?->away_formation_id;
+        $phase = strtolower((string)($state->phase ?? ''));
+        $isPreKickoff = ((int)$fixture->status === Fixture::STATUS_SCHEDULED) || $phase === '' || $phase === 'not_started';
+
+        $buildSide = function(string $side) use ($fixture, $state, $subbedOff, $isPreKickoff) {
             $team = $side === 'home' ? $fixture->homeTeam : $fixture->awayTeam;
 
-            $formation = $formId
-                ? \app\models\Formation::findOne($formId)
-                : \app\models\Formation::findOne(['team_id' => $team->id, 'is_active' => 1]);
+            $snapshotFormId = $side === 'home'
+                ? $state?->home_formation_id
+                : $state?->away_formation_id;
+
+            // Before kickoff, always read current active formation so live pre-match reflects latest manager changes.
+            if ($isPreKickoff) {
+                $formation = \app\models\Formation::find()
+                    ->where(['team_id' => $team->id, 'is_active' => 1])
+                    ->orderBy(['updated_at' => SORT_DESC, 'id' => SORT_DESC])
+                    ->one();
+            } else {
+                $formation = $snapshotFormId
+                    ? \app\models\Formation::findOne($snapshotFormId)
+                    : \app\models\Formation::find()
+                        ->where(['team_id' => $team->id, 'is_active' => 1])
+                        ->orderBy(['updated_at' => SORT_DESC, 'id' => SORT_DESC])
+                        ->one();
+            }
 
             $module = '?';
             if ($formation && preg_match('/(\d-\d-\d(?:-\d)?)/', (string)$formation->name, $m)) {
@@ -322,12 +337,13 @@ class FixtureController extends Controller
                 foreach ($slots as $slot) {
                     if (!$slot->player) continue;
                     $p = $slot->player;
-                    $zone = PitchZoneHelper::normalizeToCurrent((int) $slot->zone);
-                    if (!PitchZoneHelper::isCurrentZone($zone)) {
+                    $displayZone = PitchZoneHelper::toLegacyDisplayZone((int) $slot->zone);
+                    if (!PitchZoneHelper::isLegacyZone($displayZone) && $displayZone !== PitchZoneHelper::DISPLAY_GK_ZONE) {
                         continue;
                     }
                     $players[] = [
-                        'zone'       => $zone,
+                        // Keep exact display zone (1..63 + 64 GK) for 7x9 render parity with formation/view.
+                        'zone'       => $displayZone,
                         'player_id'  => (int)$p->id,
                         'name'       => $p->name,
                         'number'     => (int)$p->number,

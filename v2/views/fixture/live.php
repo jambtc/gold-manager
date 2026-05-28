@@ -56,6 +56,13 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
 ?>
 
 <div class="fixture-live">
+    <?php foreach (['error' => 'danger', 'warning' => 'warning', 'success' => 'success', 'info' => 'info'] as $flash => $bs): ?>
+        <?php if (Yii::$app->session->hasFlash($flash)): ?>
+            <div class="gm-card mb-3 p-3 border border-<?= $bs ?>">
+                <?= Html::encode((string) Yii::$app->session->getFlash($flash)) ?>
+            </div>
+        <?php endif; ?>
+    <?php endforeach; ?>
 
     <!-- ── Row 1: scoreboard + info ───────────────────────── -->
     <div class="row g-3 mb-3 align-items-stretch">
@@ -150,7 +157,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
     <div id="half-time-banner" class="d-none gm-card text-center mb-3" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);padding:.8rem;border-radius:.6rem">
     <div class="fw-bold" style="color:#bfdbfe;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase"><?= Yii::t('app', 'Half time') ?></div>
     <div class="text-white" style="font-size:1.6rem;font-weight:900"><span id="half-time-countdown">15</span>s</div>
-    <div class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'You can send commands now, they will be applied to'inizio del 2° tempo') ?></div>
+    <div class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'You can send commands now; they will be applied at the start of the second half.') ?></div>
 </div>
 
 <div class="row g-4">
@@ -244,13 +251,13 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                         [':teamId' => $userTeam->id]
                     )->queryOne() ?: [];
                     $trainedTacticMap = [
-                        'pressing' => 'Pressing',
-                        'contropiede' => 'Contropiede',
-                        'possesso' => 'Possesso',
-                        'palla_bassa' => 'Palla bassa',
-                        'lancio_lungo' => 'Lancio lungo',
-                        'catenaccio' => 'Catenaccio',
-                        'fuorigioco' => 'Fuorigioco',
+                        'pressing' => Yii::t('app', 'Pressing'),
+                        'contropiede' => Yii::t('app', 'Counter-attack'),
+                        'possesso' => Yii::t('app', 'Ball Possession'),
+                        'palla_bassa' => Yii::t('app', 'Low Ball'),
+                        'lancio_lungo' => Yii::t('app', 'Long Ball'),
+                        'catenaccio' => Yii::t('app', 'Catenaccio'),
+                        'fuorigioco' => Yii::t('app', 'Offside Trap'),
                     ];
                     $initialStyle = $myFormation && in_array((string) $myFormation->tactic, ['balanced', 'ultra_defensive', 'all_out_attack'], true)
                         ? (string) $myFormation->tactic : 'balanced';
@@ -410,6 +417,20 @@ $this->registerJs('window.GM_LIVE_CONFIG = ' . Json::htmlEncode([
     'initialOffside' => (int)($initialOffside ?? 1),
     'initialFocus' => $initialFocus ?? '',
     'trainedLabels' => $trainedTacticMap ?? [],
+    'labels' => [
+        'stylePrefix' => Yii::t('app', 'Style'),
+        'markingPrefix' => Yii::t('app', 'Marking'),
+        'offsidePrefix' => Yii::t('app', 'Offside trap'),
+        'tacticPrefix' => Yii::t('app', 'Tactic'),
+        'defensive' => Yii::t('app', 'Defensive'),
+        'offensive' => Yii::t('app', 'Offensive'),
+        'balanced' => Yii::t('app', 'Balanced'),
+        'manMarking' => Yii::t('app', 'Man marking'),
+        'zonalMarking' => Yii::t('app', 'Zonal marking'),
+        'yes' => Yii::t('app', 'Yes'),
+        'no' => Yii::t('app', 'No'),
+        'na' => Yii::t('app', 'N/A'),
+    ],
     'fixtureStatus' => (int)$fixtureStatus,
     'suspenseEnabled' => CommentaryTemplateService::suspenseEnabled(),
     'commentaryStreamEnabled' => CommentaryTemplateService::commentaryStreamEnabled(),

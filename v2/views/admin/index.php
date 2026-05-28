@@ -8,6 +8,7 @@
 /** @var array $stats */
 
 use yii\helpers\Html;
+use yii\helpers\Json;
 use yii\helpers\Url;
 
 $this->title = 'Admin Panel';
@@ -197,12 +198,14 @@ $this->title = 'Admin Panel';
 </div>
 
 <script>
+const TEAM_RELEASED_MSG = <?= Json::htmlEncode(Yii::t('app', 'Team "{name}" will be returned to CPU control.')) ?>;
+const NO_TEAM_ASSIGNED_MSG = <?= Json::htmlEncode(Yii::t('app', 'This manager has no assigned team.')) ?>;
 document.getElementById('confirmDelete').addEventListener('show.bs.modal', function (e) {
     const btn  = e.relatedTarget;
     document.getElementById('modal-username').textContent  = btn.dataset.username;
     document.getElementById('delete-user-id').value        = btn.dataset.userId;
     document.getElementById('modal-team-line').textContent = btn.dataset.team
-        ? 'La squadra «' + btn.dataset.team + '» sarà restituita al controllo CPU.'
-        : 'Questo manager non ha una squadra assegnata.';
+        ? TEAM_RELEASED_MSG.replace('{name}', btn.dataset.team)
+        : NO_TEAM_ASSIGNED_MSG;
 });
 </script>

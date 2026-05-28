@@ -66,15 +66,15 @@ $homeUrl     = Url::to(['/site/index']);
     const statusText = document.getElementById('status-text');
     const errorBox   = document.getElementById('error-box');
 
-    const messages = [
-        'Generazione squadre CPU…',
-        'Creazione rosa giocatori…',
-        'Assegnazione statistiche…',
-        'Costruzione stadi…',
-        'Generazione calendario…',
-        'Assegnazione squadra…',
-        'Quasi pronto…',
-    ];
+    const messages = <?= \yii\helpers\Json::htmlEncode([
+        Yii::t('app', 'Generating CPU teams...'),
+        Yii::t('app', 'Creating player squads...'),
+        Yii::t('app', 'Assigning player stats...'),
+        Yii::t('app', 'Building stadiums...'),
+        Yii::t('app', 'Generating fixture calendar...'),
+        Yii::t('app', 'Assigning your team...'),
+        Yii::t('app', 'Almost ready...'),
+    ]) ?>;
     let msgIdx   = 0;
     let progress = 10;
 

@@ -198,7 +198,7 @@ $orderedRoles = [
                                             <?= Html::beginForm(['/staff/raise-offer', 'id' => $cand->id], 'post', ['class' => 'd-inline']) ?>
                                             <button class="btn btn-outline-gold btn-sm"
                                                     type="submit"
-                                                    data-confirm="<?= Yii::t('app', "Alzare l'offerta del 15%?") ?>">
+                                                    data-confirm="<?= Yii::t('app', 'Raise the offer by 15%?') ?>">
                                                 +15%
                                             </button>
                                             <?= Html::endForm() ?>

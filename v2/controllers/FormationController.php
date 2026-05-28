@@ -375,13 +375,13 @@ class FormationController extends Controller
         )->queryOne();
 
         $labels = [
-            'pressing' => 'Pressing',
-            'contropiede' => 'Contropiede',
-            'possesso' => 'Possesso palla',
-            'palla_bassa' => 'Palla bassa',
-            'lancio_lungo' => 'Lancio lungo',
-            'catenaccio' => 'Catenaccio',
-            'fuorigioco' => 'Fuorigioco',
+            'pressing'    => Yii::t('app', 'Pressing'),
+            'contropiede' => Yii::t('app', 'Counter-attack'),
+            'possesso'    => Yii::t('app', 'Ball Possession'),
+            'palla_bassa' => Yii::t('app', 'Low Ball'),
+            'lancio_lungo'=> Yii::t('app', 'Long Ball'),
+            'catenaccio'  => Yii::t('app', 'Catenaccio'),
+            'fuorigioco'  => Yii::t('app', 'Offside Trap'),
         ];
 
         $result = [];

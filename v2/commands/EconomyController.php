@@ -1818,7 +1818,7 @@ class EconomyController extends Controller
 
             if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $challenger->id, (int) $challenge->proposed_at, (int) $challenge->id)) {
                 $challenge->status = FriendlyChallenge::STATUS_DECLINED;
-                $challenge->decline_reason = 'Abbiamo già un’amichevole questa settimana';
+                $challenge->decline_reason = "Abbiamo gia' un'amichevole questa settimana";
                 $challenge->responded_at = $now;
                 $challenge->save(false, ['status', 'decline_reason', 'responded_at']);
                 $declined++;
@@ -1834,14 +1834,17 @@ class EconomyController extends Controller
                 $declined++;
 
                 if ($challenger->user_id) {
+                    $title = $challenged->name . " ha declinato l'amichevole";
+                    $body = (string) $reason;
                     NewsService::create(
                         (int) $challenger->user_id,
                         NewsItem::CAT_FRIENDLY,
                         '-',
-                        $challenged->name . ' ha declinato l’amichevole',
-                        $reason,
+                        $title,
+                        $body,
                         $this->safeUrl('/friendly/index')
                     );
+                    TelegramService::sendToUser((int) $challenger->user_id, "📩 <b>{$title}</b>\n{$body}");
                 }
                 continue;
             }
@@ -1854,15 +1857,18 @@ class EconomyController extends Controller
             $accepted++;
 
             if ($challenger->user_id) {
+                $title = $challenged->name . " ha accettato l'amichevole";
+                $body = sprintf('Partita programmata per %s.', date('d/m H:i', (int) $challenge->proposed_at));
                 NewsService::create(
                     (int) $challenger->user_id,
                     NewsItem::CAT_FRIENDLY,
                     '+',
-                    $challenged->name . ' ha accettato l’amichevole',
-                    sprintf('Partita programmata per %s.', date('d/m H:i', (int) $challenge->proposed_at)),
+                    $title,
+                    $body,
                     $this->safeUrl('/fixture/live', ['id' => (int) $fixture->id]),
                     1
                 );
+                TelegramService::sendToUser((int) $challenger->user_id, "📩 <b>{$title}</b>\n{$body}");
             }
         }
 
@@ -1875,7 +1881,7 @@ class EconomyController extends Controller
     private function cpuFriendlyDecision(Team $team, int $proposedAt, ?int $excludeChallengeId = null): array
     {
         if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $team->id, $proposedAt, $excludeChallengeId)) {
-            return ['accept' => false, 'reason' => 'Abbiamo già un’amichevole questa settimana'];
+            return ['accept' => false, 'reason' => "Abbiamo gia' un'amichevole questa settimana"];
         }
 
         $avgFreshness = FriendlyChallengeService::averageFreshness($team);
@@ -1961,15 +1967,18 @@ class EconomyController extends Controller
             if ($challenge->save(false)) {
                 $initiated++;
                 if ($target->user_id) {
+                    $title = 'Invito amichevole ricevuto';
+                    $body = sprintf('%s ti sfida per %s.', $cpuTeam->name, date('d/m H:i', $slot));
                     NewsService::create(
                         (int) $target->user_id,
                         NewsItem::CAT_FRIENDLY,
                         'I',
-                        'Invito amichevole ricevuto',
-                        sprintf('%s ti sfida per %s.', $cpuTeam->name, date('d/m H:i', $slot)),
+                        $title,
+                        $body,
                         $this->safeUrl('/friendly/index'),
                         1
                     );
+                    TelegramService::sendToUser((int) $target->user_id, "📩 <b>{$title}</b>\n{$body}");
                 }
             }
         }

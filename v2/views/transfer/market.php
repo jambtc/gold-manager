@@ -117,7 +117,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
             </div>
             <p class="text-muted-gm mb-0" style="font-size:0.85rem">
                 <?php if ($windowOpen): ?>
-                    <?= Yii::t('app', "Il mercato è attualmente attivo. Puoi acquistare svincolati all'asta e negoziare trasferimenti con altri club.") ?>
+                    <?= Yii::t('app', "The market is currently active. You can bid on free agents and negotiate transfers with other clubs.") ?>
                     <?php if ($closeAt > 0): ?>
                         <?= Yii::t('app', 'The window will close on') ?> <strong><?= date('d/m/Y \a\l\l\e H:i', $closeAt) ?></strong>.
                     <?php endif; ?>
@@ -323,8 +323,8 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                     <div class="d-flex justify-content-between align-items-center mt-2 px-2 pb-2">
                         <span class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Total') ?> <?= (int) $marketTotal ?> · <?= Yii::t('app', 'page') ?> <?= (int) $marketPage ?>/<?= (int) $marketPages ?></span>
                         <div class="btn-group btn-group-sm">
-                            <?= Html::a('«', $pagerUrl(['page' => max(1, (int) $marketPage - 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage <= 1 ? ' disabled' : '')]) ?>
-                            <?= Html::a('»', $pagerUrl(['page' => min((int) $marketPages, (int) $marketPage + 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage >= (int)$marketPages ? ' disabled' : '')]) ?>
+                            <?= Html::a('<', $pagerUrl(['page' => max(1, (int) $marketPage - 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage <= 1 ? ' disabled' : '')]) ?>
+                            <?= Html::a('>', $pagerUrl(['page' => min((int) $marketPages, (int) $marketPage + 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage >= (int)$marketPages ? ' disabled' : '')]) ?>
                         </div>
                     </div>
                 <?php endif; ?>
@@ -365,7 +365,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                         </button>
                         <?= Html::beginForm(['/transfer/withdraw-bid', 'id' => (int) $bid->id], 'post', ['class' => 'd-inline']) ?>
                         <button type="submit" class="btn btn-outline-danger btn-sm"
-                                data-confirm="<?= Yii::t('app', "Ritirare l'offerta su") ?> <?= Html::encode($bidPlayer->name) ?>?">
+                                data-confirm="<?= Yii::t('app', 'Withdraw offer for') ?> <?= Html::encode($bidPlayer->name) ?>?">
                             <?= Yii::t('app', 'Withdraw') ?>
                         </button>
                         <?= Html::endForm() ?>

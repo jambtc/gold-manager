@@ -133,7 +133,7 @@
         var detail = '';
         if (ev.detail) {
             if (ev.detail.length > 20) {
-                detail = '<span class="text-white-50 d-block mt-1 italic-desc" style="font-style: italic; font-size: 0.88rem; color: #a1a1aa !important;">“' + ev.detail + '”</span>';
+                detail = '<span class="text-white-50 d-block mt-1 italic-desc" style="font-style: italic; font-size: 0.88rem; color: #a1a1aa !important;">"' + ev.detail + '"</span>';
             } else {
                 detail = ' <span style="color:var(--text-secondary);font-size:.78rem">' + ev.detail + '</span>';
             }

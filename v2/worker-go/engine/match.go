@@ -288,8 +288,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		if err == sql.ErrNoRows {
 			log.Printf("[MATCH %d] match_state missing — creating", fixtureID)
 			var homeFormID, awayFormID *int
-			_ = e.DB.Get(&homeFormID, "SELECT f.id FROM formation f JOIN fixture fix ON fix.home_team_id = f.team_id WHERE fix.id = ? AND f.is_active = 1 LIMIT 1", fixtureID)
-			_ = e.DB.Get(&awayFormID, "SELECT f.id FROM formation f JOIN fixture fix ON fix.away_team_id = f.team_id WHERE fix.id = ? AND f.is_active = 1 LIMIT 1", fixtureID)
+			_ = e.DB.Get(&homeFormID, "SELECT f.id FROM formation f JOIN fixture fix ON fix.home_team_id = f.team_id WHERE fix.id = ? AND f.is_active = 1 ORDER BY f.updated_at DESC, f.id DESC LIMIT 1", fixtureID)
+			_ = e.DB.Get(&awayFormID, "SELECT f.id FROM formation f JOIN fixture fix ON fix.away_team_id = f.team_id WHERE fix.id = ? AND f.is_active = 1 ORDER BY f.updated_at DESC, f.id DESC LIMIT 1", fixtureID)
 			_, err = e.DB.Exec("INSERT INTO match_state (fixture_id, current_minute, phase, home_score, away_score, home_formation_id, away_formation_id, pending_home_actions, pending_away_actions, home_subs_used, away_subs_used, half_time_ticks) VALUES (?, 0, 'NOT_STARTED', 0, 0, ?, ?, '[]', '[]', 0, 0, 0)", fixtureID, homeFormID, awayFormID)
 			if err != nil {
 				return err
@@ -1388,13 +1388,13 @@ func physicalFitnessMod(heightCm, weightKg int, position string) float64 {
 
 // teamTactics holds the 8 tactic levels (0-100) for one team.
 type teamTactics struct {
-	Pressing      float64
-	Contropiede   float64
-	Possesso      float64
-	PallaBassa    float64
-	LancioLungo   float64
-	Catenaccio    float64
-	Fuorigioco float64
+	Pressing    float64
+	Contropiede float64
+	Possesso    float64
+	PallaBassa  float64
+	LancioLungo float64
+	Catenaccio  float64
+	Fuorigioco  float64
 }
 
 // loadTeamTactics fetches the latest tactic row for a team.
@@ -1409,13 +1409,13 @@ func (e *MatchEngine) loadTeamTactics(teamID int) teamTactics {
 		return defaults
 	}
 	type row struct {
-		Pressing      int `db:"pressing"`
-		Contropiede   int `db:"contropiede"`
-		Possesso      int `db:"possesso"`
-		PallaBassa    int `db:"palla_bassa"`
-		LancioLungo   int `db:"lancio_lungo"`
-		Catenaccio    int `db:"catenaccio"`
-		Fuorigioco    int `db:"fuorigioco"`
+		Pressing    int `db:"pressing"`
+		Contropiede int `db:"contropiede"`
+		Possesso    int `db:"possesso"`
+		PallaBassa  int `db:"palla_bassa"`
+		LancioLungo int `db:"lancio_lungo"`
+		Catenaccio  int `db:"catenaccio"`
+		Fuorigioco  int `db:"fuorigioco"`
 	}
 	var r row
 	err := e.DB.Get(&r,
@@ -1440,9 +1440,9 @@ func (e *MatchEngine) loadTeamTactics(teamID int) teamTactics {
 // atk = tactics of the team attacking, def = tactics of the defending team.
 func tacticGoalModifier(atk, def teamTactics) float64 {
 	pressing := atk.Pressing / 100.0
-	possesso  := atk.Possesso / 100.0
-	lancio    := atk.LancioLungo / 100.0
-	contro    := atk.Contropiede / 100.0
+	possesso := atk.Possesso / 100.0
+	lancio := atk.LancioLungo / 100.0
+	contro := atk.Contropiede / 100.0
 
 	// Conflict penalties (mirrors applyTacticConflicts in PHP)
 	if atk.Pressing > 50 && atk.Catenaccio > 50 {
@@ -1459,7 +1459,7 @@ func tacticGoalModifier(atk, def teamTactics) float64 {
 		contro*0.075
 
 	caten := def.Catenaccio / 100.0
-	fuo   := def.Fuorigioco / 100.0
+	fuo := def.Fuorigioco / 100.0
 	palla := def.PallaBassa / 100.0
 
 	defMod := 1.0 +
@@ -2378,7 +2378,7 @@ func longOllamaPrompt(facts string) string {
 
 func cleanOllamaText(text string) string {
 	text = strings.TrimSpace(strings.ReplaceAll(text, "\n", " "))
-	text = strings.Trim(text, " \"'“”")
+	text = strings.Trim(text, " \"'")
 	text = strings.Join(strings.Fields(text), " ")
 	if text == "" || len([]rune(text)) > 220 {
 		return ""
@@ -2624,7 +2624,7 @@ func renderTemplateText(template string, tokens map[string]string) string {
 
 func cleanOllamaLongText(text string) string {
 	text = strings.TrimSpace(strings.ReplaceAll(text, "\n", " "))
-	text = strings.Trim(text, " \"'“”")
+	text = strings.Trim(text, " \"'")
 	text = strings.Join(strings.Fields(text), " ")
 	if text == "" || len([]rune(text)) > 850 {
 		return ""

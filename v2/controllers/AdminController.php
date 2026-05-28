@@ -157,8 +157,8 @@ class AdminController extends Controller
 
             $transaction->commit();
 
-            Yii::$app->session->setFlash('success', Yii::t('app', "Manager «{username}» eliminato.", ['{username}' => $username]) .
-                ($team ? ' ' . Yii::t('app', "La squadra «{name}» è stata restituita al controllo CPU.", ['{name}' => $team->name]) : ''));
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Manager "{username}" deleted.', ['{username}' => $username]) .
+                ($team ? ' ' . Yii::t('app', 'Team "{name}" has been returned to CPU control.', ['{name}' => $team->name]) : ''));
         } catch (\Throwable $e) {
             $transaction->rollBack();
             Yii::$app->session->setFlash('error', Yii::t('app', 'Error: {message}', ['{message}' => $e->getMessage()]));
