@@ -11,8 +11,9 @@ class AuctionService
 {
     public static function hoursForType(string $type): int
     {
-        return match ($type) {
-            MarketBid::TYPE_PLAYER_POOL => self::envInt('GM_MARKET_PLAYER_AUCTION_HOURS', 24),
+        $normalized = MarketBid::normalizeMarketType($type);
+        return match ($normalized) {
+            MarketBid::TYPE_TRANSFER_MARKET => self::envInt('GM_MARKET_PLAYER_AUCTION_HOURS', 24),
             MarketBid::TYPE_STAFF => self::envInt('GM_MARKET_STAFF_AUCTION_HOURS', 48),
             MarketBid::TYPE_SPONSOR => self::envInt('GM_MARKET_SPONSOR_AUCTION_HOURS', 48),
             default => 24,
@@ -33,26 +34,34 @@ class AuctionService
         $amount = max(1, $amount);
         $now = time();
 
-        $existing = MarketBid::findOne([
-            'team_id' => $teamId,
-            'market_type' => $type,
-            'market_ref_id' => $refId,
-            'status' => MarketBid::STATUS_PENDING,
-        ]);
+        $normalized = MarketBid::normalizeMarketType($type);
+        $query = MarketBid::find()
+            ->where([
+                'team_id' => $teamId,
+                'market_ref_id' => $refId,
+                'status' => MarketBid::STATUS_PENDING,
+            ]);
+        if ($normalized === MarketBid::TYPE_TRANSFER_MARKET) {
+            $query->andWhere(['market_type' => MarketBid::transferMarketTypes()]);
+        } else {
+            $query->andWhere(['market_type' => $normalized]);
+        }
+        $existing = $query->orderBy(['id' => SORT_DESC])->one();
 
         if ($existing) {
             $existing->bid_amount = $amount;
+            $existing->market_type = $normalized;
             $existing->expires_at = self::expiresAt($type);
             $existing->resolved_at = null;
             $existing->result_note = null;
             $existing->updated_at = $now;
-            $existing->save(false, ['bid_amount', 'expires_at', 'resolved_at', 'result_note', 'updated_at']);
+            $existing->save(false, ['bid_amount', 'market_type', 'expires_at', 'resolved_at', 'result_note', 'updated_at']);
             return $existing;
         }
 
         $bid = new MarketBid();
         $bid->team_id = $teamId;
-        $bid->market_type = $type;
+        $bid->market_type = $normalized;
         $bid->market_ref_id = $refId;
         $bid->bid_amount = $amount;
         $bid->status = MarketBid::STATUS_PENDING;
@@ -65,12 +74,18 @@ class AuctionService
 
     public static function myPendingBids(int $teamId, string $type): array
     {
-        return MarketBid::find()
+        $normalized = MarketBid::normalizeMarketType($type);
+        $query = MarketBid::find()
             ->where([
                 'team_id' => $teamId,
-                'market_type' => $type,
                 'status' => MarketBid::STATUS_PENDING,
-            ])
+            ]);
+        if ($normalized === MarketBid::TYPE_TRANSFER_MARKET) {
+            $query->andWhere(['market_type' => MarketBid::transferMarketTypes()]);
+        } else {
+            $query->andWhere(['market_type' => $normalized]);
+        }
+        return $query
             ->orderBy(['expires_at' => SORT_ASC, 'id' => SORT_ASC])
             ->all();
     }

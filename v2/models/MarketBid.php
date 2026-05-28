@@ -22,6 +22,8 @@ use yii\db\ActiveRecord;
  */
 class MarketBid extends ActiveRecord
 {
+    public const TYPE_TRANSFER_MARKET = 'transfer_market';
+    // Legacy alias kept for backward compatibility on old rows/configs.
     public const TYPE_PLAYER_POOL = 'player_pool';
     public const TYPE_STAFF = 'staff';
     public const TYPE_SPONSOR = 'sponsor';
@@ -49,9 +51,24 @@ class MarketBid extends ActiveRecord
             [['market_type'], 'string', 'max' => 24],
             [['status'], 'string', 'max' => 20],
             [['result_note'], 'string', 'max' => 255],
-            [['market_type'], 'in', 'range' => [self::TYPE_PLAYER_POOL, self::TYPE_STAFF, self::TYPE_SPONSOR]],
+            [['market_type'], 'in', 'range' => [self::TYPE_TRANSFER_MARKET, self::TYPE_PLAYER_POOL, self::TYPE_STAFF, self::TYPE_SPONSOR]],
             [['status'], 'in', 'range' => [self::STATUS_PENDING, self::STATUS_WON, self::STATUS_LOST, self::STATUS_CANCELLED]],
         ];
+    }
+
+    /**
+     * @return string[]
+     */
+    public static function transferMarketTypes(): array
+    {
+        return [self::TYPE_TRANSFER_MARKET, self::TYPE_PLAYER_POOL];
+    }
+
+    public static function normalizeMarketType(string $type): string
+    {
+        return in_array($type, self::transferMarketTypes(), true)
+            ? self::TYPE_TRANSFER_MARKET
+            : $type;
     }
 
     public function getTeam()

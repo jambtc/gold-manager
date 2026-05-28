@@ -43,13 +43,14 @@ class TransferController extends Controller
                     'reject-offer' => ['post'],
                     'delist' => ['post'],
                     'sign-free-agent' => ['post'],
+                    'withdraw-bid'    => ['post'],
                 ],
             ],
         ];
     }
 
     /**
-     * Transfer market listing (listed players + free agent pool + own offers).
+     * Transfer market listing (single list: listed players + free agents).
      */
     public function actionMarket(): string|Response
     {
@@ -65,7 +66,8 @@ class TransferController extends Controller
         $minSkill = (int) Yii::$app->request->get('min_skill', 0);
         $maxFee   = (int) Yii::$app->request->get('max_fee', 0);
         $maxAge   = (int) Yii::$app->request->get('max_age', 0);
-        $activeTab = in_array(Yii::$app->request->get('tab'), ['listed','pool','offers'], true)
+        $perPage  = 20;
+        $activeTab = in_array(Yii::$app->request->get('tab'), ['listed','offers'], true)
             ? Yii::$app->request->get('tab')
             : 'listed';
 
@@ -82,9 +84,6 @@ class TransferController extends Controller
         if ($pos !== '') {
             $listedQuery->andWhere(['p.position' => $pos]);
         }
-        if ($minSkill > 0) {
-            $listedQuery->andWhere(['>=', 'p.general_skill', $minSkill]);
-        }
         if ($maxFee > 0) {
             $listedQuery->andWhere(['<=', 'COALESCE(t.asking_fee, t.fee)', $maxFee]);
         }
@@ -92,7 +91,11 @@ class TransferController extends Controller
             $listedQuery->andWhere(['<=', 'p.age', $maxAge]);
         }
         $transfers = $listedQuery->orderBy(['t.listed_at' => SORT_DESC])->all();
-
+        if ($minSkill > 0) {
+            $transfers = array_values(array_filter($transfers, static function (Transfer $t) use ($minSkill): bool {
+                return $t->player !== null && (int) $t->player->getNaturalOverall() >= $minSkill;
+            }));
+        }
         $poolQuery = PlayerPool::find()
             ->alias('pp')
             ->innerJoin(['p' => Player::tableName()], 'p.id = pp.player_id')
@@ -105,28 +108,110 @@ class TransferController extends Controller
         if ($pos !== '') {
             $poolQuery->andWhere(['p.position' => $pos]);
         }
-        if ($minSkill > 0) {
-            $poolQuery->andWhere(['>=', 'p.general_skill', $minSkill]);
-        }
         if ($maxAge > 0) {
             $poolQuery->andWhere(['<=', 'p.age', $maxAge]);
         }
         $poolPlayers = $poolQuery->orderBy([
             'pp.expires_at' => SORT_ASC,
-            'p.general_skill' => SORT_DESC,
             'pp.id' => SORT_ASC,
         ])->all();
-        $poolBidRows = MarketBid::find()
+        if ($minSkill > 0) {
+            $poolPlayers = array_values(array_filter($poolPlayers, static function (PlayerPool $pp) use ($minSkill): bool {
+                return $pp->player !== null && (int) $pp->player->getNaturalOverall() >= $minSkill;
+            }));
+        }
+        usort($poolPlayers, static function (PlayerPool $a, PlayerPool $b): int {
+            $ea = (int) ($a->expires_at ?? 0);
+            $eb = (int) ($b->expires_at ?? 0);
+            if ($ea !== $eb) {
+                return $ea <=> $eb;
+            }
+            $oa = $a->player ? (int) $a->player->getNaturalOverall() : 0;
+            $ob = $b->player ? (int) $b->player->getNaturalOverall() : 0;
+            if ($oa !== $ob) {
+                return $ob <=> $oa;
+            }
+            return ((int) $a->id) <=> ((int) $b->id);
+        });
+        $marketBidRows = MarketBid::find()
             ->where([
                 'team_id' => (int) $team->id,
-                'market_type' => MarketBid::TYPE_PLAYER_POOL,
                 'status' => MarketBid::STATUS_PENDING,
             ])
+            ->andWhere(['market_type' => MarketBid::transferMarketTypes()])
             ->all();
-        $poolBidMap = [];
-        foreach ($poolBidRows as $row) {
-            $poolBidMap[(int) $row->market_ref_id] = $row;
+        $marketBidMap = [];
+        foreach ($marketBidRows as $row) {
+            $marketBidMap[(int) $row->market_ref_id] = $row;
         }
+
+        $marketRows = [];
+        foreach ($transfers as $transfer) {
+            $player = $transfer->player;
+            if (!$player) {
+                continue;
+            }
+            $marketRows[] = [
+                'kind' => 'listed',
+                'player' => $player,
+                'transfer' => $transfer,
+                'marketEntry' => null,
+                'isOwn' => (bool) ($team && (int) $transfer->from_team_id === (int) $team->id),
+                'team' => $transfer->fromTeam,
+                'askingFee' => (int) ($transfer->asking_fee ?: $transfer->fee),
+                'salaryAsk' => null,
+                'expiresAt' => null,
+                'sortGroup' => 1,
+                'sortTs' => (int) ($transfer->listed_at ?? 0),
+            ];
+        }
+        foreach ($poolPlayers as $marketEntry) {
+            $player = $marketEntry->player;
+            if (!$player) {
+                continue;
+            }
+            $marketRows[] = [
+                'kind' => 'market',
+                'player' => $player,
+                'transfer' => null,
+                'marketEntry' => $marketEntry,
+                'isOwn' => false,
+                'team' => null,
+                'askingFee' => (int) $marketEntry->asking_fee,
+                'salaryAsk' => (int) $marketEntry->salary_ask,
+                'expiresAt' => (int) $marketEntry->expires_at,
+                'sortGroup' => 0,
+                'sortTs' => (int) $marketEntry->expires_at,
+            ];
+        }
+        // Rows the user already bid on float to the top within their group.
+        $bidRefIds = array_keys($marketBidMap);
+        usort($marketRows, static function (array $a, array $b) use ($bidRefIds): int {
+            $ga = (int) ($a['sortGroup'] ?? 99);
+            $gb = (int) ($b['sortGroup'] ?? 99);
+            if ($ga !== $gb) {
+                return $ga <=> $gb;
+            }
+            $hasBidA = (int) in_array((int) ($a['marketEntry']?->id ?? 0), $bidRefIds, true);
+            $hasBidB = (int) in_array((int) ($b['marketEntry']?->id ?? 0), $bidRefIds, true);
+            if ($hasBidA !== $hasBidB) {
+                return $hasBidB <=> $hasBidA; // bid rows first
+            }
+            $tsa = (int) ($a['sortTs'] ?? 0);
+            $tsb = (int) ($b['sortTs'] ?? 0);
+            if ($ga === 0) {
+                return $tsa <=> $tsb; // free-agent auctions: earliest expiry first
+            }
+            return $tsb <=> $tsa; // listed transfers: newest first
+        });
+
+        $marketTotal = count($marketRows);
+        $marketPage = max(1, (int) Yii::$app->request->get('page', 1));
+        $marketPages = max(1, (int) ceil($marketTotal / $perPage));
+        if ($marketPage > $marketPages) {
+            $marketPage = $marketPages;
+        }
+        $marketRows = array_slice($marketRows, ($marketPage - 1) * $perPage, $perPage);
 
         $myOffersSent = TransferOffer::find()
             ->where(['from_team_id' => $team->id])
@@ -143,8 +228,7 @@ class TransferController extends Controller
 
         return $this->render('market', [
             'team'           => $team,
-            'transfers'      => $transfers,
-            'poolPlayers'    => $poolPlayers,
+            'marketRows'     => $marketRows,
             'myOffersSent'   => $myOffersSent,
             'incomingOffers' => $incomingOffers,
             'pendingCount'   => count($incomingOffers),
@@ -157,7 +241,12 @@ class TransferController extends Controller
             'windowOpen'     => TransferWindowService::isOpen(null, (int) $team->id),
             'nextOpenAt'     => TransferWindowService::nextOpeningTimestamp(null, (int) $team->id),
             'activeTab'      => $activeTab,
-            'poolBidMap'     => $poolBidMap,
+            'marketBidMap'   => $marketBidMap,
+            'myAuctionBids'  => $marketBidRows,
+            'perPage'        => $perPage,
+            'marketTotal'    => $marketTotal,
+            'marketPage'     => $marketPage,
+            'marketPages'    => $marketPages,
         ]);
     }
 
@@ -502,7 +591,7 @@ class TransferController extends Controller
     }
 
     /**
-     * Places/updates free-agent auction bid from player_pool.
+     * Places/updates free-agent auction bid from unified transfer market.
      */
     public function actionSignFreeAgent(int $id): Response
     {
@@ -515,7 +604,7 @@ class TransferController extends Controller
             return $this->redirect(['/team/view']);
         }
 
-        $lockToken = MultiplayerSyncService::acquireLock('transfer.pool.' . $id, 15);
+        $lockToken = MultiplayerSyncService::acquireLock('transfer.market.' . $id, 15);
         if ($lockToken === null) {
             Yii::$app->session->setFlash('warning', 'Operazione concorrente in corso. Riprova.');
             return $this->redirect(['market']);
@@ -523,12 +612,16 @@ class TransferController extends Controller
 
         try {
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
-        $pool = PlayerPool::findOne($id);
-        if (!$team || !$pool || (int) $pool->expires_at <= time()) {
-            throw new NotFoundHttpException('Giocatore non disponibile nel pool.');
+        $marketEntry = PlayerPool::findOne($id);
+        if (!$team || !$marketEntry) {
+            throw new NotFoundHttpException('Giocatore non disponibile nel mercato.');
+        }
+        if ((int) $marketEntry->expires_at <= time()) {
+            Yii::$app->session->setFlash('error', 'Asta scaduta: non puoi più piazzare questa offerta.');
+            return $this->redirect(['market', 'tab' => 'listed']);
         }
 
-        $player = $pool->player;
+        $player = $marketEntry->player;
         if (!$player || $player->team_id !== null) {
             Yii::$app->session->setFlash('error', 'Giocatore non più disponibile.');
             return $this->redirect(['market']);
@@ -536,7 +629,7 @@ class TransferController extends Controller
 
         $offered = (int) Yii::$app->request->post('offered_fee', 0);
         if ($offered <= 0) {
-            $offered = max(1, (int) $pool->asking_fee);
+            $offered = max(1, (int) $marketEntry->asking_fee);
         }
         if ((int) $team->budget < $offered) {
             Yii::$app->session->setFlash('error', 'Budget insufficiente per piazzare questa offerta.');
@@ -545,8 +638,8 @@ class TransferController extends Controller
 
         $bid = AuctionService::placeOrUpdateBid(
             (int) $team->id,
-            MarketBid::TYPE_PLAYER_POOL,
-            (int) $pool->id,
+            MarketBid::TYPE_TRANSFER_MARKET,
+            (int) $marketEntry->id,
             $offered
         );
         Yii::$app->session->setFlash(
@@ -558,10 +651,37 @@ class TransferController extends Controller
                 date('d/m H:i', (int) $bid->expires_at)
             )
         );
-        return $this->redirect(['market', 'tab' => 'pool']);
+        return $this->redirect(['market', 'tab' => 'listed']);
         } finally {
-            MultiplayerSyncService::releaseLock('transfer.pool.' . $id, $lockToken);
+            MultiplayerSyncService::releaseLock('transfer.market.' . $id, $lockToken);
         }
+    }
+
+    public function actionWithdrawBid(int $id): Response
+    {
+        $team = Team::findOne(['user_id' => Yii::$app->user->id]);
+        if (!$team) {
+            return $this->redirect(['/site/index']);
+        }
+
+        $bid = MarketBid::findOne([
+            'id'      => $id,
+            'team_id' => (int) $team->id,
+            'status'  => MarketBid::STATUS_PENDING,
+        ]);
+
+        if (!$bid) {
+            Yii::$app->session->setFlash('error', 'Offerta non trovata o già conclusa.');
+            return $this->redirect(['market', 'tab' => 'offers']);
+        }
+
+        $bid->status = MarketBid::STATUS_CANCELLED;
+        $bid->resolved_at = time();
+        $bid->result_note = 'withdrawn';
+        $bid->save(false, ['status', 'resolved_at', 'result_note', 'updated_at']);
+
+        Yii::$app->session->setFlash('success', 'Offerta ritirata.');
+        return $this->redirect(['market', 'tab' => 'offers']);
     }
 
     private function createOrUpdateOffer(Transfer $transfer, int $offered): Response

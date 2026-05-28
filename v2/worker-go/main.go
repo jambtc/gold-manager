@@ -257,7 +257,7 @@ func ensureCPUActiveFormation(teamID int) error {
 	if err := db.Get(&starters, `
 		SELECT COUNT(*) FROM formation_slot
 		WHERE formation_id = ?
-		  AND (((zone = 10) OR ((zone BETWEEN 20 AND 103) AND (MOD(zone,10) BETWEEN 1 AND 3))) OR (zone BETWEEN 1 AND 63))
+		  AND (((zone = 10) OR ((zone BETWEEN 20 AND 103) AND (MOD(zone,10) BETWEEN 1 AND 3))) OR (zone BETWEEN 1 AND 63) OR (zone BETWEEN 1001 AND 1063))
 		  AND player_id IS NOT NULL
 	`, formationID); err != nil {
 		return err

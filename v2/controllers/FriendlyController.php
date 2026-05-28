@@ -431,11 +431,6 @@ class FriendlyController extends Controller
 
     public function actionStartNow(int $id): Response
     {
-        if (!MultiplayerSyncService::ensureOnce('friendly.start-now.' . $id, 20)) {
-            Yii::$app->session->setFlash('info', 'Richiesta già elaborata.');
-            return $this->redirect(['/friendly/index']);
-        }
-
         $lockToken = MultiplayerSyncService::acquireLock('friendly.start-now.' . $id, 15);
         if ($lockToken === null) {
             Yii::$app->session->setFlash('warning', 'Operazione concorrente in corso. Riprova.');
@@ -482,13 +477,22 @@ class FriendlyController extends Controller
             return $this->redirect(['/fixture/replay', 'id' => $fixture->id]);
         }
 
-        if ((int) $fixture->status === Fixture::STATUS_SCHEDULED) {
+        if (in_array((int) $fixture->status, [Fixture::STATUS_SCHEDULED, Fixture::STATUS_PLAYING], true)) {
+            // Reset to SCHEDULED so Go worker re-enters the pre-match branch,
+            // which deletes stale state/events and snapshots the latest formation.
+            \app\models\MatchState::deleteAll(['fixture_id' => (int) $fixture->id]);
+            \app\models\MatchEvent::deleteAll(['fixture_id' => (int) $fixture->id]);
+
             $fixture->match_date = time() - 5;
-            $fixture->status = Fixture::STATUS_PLAYING;
+            $fixture->status = Fixture::STATUS_SCHEDULED;
             $fixture->save(false, ['match_date', 'status']);
-            Yii::$app->session->setFlash('success', 'Kickoff forzato: partita avviata.');
+            $prematchSeconds = $this->preMatchSeconds();
+            Yii::$app->session->setFlash(
+                'success',
+                sprintf('Pre-partita forzata avviata. Kickoff tra circa %d secondi.', $prematchSeconds)
+            );
         } else {
-            Yii::$app->session->setFlash('info', 'Partita già in corso.');
+            Yii::$app->session->setFlash('info', 'Partita non avviabile.');
         }
 
         return $this->redirect(['/fixture/live', 'id' => $fixture->id]);
@@ -504,5 +508,15 @@ class FriendlyController extends Controller
             return YII_ENV_DEV;
         }
         return in_array(strtolower((string) $raw), ['1', 'true', 'yes', 'on'], true);
+    }
+
+    private function preMatchSeconds(): int
+    {
+        $raw = getenv('GM_PREMATCH_SECONDS');
+        if ($raw === false || $raw === '') {
+            return 15;
+        }
+        $value = (int) $raw;
+        return $value >= 0 ? $value : 15;
     }
 }

@@ -4,11 +4,11 @@ declare(strict_types=1);
 
 /** @var yii\web\View $this */
 /** @var app\models\Team|null $team */
-/** @var app\models\Transfer[] $transfers */
-/** @var app\models\PlayerPool[] $poolPlayers */
+/** @var array<int,array<string,mixed>> $marketRows */
 /** @var app\models\TransferOffer[] $myOffersSent */
 /** @var app\models\TransferOffer[] $incomingOffers */
-/** @var array<int, app\models\MarketBid> $poolBidMap */
+/** @var array<int, app\models\MarketBid> $marketBidMap */
+/** @var app\models\MarketBid[] $myAuctionBids */
 /** @var app\components\PlayerValuator $valuator */
 /** @var string $q */
 /** @var string $pos */
@@ -19,9 +19,14 @@ declare(strict_types=1);
 /** @var int $nextOpenAt */
 /** @var int $pendingCount */
 /** @var string $activeTab */
+/** @var int $perPage */
+/** @var int $marketTotal */
+/** @var int $marketPage */
+/** @var int $marketPages */
 
 use app\models\Transfer;
 use app\models\TransferOffer;
+use app\components\FixtureViewHelper;
 use app\components\PlayerAttributeHelper;
 use app\components\UiIconHelper;
 use yii\helpers\Html;
@@ -46,6 +51,17 @@ $footLbl = static fn(string $f): string => match ($f) {
     'LR' => 'Amb.',
     default => $f,
 };
+$pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFee, $maxAge, $activeTab): string {
+    return Url::to(array_merge([
+        '/transfer/market',
+        'q' => $q,
+        'pos' => $pos,
+        'min_skill' => $minSkill,
+        'max_fee' => $maxFee,
+        'max_age' => $maxAge,
+        'tab' => $activeTab,
+    ], $extra));
+};
 ?>
 
 <div class="transfer-market">
@@ -53,7 +69,7 @@ $footLbl = static fn(string $f): string => match ($f) {
         <div>
             <h1 class="mb-0 fw-black">Mercato Trasferimenti</h1>
             <p class="text-muted-gm mb-0">
-                <?= count($transfers) ?> in vendita · <?= count($poolPlayers) ?> pool svincolati
+                <?= (int) $marketTotal ?> giocatori in lista unica
             </p>
         </div>
         <div class="d-flex align-items-center gap-2">
@@ -94,7 +110,7 @@ $footLbl = static fn(string $f): string => match ($f) {
             <option value="MF" <?= $pos === 'MF' ? 'selected' : '' ?> style="background:#0f172a">MF</option>
             <option value="FW" <?= $pos === 'FW' ? 'selected' : '' ?> style="background:#0f172a">FW</option>
         </select>
-        <input type="number" name="min_skill" value="<?= (int) $minSkill ?>" min="0" max="99" placeholder="Skill min"
+        <input type="number" name="min_skill" value="<?= (int) $minSkill ?>" min="0" max="99" placeholder="OVR min"
                style="width:100px;<?= $selStyle ?>">
         <input type="number" name="max_fee" value="<?= (int) $maxFee ?>" min="0" placeholder="Prezzo max"
                style="width:130px;<?= $selStyle ?>">
@@ -106,8 +122,7 @@ $footLbl = static fn(string $f): string => match ($f) {
 
     <?php
     $tabs = [
-        'listed' => 'Giocatori in vendita',
-        'pool'   => 'Free agent pool',
+        'listed' => 'Lista mercato',
         'offers' => 'Le mie offerte',
     ];
     ?>
@@ -121,8 +136,11 @@ $footLbl = static fn(string $f): string => match ($f) {
                     type="button"
                     onclick="document.getElementById('filter-tab').value='<?= $tabId ?>'">
                 <?= Html::encode($tabLabel) ?>
-                <?php if ($tabId === 'offers' && $pendingCount > 0): ?>
-                <span style="display:inline-flex;align-items:center;justify-content:center;background:var(--accent-red);color:#fff;border-radius:50%;font-size:.6rem;font-weight:900;width:16px;height:16px;margin-left:.3rem"><?= $pendingCount ?></span>
+                <?php
+                $offersBadge = $pendingCount + count($myAuctionBids);
+                if ($tabId === 'offers' && $offersBadge > 0):
+                ?>
+                <span style="display:inline-flex;align-items:center;justify-content:center;background:var(--accent-red);color:#fff;border-radius:50%;font-size:.6rem;font-weight:900;width:16px;height:16px;margin-left:.3rem"><?= $offersBadge ?></span>
                 <?php endif; ?>
             </button>
         </li>
@@ -131,188 +149,196 @@ $footLbl = static fn(string $f): string => match ($f) {
 
     <div class="tab-content">
         <div class="tab-pane fade <?= $activeTab === 'listed' ? 'show active' : '' ?>" id="listed" role="tabpanel">
-            <?php if (empty($transfers)): ?>
+            <?php if (empty($marketRows)): ?>
                 <div class="gm-card p-5 text-center">
                     <i class="bi bi-shop-window d-block mb-3 text-muted-gm" style="font-size:3rem;opacity:.4"></i>
-                    <h3 class="text-white mb-2">Nessun giocatore in vendita</h3>
-                    <p class="text-muted-gm mb-0">Prova con filtri diversi o attendi nuove inserzioni.</p>
+                    <h3 class="text-white mb-2">Nessun giocatore in lista</h3>
+                    <p class="text-muted-gm mb-0">Nessun elemento disponibile nel mercato al momento.</p>
                 </div>
             <?php else: ?>
-                <div class="row g-4">
-                    <?php foreach ($transfers as $transfer): ?>
-                        <?php $p = $transfer->player; if (!$p) { continue; } ?>
-                        <?php $isOwn = $team && (int) $transfer->from_team_id === (int) $team->id; ?>
-                        <div class="col-md-6 col-xl-4">
-                            <div class="gm-card d-flex flex-column" style="gap:0">
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <?= UiIconHelper::renderPositionBadge((string) $p->position, true, 10, 'font-size:.62rem;padding:.14rem .34rem') ?>
-                                    <span class="text-muted-gm" style="font-size:.68rem"><?= date('d M', (int) $transfer->listed_at) ?></span>
-                                </div>
-
-                                <div class="text-center mb-3">
-                                    <h4 class="mb-1 fw-bold text-white"><?= Html::encode($p->name) ?></h4>
-                                    <div class="text-muted-gm" style="font-size:.75rem">
-                                        <?= (int) $p->age ?> anni
-                                        · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $p->foot, 11) ?><?= Html::encode($footLbl((string) $p->foot)) ?></span>
-                                        <?php if ($p->character): ?>
-                                        · <span style="font-style:italic"><?= Html::encode(ucfirst($p->character)) ?></span>
-                                        <?php endif; ?>
-                                        <?php if ($transfer->fromTeam): ?>
-                                        · <?= Html::encode($transfer->fromTeam->name) ?>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-
-                                <div class="row g-2 mb-3">
-                                    <?php foreach ([
-                                        ['Skill', (string) $p->general_skill, 'var(--gold)'],
-                                        ['Forma', $p->form . '%', $p->form >= 75 ? 'var(--accent-green)' : ($p->form >= 50 ? 'var(--gold)' : 'var(--accent-red)')],
-                                        ['Fr.', $p->freshness . '%', 'var(--accent-blue)'],
-                                        ['Cond.', $p->condition . '%', '#f59e0b'],
-                                    ] as [$lbl, $val, $color]): ?>
-                                        <div class="col-3">
-                                            <div class="text-center p-1 rounded-2" style="background:rgba(255,255,255,.04);border:1px solid var(--border)">
-                                                <div style="font-size:.58rem;color:var(--text-secondary);text-transform:uppercase"><?= $lbl ?></div>
-                                                <div style="font-weight:800;font-size:.85rem;color:<?= $color ?>"><?= Html::encode($val) ?></div>
+                <div class="gm-card p-0 overflow-hidden">
+                    <div class="table-responsive">
+                        <table class="table-gm w-100 mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Pos</th>
+                                    <th>Giocatore</th>
+                                    <th class="text-center">OVR</th>
+                                    <th class="text-center">Forma</th>
+                                    <th class="text-center">Fr.</th>
+                                    <th class="text-center">Cond.</th>
+                                    <th>Squadra</th>
+                                    <th>Talenti</th>
+                                    <th>Tipo</th>
+                                    <th>Scadenza</th>
+                                    <th class="text-end">Azioni</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php foreach ($marketRows as $row): ?>
+                                    <?php
+                                    /** @var app\models\Player|null $p */
+                                    $p = $row['player'] ?? null;
+                                    if (!$p) { continue; }
+                                    /** @var app\models\Transfer|null $transfer */
+                                    $transfer = $row['transfer'] ?? null;
+                                    /** @var app\models\PlayerPool|null $marketEntry */
+                                    $marketEntry = $row['marketEntry'] ?? null;
+                                    /** @var app\models\Team|null $sourceTeam */
+                                    $sourceTeam = $row['team'] ?? null;
+                                    $kind = (string) ($row['kind'] ?? 'listed');
+                                    $isOwn = (bool) ($row['isOwn'] ?? false);
+                                    $ask = (int) ($row['askingFee'] ?? 0);
+                                    $salaryAsk = (int) ($row['salaryAsk'] ?? 0);
+                                    $expiresAt = (int) ($row['expiresAt'] ?? 0);
+                                    $myMarketBid = $marketEntry ? ($marketBidMap[(int) $marketEntry->id] ?? null) : null;
+                                    $talents = PlayerAttributeHelper::talents($p, 2);
+                                    ?>
+                                    <tr<?= $expiresAt > 0 ? ' data-expire-lock="order"' : '' ?>>
+                                        <td><?= UiIconHelper::renderPositionBadge((string) $p->position, true, 10, 'font-size:.62rem;padding:.14rem .34rem') ?></td>
+                                        <td>
+                                            <div class="fw-semibold text-white" style="font-size:.85rem"><?= Html::encode($p->name) ?></div>
+                                            <div class="text-muted-gm" style="font-size:.7rem">
+                                                <?= (int) $p->age ?>a · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $p->foot, 11) ?><?= Html::encode($footLbl((string) $p->foot)) ?></span>
                                             </div>
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-
-                                <?php
-                                $specials = PlayerAttributeHelper::talents($p, 2);
-                                if (!empty($specials)): ?>
-                                <div class="d-flex flex-wrap gap-1 mb-3">
-                                    <?php foreach ($specials as $tal): ?>
-                                    <span title="<?= Html::encode((string) $tal['label']) ?>"
-                                          style="white-space:nowrap">
-                                        <?= UiIconHelper::renderTalentBadge((string) ($tal['code'] ?? ''), (string) ($tal['label'] ?? ''), (int) $tal['level'], 10) ?>
-                                    </span>
-                                    <?php endforeach; ?>
-                                </div>
-                                <?php endif; ?>
-
-                                <?php $ask = (int) ($transfer->asking_fee ?: $transfer->fee); ?>
-                                <div class="text-center mb-3">
-                                    <div class="fee-badge">Richiesta €<?= number_format($ask, 0, ',', '.') ?></div>
-                                    <div class="text-muted-gm mt-1" style="font-size:.68rem">
-                                        <?= $transfer->transfer_type === Transfer::TYPE_LOAN ? 'Prestito' : 'Vendita' ?>
-                                    </div>
-                                </div>
-
-                                <div class="d-flex gap-2 mt-auto">
-                                    <?= Html::a('<i class="bi bi-person"></i>', ['/player/view', 'id' => $p->id, 'back' => $backUrl], [
-                                        'class' => 'btn btn-outline-secondary btn-sm',
-                                        'encode' => false,
-                                        'title' => 'Scheda giocatore',
-                                    ]) ?>
-                                    <?php if ($team && !$isOwn && \app\components\ScoutingService::canScout((int)$team->id)): ?>
-                                    <?= Html::beginForm(['/scouting/scout'], 'post', ['class' => 'd-inline']) ?>
-                                    <input type="hidden" name="player_id" value="<?= $p->id ?>">
-                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Osserva">🔍</button>
-                                    <?= Html::endForm() ?>
-                                    <?php endif; ?>
-
-                                    <?php if ($isOwn): ?>
-                                        <?= Html::beginForm(['/transfer/delist', 'id' => $transfer->id], 'post', ['class' => 'flex-grow-1']) ?>
-                                        <button class="btn btn-outline-danger w-100 btn-sm" type="submit">Ritira</button>
-                                        <?= Html::endForm() ?>
-                                    <?php elseif (!$windowOpen): ?>
-                                        <button class="btn btn-outline-secondary flex-grow-1 btn-sm" disabled>Finestra chiusa</button>
-                                    <?php else: ?>
-                                        <?= Html::beginForm(['/transfer/make-offer', 'id' => $transfer->id], 'post', ['class' => 'flex-grow-1 d-flex gap-1']) ?>
-                                        <input type="number" name="offered_fee" min="1" step="1000" value="<?= $ask ?>"
-                                               class="form-control form-control-sm bg-dark text-white border-secondary" style="max-width:125px">
-                                        <button type="submit" class="btn btn-gold btn-sm flex-grow-1">Fai offerta</button>
-                                        <?= Html::endForm() ?>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
+                                        </td>
+                                        <td class="text-center text-gold fw-bold"><?= (int) $p->getNaturalOverall() ?></td>
+                                        <td class="text-center"><?= (int) $p->form ?>%</td>
+                                        <td class="text-center"><?= (int) $p->freshness ?>%</td>
+                                        <td class="text-center"><?= (int) $p->condition ?>%</td>
+                                        <td>
+                                            <?php if ($sourceTeam): ?>
+                                                <?php
+                                                $tl = (string) ($sourceTeam->color_left ?: '#f59e0b');
+                                                $tr = (string) ($sourceTeam->color_right ?: '#dc2626');
+                                                $letter = strtoupper(substr((string) $sourceTeam->name, 0, 1));
+                                                ?>
+                                                <div class="d-inline-flex align-items-center gap-1">
+                                                    <?= FixtureViewHelper::renderShieldSvg($tl, $tr, $letter, 18, 20, 'marketTeam') ?>
+                                                    <span><?= Html::encode($sourceTeam->name) ?></span>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="text-muted-gm">Svincolato</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td>
+                                            <?php if ($talents): ?>
+                                                <div class="d-flex flex-wrap gap-1 align-items-center">
+                                                    <?php foreach ($talents as $tal): ?>
+                                                        <?= UiIconHelper::renderTalentIcon((string) ($tal['code'] ?? ''), (string) ($tal['label'] ?? ''), (int) ($tal['level'] ?? 1), 12) ?>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            <?php else: ?>
+                                                <span class="text-muted-gm">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td><?= $kind === 'market' ? 'Asta svincolato' : ($transfer && $transfer->transfer_type === Transfer::TYPE_LOAN ? 'Prestito' : 'Vendita') ?></td>
+                                        <td>
+                                            <?php if ($expiresAt > 0): ?>
+                                                <div class="text-muted-gm" style="font-size:.7rem">scade <?= date('d/m/Y H:i', $expiresAt) ?></div>
+                                                <div class="auction-countdown text-warning" style="font-size:.72rem" data-expires="<?= $expiresAt ?>" data-prefix="tra " data-expire-lock="order">--</div>
+                                            <?php else: ?>
+                                                <span class="text-muted-gm">—</span>
+                                            <?php endif; ?>
+                                        </td>
+                                        <td class="text-end">
+                                            <div class="d-inline-flex gap-1 align-items-center">
+                                                <?= Html::a('<i class="bi bi-person"></i>', ['/player/view', 'id' => $p->id, 'back' => $backUrl], ['class' => 'btn btn-outline-secondary btn-sm', 'encode' => false, 'title' => 'Scheda']) ?>
+                                                <?php if ($team && !$isOwn && \app\components\ScoutingService::canScout((int)$team->id)): ?>
+                                                    <?= Html::beginForm(['/scouting/scout'], 'post', ['class' => 'd-inline']) ?>
+                                                    <input type="hidden" name="player_id" value="<?= $p->id ?>">
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Osserva">🔍</button>
+                                                    <?= Html::endForm() ?>
+                                                <?php endif; ?>
+                                                <?php if ($isOwn): ?>
+                                                    <?= Html::beginForm(['/transfer/delist', 'id' => (int) $transfer?->id], 'post', ['class' => 'd-inline']) ?>
+                                                    <button class="btn btn-outline-danger btn-sm" type="submit">Ritira</button>
+                                                    <?= Html::endForm() ?>
+                                                <?php elseif (!$windowOpen): ?>
+                                                    <button class="btn btn-outline-secondary btn-sm" disabled>Chiusa</button>
+                                                <?php elseif ($kind === 'market' && $marketEntry): ?>
+                                                    <button type="button" class="btn btn-gold btn-sm js-bid-open"
+                                                            data-player="<?= Html::encode($p->name) ?>"
+                                                            data-action="<?= Html::encode(\yii\helpers\Url::to(['/transfer/sign-free-agent', 'id' => (int) $marketEntry->id])) ?>"
+                                                            data-ask="<?= $ask ?>"
+                                                            data-type="Asta svincolato"
+                                                            data-current-bid="<?= $myMarketBid ? (int) $myMarketBid->bid_amount : 0 ?>">
+                                                        <?= $myMarketBid ? 'Modifica offerta' : 'Offri' ?>
+                                                    </button>
+                                                <?php else: ?>
+                                                    <button type="button" class="btn btn-gold btn-sm js-bid-open"
+                                                            data-player="<?= Html::encode($p->name) ?>"
+                                                            data-action="<?= Html::encode(\yii\helpers\Url::to(['/transfer/make-offer', 'id' => (int) $transfer?->id])) ?>"
+                                                            data-ask="<?= $ask ?>"
+                                                            data-type="<?= $transfer && $transfer->transfer_type === Transfer::TYPE_LOAN ? 'Prestito' : 'Vendita' ?>"
+                                                            data-current-bid="0">
+                                                        Offri
+                                                    </button>
+                                                <?php endif; ?>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <?php if (($marketPages ?? 1) > 1): ?>
+                    <div class="d-flex justify-content-between align-items-center mt-2 px-2 pb-2">
+                        <span class="text-muted-gm" style="font-size:.72rem">Totale <?= (int) $marketTotal ?> · pagina <?= (int) $marketPage ?>/<?= (int) $marketPages ?></span>
+                        <div class="btn-group btn-group-sm">
+                            <?= Html::a('«', $pagerUrl(['page' => max(1, (int) $marketPage - 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage <= 1 ? ' disabled' : '')]) ?>
+                            <?= Html::a('»', $pagerUrl(['page' => min((int) $marketPages, (int) $marketPage + 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage >= (int)$marketPages ? ' disabled' : '')]) ?>
                         </div>
-                    <?php endforeach; ?>
-                </div>
-            <?php endif; ?>
-        </div>
-
-        <div class="tab-pane fade <?= $activeTab === 'pool' ? 'show active' : '' ?>" id="pool" role="tabpanel">
-            <?php if (empty($poolPlayers)): ?>
-                <div class="gm-card p-5 text-center">
-                    <i class="bi bi-people d-block mb-3 text-muted-gm" style="font-size:3rem;opacity:.4"></i>
-                    <h3 class="text-white mb-2">Pool svincolati vuoto</h3>
-                    <p class="text-muted-gm mb-0">Nessun free agent disponibile ora.</p>
-                </div>
-            <?php else: ?>
-                <div class="row g-4">
-                    <?php foreach ($poolPlayers as $pool): ?>
-                        <?php $p = $pool->player; if (!$p) { continue; } ?>
-                        <?php $myPoolBid = $poolBidMap[(int) $pool->id] ?? null; ?>
-                        <div class="col-md-6 col-xl-4">
-                            <div class="gm-card d-flex flex-column" style="gap:0">
-                                <div class="d-flex align-items-center justify-content-between mb-3">
-                                    <?= UiIconHelper::renderPositionBadge((string) $p->position, true, 10, 'font-size:.62rem;padding:.14rem .34rem') ?>
-                                    <span class="text-muted-gm" style="font-size:.68rem">pool</span>
-                                </div>
-                                <div class="text-center mb-3">
-                                    <h4 class="mb-1 fw-bold text-white"><?= Html::encode($p->name) ?></h4>
-                                    <div class="text-muted-gm" style="font-size:.75rem">
-                                        <?= (int) $p->age ?> anni · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $p->foot, 11) ?><?= Html::encode($footLbl((string) $p->foot)) ?></span> · Skill <span class="text-gold fw-bold"><?= (int) $p->general_skill ?></span>
-                                        <?php if ($p->character): ?>
-                                        · <span style="font-style:italic"><?= Html::encode(ucfirst($p->character)) ?></span>
-                                        <?php endif; ?>
-                                    </div>
-                                </div>
-                                <?php
-                                $poolSpecials = PlayerAttributeHelper::talents($p, 2);
-                                if (!empty($poolSpecials)): ?>
-                                <div class="d-flex flex-wrap gap-1 mb-2">
-                                    <?php foreach ($poolSpecials as $tal): ?>
-                                    <span title="<?= Html::encode((string) $tal['label']) ?>"
-                                          style="white-space:nowrap">
-                                        <?= UiIconHelper::renderTalentBadge((string) ($tal['code'] ?? ''), (string) ($tal['label'] ?? ''), (int) $tal['level'], 10) ?>
-                                    </span>
-                                    <?php endforeach; ?>
-                                </div>
-                                <?php endif; ?>
-                                <div class="small text-muted-gm mb-3 text-center">
-                                    Richiesta salariale: <span class="text-white fw-bold">€<?= number_format((int) $pool->salary_ask, 0, ',', '.') ?></span>
-                                </div>
-                                <?php if ($myPoolBid): ?>
-                                <div class="small text-warning mb-2 text-center">
-                                    Tua offerta: €<?= number_format((int) $myPoolBid->bid_amount, 0, ',', '.') ?>
-                                    · <span class="auction-countdown" data-expires="<?= (int) $myPoolBid->expires_at ?>">scade <?= date('d/m H:i', (int) $myPoolBid->expires_at) ?></span>
-                                </div>
-                                <?php endif; ?>
-                                <div class="d-flex gap-2 mt-auto">
-                                    <?= Html::a('<i class="bi bi-person"></i>', ['/player/view', 'id' => $p->id, 'back' => $backUrl], [
-                                        'class' => 'btn btn-outline-secondary btn-sm',
-                                        'encode' => false,
-                                    ]) ?>
-                                    <?php if (!$windowOpen): ?>
-                                        <button class="btn btn-outline-secondary flex-grow-1 btn-sm" disabled>Finestra chiusa</button>
-                                    <?php else: ?>
-                                        <?= Html::beginForm(['/transfer/sign-free-agent', 'id' => $pool->id], 'post', ['class' => 'flex-grow-1 d-flex gap-1']) ?>
-                                        <input type="number"
-                                               name="offered_fee"
-                                               min="1"
-                                               step="1000"
-                                               value="<?= (int) ($myPoolBid ? $myPoolBid->bid_amount : max(1000, (int) $pool->asking_fee)) ?>"
-                                               class="form-control form-control-sm bg-dark text-white border-secondary"
-                                               style="max-width:130px">
-                                        <button type="submit" class="btn btn-gold flex-grow-1 btn-sm"
-                                                data-confirm="Piazzare offerta su <?= Html::encode($p->name) ?>?">
-                                            Offerta
-                                        </button>
-                                        <?= Html::endForm() ?>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                </div>
+                    </div>
+                <?php endif; ?>
             <?php endif; ?>
         </div>
 
         <div class="tab-pane fade <?= $activeTab === 'offers' ? 'show active' : '' ?>" id="offers" role="tabpanel">
+            <?php if (!empty($myAuctionBids)): ?>
+            <div class="gm-card mb-4">
+                <h3 class="h6 text-white mb-3"><i class="bi bi-hammer"></i> Le mie aste (svincolati)</h3>
+                <?php foreach ($myAuctionBids as $bid):
+                    $bidPool = \app\models\PlayerPool::findOne($bid->market_ref_id);
+                    $bidPlayer = $bidPool?->player;
+                    if (!$bidPlayer) { continue; }
+                ?>
+                <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color:var(--border)!important">
+                    <div>
+                        <div class="d-flex align-items-center gap-2">
+                            <?= \app\components\UiIconHelper::renderPositionBadge((string) $bidPlayer->position, true, 9, 'font-size:.6rem;padding:.1rem .3rem') ?>
+                            <span class="text-white small fw-bold"><?= Html::encode($bidPlayer->name) ?></span>
+                        </div>
+                        <div class="text-muted-gm" style="font-size:.72rem">
+                            La tua offerta: <span class="text-warning fw-bold">€<?= number_format((int) $bid->bid_amount, 0, ',', '.') ?></span>
+                            · Richiesta: €<?= number_format((int) ($bidPool->asking_fee ?? 0), 0, ',', '.') ?>
+                            <br>
+                            <span class="text-muted-gm">asta scade <?= date('d/m/Y H:i', (int) $bidPool->expires_at) ?></span>
+                            <span class="auction-countdown text-warning ms-1" data-expires="<?= (int) $bidPool->expires_at ?>" data-prefix="tra ">--</span>
+                        </div>
+                    </div>
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-outline-warning btn-sm js-bid-open"
+                                data-player="<?= Html::encode($bidPlayer->name) ?>"
+                                data-action="<?= Html::encode(\yii\helpers\Url::to(['/transfer/sign-free-agent', 'id' => (int) $bid->market_ref_id])) ?>"
+                                data-ask="<?= (int) ($bidPool->asking_fee ?? 0) ?>"
+                                data-type="Asta svincolato"
+                                data-current-bid="<?= (int) $bid->bid_amount ?>">
+                            Modifica
+                        </button>
+                        <?= Html::beginForm(['/transfer/withdraw-bid', 'id' => (int) $bid->id], 'post', ['class' => 'd-inline']) ?>
+                        <button type="submit" class="btn btn-outline-danger btn-sm"
+                                data-confirm="Ritirare l'offerta su <?= Html::encode($bidPlayer->name) ?>?">
+                            Ritira
+                        </button>
+                        <?= Html::endForm() ?>
+                    </div>
+                </div>
+                <?php endforeach; ?>
+            </div>
+            <?php endif; ?>
+
             <div class="row g-4">
                 <div class="col-lg-6">
                     <div class="gm-card h-100">
@@ -327,6 +353,10 @@ $footLbl = static fn(string $f): string => match ($f) {
                                         <div class="text-muted-gm" style="font-size:.72rem">
                                             da <?= Html::encode($offer->fromTeam->name ?? ('Team #' . $offer->from_team_id)) ?> ·
                                             €<?= number_format((int) $offer->offered_fee, 0, ',', '.') ?>
+                                            <?php if ((string) $offer->status === TransferOffer::STATUS_PENDING && (int) ($offer->expires_at ?? 0) > 0): ?>
+                                                <br><span class="text-muted-gm">scade <?= date('d/m/Y H:i', (int) $offer->expires_at) ?></span>
+                                                <span class="auction-countdown text-warning" style="margin-left:.3rem" data-expires="<?= (int) $offer->expires_at ?>" data-prefix="tra ">--</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="d-flex gap-1">
@@ -364,6 +394,10 @@ $footLbl = static fn(string $f): string => match ($f) {
                                         <div class="text-muted-gm" style="font-size:.72rem">
                                             a <?= Html::encode($offer->toTeam->name ?? ('Team #' . $offer->to_team_id)) ?> ·
                                             €<?= number_format((int) $offer->offered_fee, 0, ',', '.') ?>
+                                            <?php if ((string) $offer->status === TransferOffer::STATUS_PENDING && (int) ($offer->expires_at ?? 0) > 0): ?>
+                                                <br><span class="text-muted-gm">scade <?= date('d/m/Y H:i', (int) $offer->expires_at) ?></span>
+                                                <span class="auction-countdown text-warning" style="margin-left:.3rem" data-expires="<?= (int) $offer->expires_at ?>" data-prefix="tra ">--</span>
+                                            <?php endif; ?>
                                         </div>
                                     </div>
                                     <span class="<?= $statusColor ?>" style="font-size:.75rem;font-weight:700"><?= Html::encode($offer->status) ?></span>
@@ -376,3 +410,112 @@ $footLbl = static fn(string $f): string => match ($f) {
         </div>
     </div>
 </div>
+
+<!-- Modale offerta mercato -->
+<div class="modal fade" id="bidModal" tabindex="-1" aria-labelledby="bidModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" style="background:#1a2235;border:1px solid var(--border)">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title text-white mb-0" id="bidModalLabel">—</h5>
+                    <div class="text-muted-gm" style="font-size:.72rem" id="bidModalType"></div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="bidModalForm" method="post">
+                <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->csrfToken ?>">
+                <input type="hidden" name="offered_fee" id="bidModalFee" value="0">
+                <div class="modal-body pt-3">
+                    <div class="d-flex justify-content-between mb-3 pb-2" style="border-bottom:1px solid var(--border)">
+                        <div>
+                            <div class="text-muted-gm" style="font-size:.72rem">Richiesta attuale</div>
+                            <div class="text-gold fw-bold fs-5" id="bidModalAsk">—</div>
+                        </div>
+                        <div id="bidModalCurrentBidWrap" style="display:none;text-align:right">
+                            <div class="text-muted-gm" style="font-size:.72rem">Tua offerta</div>
+                            <div class="text-warning fw-bold fs-5" id="bidModalCurrentBid">—</div>
+                        </div>
+                    </div>
+                    <label class="text-muted-gm small d-block mb-1" for="bidModalAmount">La tua offerta (€)</label>
+                    <input type="number" id="bidModalAmount" min="1" step="1000" value="0"
+                           class="form-control bg-dark text-white border-secondary">
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+                    <button type="button" class="btn btn-gold btn-sm" id="bidModalConfirm">Conferma</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php $this->registerJs(<<<JS
+(function () {
+    function fmtRemaining(sec) {
+        sec = Math.max(0, sec | 0);
+        var d = Math.floor(sec / 86400);
+        var h = Math.floor((sec % 86400) / 3600);
+        var m = Math.floor((sec % 3600) / 60);
+        var s = sec % 60;
+        if (d > 0) return d + 'g ' + h + 'h ' + m + 'm';
+        if (h > 0) return h + 'h ' + m + 'm ' + s + 's';
+        if (m > 0) return m + 'm ' + s + 's';
+        return s + 's';
+    }
+
+    function tickCountdowns() {
+        var now = Math.floor(Date.now() / 1000);
+        document.querySelectorAll('.auction-countdown[data-expires]').forEach(function (el) {
+            var exp = parseInt(el.getAttribute('data-expires') || '0', 10);
+            var pref = el.getAttribute('data-prefix') || '';
+            if (!exp || isNaN(exp)) { el.textContent = '--'; return; }
+            var rem = exp - now;
+            if (rem <= 0) {
+                el.textContent = 'scaduta';
+                el.classList.remove('text-warning');
+                el.classList.add('text-danger');
+                return;
+            }
+            el.textContent = pref + fmtRemaining(rem);
+        });
+    }
+    tickCountdowns();
+    setInterval(tickCountdowns, 1000);
+
+    var bidModalEl = document.getElementById('bidModal');
+    if (bidModalEl) {
+        var bidModal = new bootstrap.Modal(bidModalEl);
+        document.querySelectorAll('.js-bid-open').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                var ask        = parseInt(btn.dataset.ask || '0', 10);
+                var currentBid = parseInt(btn.dataset.currentBid || '0', 10);
+                var fmt        = function (n) { return '€' + n.toLocaleString('it-IT'); };
+
+                document.getElementById('bidModalLabel').textContent = btn.dataset.player || '—';
+                document.getElementById('bidModalType').textContent  = btn.dataset.type   || '';
+                document.getElementById('bidModalAsk').textContent   = fmt(ask);
+                document.getElementById('bidModalForm').action       = btn.dataset.action || '';
+                document.getElementById('bidModalAmount').value      = currentBid > 0 ? currentBid : ask;
+
+                var wrap = document.getElementById('bidModalCurrentBidWrap');
+                if (currentBid > 0) {
+                    wrap.style.display = '';
+                    document.getElementById('bidModalCurrentBid').textContent = fmt(currentBid);
+                } else {
+                    wrap.style.display = 'none';
+                }
+
+                bidModal.show();
+                setTimeout(function () { document.getElementById('bidModalAmount').focus(); }, 300);
+            });
+        });
+
+        document.getElementById('bidModalConfirm').addEventListener('click', function () {
+            var amount = parseInt(document.getElementById('bidModalAmount').value, 10);
+            if (!amount || amount < 1) { return; }
+            document.getElementById('bidModalFee').value = amount;
+            document.getElementById('bidModalForm').submit();
+        });
+    }
+}());
+JS); ?>

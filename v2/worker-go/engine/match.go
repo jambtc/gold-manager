@@ -304,6 +304,22 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	}
 
 	if state.Phase == "NOT_STARTED" {
+		homeFormID, awayFormID, ferr := e.currentActiveFormationIDs(fixtureID)
+		if ferr != nil {
+			log.Printf("[MATCH %d] warning: cannot refresh formation snapshot before kickoff: %v", fixtureID, ferr)
+		} else {
+			state.HomeFormationID = homeFormID
+			state.AwayFormationID = awayFormID
+			_, _ = e.DB.Exec(
+				"UPDATE match_state SET home_formation_id = ?, away_formation_id = ? WHERE fixture_id = ?",
+				homeFormID,
+				awayFormID,
+				fixtureID,
+			)
+		}
+	}
+
+	if state.Phase == "NOT_STARTED" {
 		state.Phase = "FIRST_HALF"
 		if _, err = e.DB.Exec("UPDATE match_state SET phase = 'FIRST_HALF', current_minute = 0 WHERE fixture_id = ?", fixtureID); err != nil {
 			return err
@@ -692,6 +708,25 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	return nil
 }
 
+func (e *MatchEngine) currentActiveFormationIDs(fixtureID int) (*int, *int, error) {
+	var homeFormID, awayFormID *int
+	if err := e.DB.Get(
+		&homeFormID,
+		"SELECT f.id FROM formation f JOIN fixture fix ON fix.home_team_id = f.team_id WHERE fix.id = ? AND f.is_active = 1 ORDER BY f.updated_at DESC, f.id DESC LIMIT 1",
+		fixtureID,
+	); err != nil && err != sql.ErrNoRows {
+		return nil, nil, err
+	}
+	if err := e.DB.Get(
+		&awayFormID,
+		"SELECT f.id FROM formation f JOIN fixture fix ON fix.away_team_id = f.team_id WHERE fix.id = ? AND f.is_active = 1 ORDER BY f.updated_at DESC, f.id DESC LIMIT 1",
+		fixtureID,
+	); err != nil && err != sql.ErrNoRows {
+		return nil, nil, err
+	}
+	return homeFormID, awayFormID, nil
+}
+
 func (e *MatchEngine) generateCorner(fixtureID int, side string, minute int) {
 	att := e.randomPlayerName(fixtureID, side, "FW")
 	phrases := []string{
@@ -996,7 +1031,7 @@ func (e *MatchEngine) activeLineupPlayers(fixtureID int, side, posGroup string) 
 		JOIN formation_slot fs ON fs.formation_id = %s
 		JOIN player p ON p.id = fs.player_id
 		WHERE ms.fixture_id = ?
-		  AND (((fs.zone = 10) OR ((fs.zone BETWEEN 20 AND 103) AND (MOD(fs.zone,10) BETWEEN 1 AND 3))) OR (fs.zone BETWEEN 1 AND 63))
+		  AND (((fs.zone = 10) OR ((fs.zone BETWEEN 20 AND 103) AND (MOD(fs.zone,10) BETWEEN 1 AND 3))) OR (fs.zone BETWEEN 1 AND 63) OR (fs.zone BETWEEN 1001 AND 1063))
 		  AND fs.player_id IS NOT NULL
 		  %s
 		ORDER BY p.general_skill DESC, fs.zone ASC, p.id ASC
@@ -1228,7 +1263,7 @@ func (e *MatchEngine) teamTraitsProfile(fixtureID int, side string, isLosing boo
 		JOIN formation_slot fs ON fs.formation_id = f.id
 		JOIN player p ON p.id = fs.player_id
 		WHERE f.team_id = ? AND f.is_active = 1
-		  AND (((fs.zone = 10) OR ((fs.zone BETWEEN 20 AND 103) AND (MOD(fs.zone,10) BETWEEN 1 AND 3))) OR (fs.zone BETWEEN 1 AND 63))
+		  AND (((fs.zone = 10) OR ((fs.zone BETWEEN 20 AND 103) AND (MOD(fs.zone,10) BETWEEN 1 AND 3))) OR (fs.zone BETWEEN 1 AND 63) OR (fs.zone BETWEEN 1001 AND 1063))
 		  AND fs.player_id IS NOT NULL
 	`, teamID)
 	if err != nil || len(rows) == 0 {
@@ -1434,7 +1469,8 @@ func (e *MatchEngine) blankPlayerStatRow(teamID int) *playerStatRow {
 }
 
 func onPitchSQL(column string) string {
-	return fmt.Sprintf("(((%s = 10) OR ((%s BETWEEN 20 AND 103) AND (MOD(%s,10) BETWEEN 1 AND 3))) OR (%s BETWEEN 1 AND 63) OR (%s = 64))", column, column, column, column, column)
+	// Includes stored-display-zone encoding (offset +1000, range 1001-1063) used by PHP frontend.
+	return fmt.Sprintf("(((%s = 10) OR ((%s BETWEEN 20 AND 103) AND (MOD(%s,10) BETWEEN 1 AND 3))) OR (%s BETWEEN 1 AND 63) OR (%s = 64) OR (%s BETWEEN 1001 AND 1063))", column, column, column, column, column, column)
 }
 
 func normalizeToCurrentZone(zone int) int {

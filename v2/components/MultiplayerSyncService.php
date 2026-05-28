@@ -78,7 +78,7 @@ class MultiplayerSyncService extends Component
         try {
             if (Yii::$app->has('redis')) {
                 $result = Yii::$app->redis->executeCommand('SET', [$key, $value, 'NX', 'EX', $ttl]);
-                return $result === 'OK';
+                return $result === true; // yii2-redis parses +OK status as boolean true, not string 'OK'
             }
         } catch (\Throwable) {
             // fallback below

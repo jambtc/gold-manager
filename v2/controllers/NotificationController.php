@@ -42,20 +42,20 @@ class NotificationController extends Controller
     /**
      * SSE stream for near-real-time header badge updates.
      */
-    public function actionStream(): string
+    public function actionStream(): void
     {
         $userId = (int) Yii::$app->user->id;
         if (Yii::$app->session->isActive) {
             Yii::$app->session->close();
         }
 
-        $response = Yii::$app->response;
-        $response->format = Response::FORMAT_RAW;
-        $headers = $response->headers;
-        $headers->set('Content-Type', 'text/event-stream');
-        $headers->set('Cache-Control', 'no-cache, no-store, must-revalidate');
-        $headers->set('Connection', 'keep-alive');
-        $headers->set('X-Accel-Buffering', 'no');
+        // Send SSE headers via PHP directly — before any ob_flush — so they
+        // arrive before body bytes. Yii's Response object must NOT send headers
+        // a second time, so we bypass it entirely and call Yii::$app->end().
+        header('Content-Type: text/event-stream');
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Connection: keep-alive');
+        header('X-Accel-Buffering: no');
 
         @ini_set('output_buffering', 'off');
         @ini_set('zlib.output_compression', '0');
@@ -116,7 +116,7 @@ class NotificationController extends Controller
             usleep(1000000);
         }
 
-        return '';
+        Yii::$app->end();
     }
 }
 
