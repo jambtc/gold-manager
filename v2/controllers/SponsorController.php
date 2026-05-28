@@ -112,7 +112,7 @@ class SponsorController extends Controller
             }
         }
         if (!$allowed) {
-            Yii::$app->session->setFlash('error', 'Sponsor non disponibile per il livello attuale del club.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Sponsor not available for the current club level.'));
             return $this->redirect(['index']);
         }
 
@@ -121,7 +121,7 @@ class SponsorController extends Controller
             $offered = max(1000, (int) round((int) $sponsor->base_payment * 0.10));
         }
         if ((int) $team->budget < $offered) {
-            Yii::$app->session->setFlash('error', 'Budget insufficiente per piazzare questa offerta sponsor.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget to place this sponsor offer.'));
             return $this->redirect(['index']);
         }
 
@@ -133,11 +133,10 @@ class SponsorController extends Controller
         );
         Yii::$app->session->setFlash(
             'success',
-            sprintf(
-                'Offerta sponsor inviata: €%s (scade %s).',
-                number_format((int) $bid->bid_amount, 0, ',', '.'),
-                date('d/m H:i', (int) $bid->expires_at)
-            )
+            Yii::t('app', 'Sponsor offer sent: €{amount} (expires {date}).', [
+                '{amount}' => number_format((int) $bid->bid_amount, 0, ',', '.'),
+                '{date}'   => date('d/m H:i', (int) $bid->expires_at),
+            ])
         );
         return $this->redirect(['index']);
     }
@@ -157,13 +156,13 @@ class SponsorController extends Controller
             'status'        => MarketBid::STATUS_PENDING,
         ]);
         if (!$existing) {
-            Yii::$app->session->setFlash('error', 'Nessuna offerta attiva da alzare.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'No active bid to raise.'));
             return $this->redirect(['index']);
         }
         $base   = (int) $existing->bid_amount;
         $newBid = max($base + 1000, (int) round($base * 1.15));
         if ((int) $team->budget < $newBid) {
-            Yii::$app->session->setFlash('error', 'Budget insufficiente per il rialzo.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget for bid raise.'));
             return $this->redirect(['index']);
         }
 
@@ -175,7 +174,7 @@ class SponsorController extends Controller
         );
         Yii::$app->session->setFlash(
             'success',
-            'Offerta sponsor alzata a €' . number_format((int) $bid->bid_amount, 0, ',', '.') . '.'
+            Yii::t('app', 'Sponsor offer raised to €{amount}.', ['{amount}' => number_format((int) $bid->bid_amount, 0, ',', '.')])
         );
         return $this->redirect(['index']);
     }
@@ -190,7 +189,7 @@ class SponsorController extends Controller
         SponsorService::expireContracts(false);
         $active = SponsorService::getActiveContractForTeam((int) $team->id);
         if (!$active || !$active->sponsor) {
-            Yii::$app->session->setFlash('error', 'Nessun contratto sponsor attivo da rinnovare.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'No active sponsor contract to renew.'));
             return $this->redirect(['index']);
         }
 
@@ -216,7 +215,10 @@ class SponsorController extends Controller
 
         Yii::$app->session->setFlash(
             'success',
-            "Contratto rinnovato con {$active->sponsor->name}. Bonus €" . number_format($renewalBonus, 0, ',', '.')
+            Yii::t('app', 'Contract renewed with {name}. Bonus €{amount}', [
+                '{name}'   => $active->sponsor->name,
+                '{amount}' => number_format($renewalBonus, 0, ',', '.'),
+            ])
         );
         return $this->redirect(['index']);
     }
@@ -231,7 +233,7 @@ class SponsorController extends Controller
         SponsorService::expireContracts(false);
         $active = SponsorService::getActiveContractForTeam((int) $team->id);
         if (!$active || !$active->sponsor) {
-            Yii::$app->session->setFlash('error', 'Nessun contratto sponsor attivo da terminare.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'No active sponsor contract to terminate.'));
             return $this->redirect(['index']);
         }
 
@@ -255,7 +257,10 @@ class SponsorController extends Controller
             1
         );
 
-        Yii::$app->session->setFlash('warning', "Contratto con {$name} terminato. Penale €" . number_format($penalty, 0, ',', '.'));
+        Yii::$app->session->setFlash('warning', Yii::t('app', 'Contract with {name} terminated. Penalty €{amount}', [
+            '{name}'   => $name,
+            '{amount}' => number_format($penalty, 0, ',', '.'),
+        ]));
         return $this->redirect(['index']);
     }
 }

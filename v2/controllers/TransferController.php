@@ -264,10 +264,10 @@ class TransferController extends Controller
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         $player = Player::findOne($id);
         if (!$team || !$player) {
-            throw new NotFoundHttpException('Giocatore non trovato.');
+            throw new NotFoundHttpException(Yii::t('app', 'Player not found.'));
         }
         if ((int) $player->team_id !== (int) $team->id) {
-            Yii::$app->session->setFlash('error', 'Non puoi vendere un giocatore che non ti appartiene.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'You cannot sell a player who does not belong to you.'));
             return $this->redirect(['/team/view']);
         }
 
@@ -276,7 +276,7 @@ class TransferController extends Controller
             ->andWhere(['status' => [Transfer::STATUS_LISTED, Transfer::STATUS_BID_MADE]])
             ->exists();
         if ($alreadyListed) {
-            Yii::$app->session->setFlash('info', 'Giocatore già sul mercato.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Player already on the market.'));
             return $this->redirect(['market']);
         }
 
@@ -287,7 +287,7 @@ class TransferController extends Controller
         )->queryScalar();
         if ($cooldown && strtotime($cooldown) > time()) {
             $remaining = ceil((strtotime($cooldown) - time()) / 3600);
-            Yii::$app->session->setFlash('error', "Giocatore in cooldown: puoi rimetterlo in vendita tra {$remaining}h.");
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Player in cooldown: you can re-list in {hours}h.', ['{hours}' => $remaining]));
             return $this->redirect(['market']);
         }
 
@@ -314,12 +314,11 @@ class TransferController extends Controller
 
         Yii::$app->session->setFlash(
             'success',
-            sprintf(
-                '%s è sul mercato (%s) a €%s.',
-                $player->name,
-                $transferType === Transfer::TYPE_LOAN ? 'prestito' : 'vendita',
-                number_format($askingFee, 0, ',', '.')
-            )
+            Yii::t('app', '{name} is on the market ({type}) at €{fee}.', [
+                '{name}' => $player->name,
+                '{type}' => $transferType === Transfer::TYPE_LOAN ? Yii::t('app', 'loan') : Yii::t('app', 'sale'),
+                '{fee}'  => number_format($askingFee, 0, ',', '.'),
+            ])
         );
         return $this->redirect(['market']);
     }
@@ -331,7 +330,7 @@ class TransferController extends Controller
     {
         $transfer = Transfer::findOne($id);
         if (!$transfer) {
-            throw new NotFoundHttpException('Offerta non valida o scaduta.');
+            throw new NotFoundHttpException(Yii::t('app', 'Offer invalid or expired.'));
         }
         $offered = (int) ($transfer->asking_fee ?: $transfer->fee);
         return $this->createOrUpdateOffer($transfer, $offered);
@@ -344,7 +343,7 @@ class TransferController extends Controller
     {
         $transfer = Transfer::findOne($id);
         if (!$transfer) {
-            throw new NotFoundHttpException('Trasferimento non trovato.');
+            throw new NotFoundHttpException(Yii::t('app', 'Transfer not found.'));
         }
         $offered = (int) Yii::$app->request->post('offered_fee', 0);
         if ($offered <= 0) {
@@ -363,19 +362,19 @@ class TransferController extends Controller
         }
 
         if (!MultiplayerSyncService::ensureOnce('transfer.accept-offer.' . $id, 45)) {
-            Yii::$app->session->setFlash('info', 'Richiesta già elaborata.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Request already processed.'));
             return $this->redirect(['market']);
         }
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         $offer = TransferOffer::findOne($id);
         if (!$team || !$offer) {
-            throw new NotFoundHttpException('Offerta non trovata.');
+            throw new NotFoundHttpException(Yii::t('app', 'Offer not found.'));
         }
 
         $lockToken = MultiplayerSyncService::acquireLock('transfer.accept.' . (int) $offer->transfer_id, 20);
         if ($lockToken === null) {
-            Yii::$app->session->setFlash('warning', 'Operazione concorrente in corso. Riprova tra qualche secondo.');
+            Yii::$app->session->setFlash('warning', Yii::t('app', 'Concurrent operation in progress. Retry in a few seconds.'));
             return $this->redirect(['market']);
         }
 
@@ -383,27 +382,27 @@ class TransferController extends Controller
         $requestId = MultiplayerSyncService::currentRequestId('transfer.accept-offer.' . $id);
         $requestSource = MultiplayerSyncService::currentRequestSource();
         if ((int) $offer->to_team_id !== (int) $team->id) {
-            Yii::$app->session->setFlash('error', 'Offerta non di tua competenza.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Offer not within your jurisdiction.'));
             return $this->redirect(['market']);
         }
         if ($offer->status !== TransferOffer::STATUS_PENDING || (int) $offer->expires_at <= time()) {
-            Yii::$app->session->setFlash('error', 'Offerta non più valida.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Offer no longer valid.'));
             return $this->redirect(['market']);
         }
 
         $transfer = $offer->transfer;
         if (!$transfer || !in_array($transfer->status, [Transfer::STATUS_LISTED, Transfer::STATUS_BID_MADE], true)) {
-            Yii::$app->session->setFlash('error', 'Trasferimento non accettabile.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Transfer not acceptable.'));
             return $this->redirect(['market']);
         }
 
         $buyer = Team::findOne((int) $offer->from_team_id);
         if (!$buyer) {
-            Yii::$app->session->setFlash('error', 'Squadra offerente non trovata.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Bidding team not found.'));
             return $this->redirect(['market']);
         }
         if ($transfer->transfer_type !== Transfer::TYPE_FREE && (int) $buyer->budget < (int) $offer->offered_fee) {
-            Yii::$app->session->setFlash('error', 'Budget offerente insufficiente al momento della conferma.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Bidder budget insufficient at confirmation time.'));
             return $this->redirect(['market']);
         }
 
@@ -425,7 +424,7 @@ class TransferController extends Controller
             );
             if ($rows !== 1) {
                 $tx->rollBack();
-                Yii::$app->session->setFlash('info', 'Offerta già risolta da un altro processo.');
+                Yii::$app->session->setFlash('info', Yii::t('app', 'Offer already resolved by another process.'));
                 return $this->redirect(['market']);
             }
 
@@ -443,7 +442,7 @@ class TransferController extends Controller
             );
             if ($transferRows !== 1) {
                 $tx->rollBack();
-                Yii::$app->session->setFlash('error', 'Trasferimento non più accettabile.');
+                Yii::$app->session->setFlash('error', Yii::t('app', 'Transfer no longer acceptable.'));
                 return $this->redirect(['market']);
             }
 
@@ -466,7 +465,7 @@ class TransferController extends Controller
 
             if ($transfer->complete($this->currentSeason())) {
                 $tx->commit();
-            Yii::$app->session->setFlash('success', 'Offerta accettata e trasferimento completato.');
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Offer accepted and transfer completed.'));
             // News al compratore
             if ($buyer->user_id) {
                 $playerName = Player::findOne($transfer->player_id)?->name ?? 'giocatore';
@@ -483,14 +482,14 @@ class TransferController extends Controller
             }
             } else {
                 $tx->rollBack();
-            Yii::$app->session->setFlash('error', 'Errore durante finalizzazione trasferimento.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Error during transfer finalisation.'));
             }
         } catch (\Throwable $e) {
             if ($tx->isActive) {
                 $tx->rollBack();
             }
             Yii::error('Transfer accept failed: ' . $e->getMessage(), 'sync');
-            Yii::$app->session->setFlash('error', 'Errore concorrente durante accettazione offerta.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Concurrent error during offer acceptance.'));
         }
 
         return $this->redirect(['market']);
@@ -502,21 +501,21 @@ class TransferController extends Controller
     public function actionRejectOffer(int $id): Response
     {
         if (!MultiplayerSyncService::ensureOnce('transfer.reject-offer.' . $id, 20)) {
-            Yii::$app->session->setFlash('info', 'Richiesta già elaborata.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Request already processed.'));
             return $this->redirect(['market']);
         }
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         $offer = TransferOffer::findOne($id);
         if (!$team || !$offer) {
-            throw new NotFoundHttpException('Offerta non trovata.');
+            throw new NotFoundHttpException(Yii::t('app', 'Offer not found.'));
         }
         if ((int) $offer->to_team_id !== (int) $team->id) {
-            Yii::$app->session->setFlash('error', 'Offerta non di tua competenza.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Offer not within your jurisdiction.'));
             return $this->redirect(['market']);
         }
         if ($offer->status !== TransferOffer::STATUS_PENDING) {
-            Yii::$app->session->setFlash('info', 'Offerta già risolta.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Offer already resolved.'));
             return $this->redirect(['market']);
         }
 
@@ -524,7 +523,7 @@ class TransferController extends Controller
         $offer->request_id = MultiplayerSyncService::currentRequestId('transfer.reject-offer.' . $id);
         $offer->request_source = MultiplayerSyncService::currentRequestSource();
         $offer->save(false, ['status', 'updated_at', 'request_id', 'request_source']);
-        Yii::$app->session->setFlash('success', 'Offerta rifiutata.');
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Offer rejected.'));
 
         // News al compratore
         $buyerTeam = Team::findOne((int) $offer->from_team_id);
@@ -546,21 +545,21 @@ class TransferController extends Controller
     public function actionDelist(int $id): Response
     {
         if (!MultiplayerSyncService::ensureOnce('transfer.delist.' . $id, 20)) {
-            Yii::$app->session->setFlash('info', 'Richiesta già elaborata.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Request already processed.'));
             return $this->redirect(['market']);
         }
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         $transfer = Transfer::findOne($id);
         if (!$team || !$transfer) {
-            throw new NotFoundHttpException('Trasferimento non trovato.');
+            throw new NotFoundHttpException(Yii::t('app', 'Transfer not found.'));
         }
         if ((int) $transfer->from_team_id !== (int) $team->id) {
-            Yii::$app->session->setFlash('error', 'Non puoi ritirare questa inserzione.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'You cannot withdraw this listing.'));
             return $this->redirect(['market']);
         }
         if (!in_array($transfer->status, [Transfer::STATUS_LISTED, Transfer::STATUS_BID_MADE], true)) {
-            Yii::$app->session->setFlash('error', 'Inserzione non più ritirabile.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Listing can no longer be withdrawn.'));
             return $this->redirect(['market']);
         }
 
@@ -587,7 +586,7 @@ class TransferController extends Controller
             ],
             ['transfer_id' => $transfer->id, 'status' => TransferOffer::STATUS_PENDING]
         );
-        Yii::$app->session->setFlash('success', 'Giocatore ritirato dal mercato.');
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Player withdrawn from market.'));
         return $this->redirect(['market']);
     }
 
@@ -601,13 +600,13 @@ class TransferController extends Controller
         }
 
         if (!MultiplayerSyncService::ensureOnce('transfer.sign-free-agent.' . $id, 45)) {
-            Yii::$app->session->setFlash('info', 'Richiesta già elaborata.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Request already processed.'));
             return $this->redirect(['/team/view']);
         }
 
         $lockToken = MultiplayerSyncService::acquireLock('transfer.market.' . $id, 15);
         if ($lockToken === null) {
-            Yii::$app->session->setFlash('warning', 'Operazione concorrente in corso. Riprova.');
+            Yii::$app->session->setFlash('warning', Yii::t('app', 'Concurrent operation in progress. Please retry.'));
             return $this->redirect(['market']);
         }
 
@@ -615,16 +614,16 @@ class TransferController extends Controller
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         $marketEntry = PlayerPool::findOne($id);
         if (!$team || !$marketEntry) {
-            throw new NotFoundHttpException('Giocatore non disponibile nel mercato.');
+            throw new NotFoundHttpException(Yii::t('app', 'Player not available on the market.'));
         }
         if ((int) $marketEntry->expires_at <= time()) {
-            Yii::$app->session->setFlash('error', 'Asta scaduta: non puoi più piazzare questa offerta.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Auction ended: you can no longer place this bid.'));
             return $this->redirect(['market', 'tab' => 'listed']);
         }
 
         $player = $marketEntry->player;
         if (!$player || $player->team_id !== null) {
-            Yii::$app->session->setFlash('error', 'Giocatore non più disponibile.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Player no longer available.'));
             return $this->redirect(['market']);
         }
 
@@ -633,7 +632,7 @@ class TransferController extends Controller
             $offered = max(1, (int) $marketEntry->asking_fee);
         }
         if ((int) $team->budget < $offered) {
-            Yii::$app->session->setFlash('error', 'Budget insufficiente per piazzare questa offerta.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget to place this bid.'));
             return $this->redirect(['market']);
         }
 
@@ -645,12 +644,11 @@ class TransferController extends Controller
         );
         Yii::$app->session->setFlash(
             'success',
-            sprintf(
-                'Offerta piazzata su %s: €%s (scade %s).',
-                $player->name,
-                number_format((int) $bid->bid_amount, 0, ',', '.'),
-                date('d/m H:i', (int) $bid->expires_at)
-            )
+            Yii::t('app', 'Bid placed on {name}: €{amount} (expires {date}).', [
+                '{name}'   => $player->name,
+                '{amount}' => number_format((int) $bid->bid_amount, 0, ',', '.'),
+                '{date}'   => date('d/m H:i', (int) $bid->expires_at),
+            ])
         );
         return $this->redirect(['market', 'tab' => 'listed']);
         } finally {
@@ -672,7 +670,7 @@ class TransferController extends Controller
         ]);
 
         if (!$bid) {
-            Yii::$app->session->setFlash('error', 'Offerta non trovata o già conclusa.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Offer not found or already concluded.'));
             return $this->redirect(['market', 'tab' => 'offers']);
         }
 
@@ -681,7 +679,7 @@ class TransferController extends Controller
         $bid->result_note = 'withdrawn';
         $bid->save(false, ['status', 'resolved_at', 'result_note', 'updated_at']);
 
-        Yii::$app->session->setFlash('success', 'Offerta ritirata.');
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Offer withdrawn.'));
         return $this->redirect(['market', 'tab' => 'offers']);
     }
 
@@ -692,12 +690,12 @@ class TransferController extends Controller
         }
 
         if (!MultiplayerSyncService::ensureOnce('transfer.make-offer.' . (int) $transfer->id, 12)) {
-            Yii::$app->session->setFlash('info', 'Richiesta offerta duplicata ignorata.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Duplicate offer request ignored.'));
             return $this->redirect(['market']);
         }
 
         if (!in_array($transfer->status, [Transfer::STATUS_LISTED, Transfer::STATUS_BID_MADE], true)) {
-            throw new NotFoundHttpException('Offerta non valida o scaduta.');
+            throw new NotFoundHttpException(Yii::t('app', 'Offer invalid or expired.'));
         }
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
@@ -705,13 +703,13 @@ class TransferController extends Controller
             return $this->redirect(['/site/index']);
         }
         if ((int) $transfer->from_team_id === (int) $team->id) {
-            Yii::$app->session->setFlash('error', 'Non puoi fare offerta sul tuo giocatore.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'You cannot bid on your own player.'));
             return $this->redirect(['market']);
         }
 
         $offered = max(1, $offered);
         if ($transfer->transfer_type !== Transfer::TYPE_FREE && (int) $team->budget < $offered) {
-            Yii::$app->session->setFlash('error', 'Budget insufficiente per l\'offerta proposta.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget for the proposed offer.'));
             return $this->redirect(['market']);
         }
 
@@ -730,7 +728,7 @@ class TransferController extends Controller
             $offer->request_id = $requestId;
             $offer->request_source = $requestSource;
             $offer->save(false, ['offered_fee', 'expires_at', 'updated_at', 'request_id', 'request_source']);
-            Yii::$app->session->setFlash('success', 'Offerta aggiornata.');
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Offer updated.'));
         } else {
             $offer = new TransferOffer();
             $offer->transfer_id = (int) $transfer->id;
@@ -743,7 +741,7 @@ class TransferController extends Controller
             $offer->request_id = $requestId;
             $offer->request_source = $requestSource;
             $offer->save(false);
-            Yii::$app->session->setFlash('success', 'Offerta inviata.');
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Offer sent.'));
 
             // News al venditore
             $sellerTeam = Team::findOne((int) $transfer->from_team_id);
@@ -785,8 +783,9 @@ class TransferController extends Controller
 
         Yii::$app->session->setFlash(
             'error',
-            'Finestra trasferimenti chiusa. Prossima apertura: '
-            . date('d/m/Y H:i', TransferWindowService::nextOpeningTimestamp(null, $teamId))
+            Yii::t('app', 'Transfer window closed. Next opening: {date}', [
+                '{date}' => date('d/m/Y H:i', TransferWindowService::nextOpeningTimestamp(null, $teamId)),
+            ])
         );
         return false;
     }

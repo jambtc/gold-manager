@@ -18,7 +18,7 @@ use yii\helpers\Url;
 use app\components\PlayerAttributeHelper;
 use app\components\UiIconHelper;
 
-$this->title = 'Allenamento';
+$this->title = Yii::t('app', 'Training');
 $this->params['breadcrumbs'][] = $this->title;
 
 $tab = Yii::$app->request->get('tab', 'fisico');
@@ -26,7 +26,7 @@ $talentDefs = PlayerAttributeHelper::talentDefinitions();
 $talentAllocMap = PlayerAttributeHelper::talentAllocMap();
 $talentsByAlloc = [];
 foreach ($talentAllocMap as $code => $allocKeys) {
-    $label = (string)($talentDefs[$code]['label'] ?? ucfirst($code));
+    $label = Yii::t('app', (string)($talentDefs[$code]['label'] ?? ucfirst($code)));
     foreach ($allocKeys as $k) {
         $talentsByAlloc[$k][] = $label;
     }
@@ -71,11 +71,11 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
 
 <div class="py-2">
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-        <h1 class="h3 fw-black mb-0">Allenamento</h1>
+        <h1 class="h3 fw-black mb-0"><?= Yii::t('app', 'Training') ?></h1>
         <?php if (!empty($staffBonus['tactical']) || !empty($staffBonus['physical'])): ?>
         <div style="font-size:.72rem;color:var(--text-secondary)">
-            Staff — Fisico: <span style="color:var(--gold)">+<?= $staffBonus['physical'] ?>%</span>
-            · Tattico: <span style="color:var(--accent-green)">+<?= $staffBonus['tactical'] ?>%</span>
+            <?= Yii::t('app', 'Staff') ?> — <?= Yii::t('app', 'Physical') ?>: <span style="color:var(--gold)">+<?= $staffBonus['physical'] ?>%</span>
+            · <?= Yii::t('app', 'Tactical') ?>: <span style="color:var(--accent-green)">+<?= $staffBonus['tactical'] ?>%</span>
         </div>
         <?php endif; ?>
     </div>
@@ -93,10 +93,10 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
 
     <!-- Tab switcher -->
     <div class="d-flex gap-2 mb-4">
-        <a href="<?= Url::to(['/training/index', 'tab' => 'fisico']) ?>"      class="btn btn-sm <?= $tab === 'fisico'      ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-person-arms-up me-1"></i>Fisico</a>
-        <a href="<?= Url::to(['/training/index', 'tab' => 'tattico']) ?>"     class="btn btn-sm <?= $tab === 'tattico'     ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-grid-3x3 me-1"></i>Tattico</a>
-        <a href="<?= Url::to(['/training/index', 'tab' => 'statistiche']) ?>" class="btn btn-sm <?= $tab === 'statistiche' ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-graph-up me-1"></i>Statistiche</a>
-        <a href="<?= Url::to(['/training/index', 'tab' => 'progressione']) ?>" class="btn btn-sm <?= $tab === 'progressione' ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-activity me-1"></i>Progressione</a>
+        <a href="<?= Url::to(['/training/index', 'tab' => 'fisico']) ?>"      class="btn btn-sm <?= $tab === 'fisico'      ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-person-arms-up me-1"></i><?= Yii::t('app', 'Physical') ?></a>
+        <a href="<?= Url::to(['/training/index', 'tab' => 'tattico']) ?>"     class="btn btn-sm <?= $tab === 'tattico'     ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-grid-3x3 me-1"></i><?= Yii::t('app', 'Tactical') ?></a>
+        <a href="<?= Url::to(['/training/index', 'tab' => 'statistiche']) ?>" class="btn btn-sm <?= $tab === 'statistiche' ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-graph-up me-1"></i><?= Yii::t('app', 'Statistics') ?></a>
+        <a href="<?= Url::to(['/training/index', 'tab' => 'progressione']) ?>" class="btn btn-sm <?= $tab === 'progressione' ? 'btn-gold' : 'btn-outline-secondary' ?>"><i class="bi bi-activity me-1"></i><?= Yii::t('app', 'Progression') ?></a>
     </div>
 
     <?php if ($tab === 'fisico'): ?>
@@ -104,72 +104,72 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="gm-card">
-                <h3 class="h5 fw-bold text-white mb-4"><i class="bi bi-person-arms-up text-gold me-2"></i>Allenamento Fisico</h3>
+                <h3 class="h5 fw-bold text-white mb-4"><i class="bi bi-person-arms-up text-gold me-2"></i><?= Yii::t('app', 'Physical Training') ?></h3>
                 <p class="text-muted-gm small mb-4">
-                    Distribuisci <strong class="text-white">100 punti</strong> tra le skill.
-                    Il risultato viene applicato giornalmente da <code>EconomyController</code>.
-                    Staff migliore = crescita più rapida.
+                    <?= Yii::t('app', 'Distribute') ?> <strong class="text-white">100 <?= Yii::t('app', 'points') ?></strong> <?= Yii::t('app', 'among skills') ?>.
+                    <?= Yii::t('app', 'The result is applied daily by') ?> <code>EconomyController</code>.
+                    <?= Yii::t('app', 'Better staff = faster growth') ?>.
                 </p>
                 <form method="post" action="<?= Url::to(['/training/save-skill']) ?>">
                     <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
-                    <?= $slider('alloc_forma', (int)($skill['alloc_forma'] ?? 10), 'Forma',    'Recupero psico-fisico', 'var(--accent-green)', true) ?>
-                    <?= $slider('alloc_cond',  (int)($skill['alloc_cond']  ?? 10), 'Condizione','Efficienza atletica',  '#f97316', true) ?>
-                    <?= $slider('alloc_po',    (int)($skill['alloc_po']    ?? 5),  'Parate (PO)', 'Abilità del portiere', '#ea580c', true) ?>
-                    <?= $slider('alloc_df',    (int)($skill['alloc_df']    ?? 10), 'Difesa (DF)',   'Abilità difensiva', 'var(--accent-blue)', true) ?>
-                    <?= $slider('alloc_cn',    (int)($skill['alloc_cn']    ?? 10), 'Contrasti (CN)','Duelli e aggressività', 'var(--accent-blue)', true) ?>
-                    <?= $slider('alloc_pa',    (int)($skill['alloc_pa']    ?? 10), 'Passaggi (PA)', 'Precisione nei passaggi', 'var(--accent-green)', true) ?>
-                    <?= $slider('alloc_rg',    (int)($skill['alloc_rg']    ?? 10), 'Regia (RG)',    'Visione e costruzione', 'var(--accent-green)', true) ?>
-                    <?= $slider('alloc_cr',    (int)($skill['alloc_cr']    ?? 10), 'Cross (CR)',    'Qualità dei cross', 'var(--gold)', true) ?>
-                    <?= $slider('alloc_tc',    (int)($skill['alloc_tc']    ?? 10), 'Tecnica (TC)',  'Controllo palla', 'var(--gold)', true) ?>
-                    <?= $slider('alloc_tr',    (int)($skill['alloc_tr']    ?? 5),  'Tiro (TR)',     'Potenza e precisione', 'var(--accent-red)', true) ?>
-                    <?= $slider('alloc_calci_piazzati', (int)($skill['alloc_calci_piazzati'] ?? 10), 'Calci piazzati', 'Schemi su corner e punizioni', 'var(--gold)', true) ?>
+                    <?= $slider('alloc_forma', (int)($skill['alloc_forma'] ?? 10), Yii::t('app','Form'),           Yii::t('app','Psycho-physical recovery'), 'var(--accent-green)', true) ?>
+                    <?= $slider('alloc_cond',  (int)($skill['alloc_cond']  ?? 10), Yii::t('app','Condition'),       Yii::t('app','Athletic efficiency'),     '#f97316', true) ?>
+                    <?= $slider('alloc_po',    (int)($skill['alloc_po']    ?? 5),  Yii::t('app','Saves').' (PO)',   Yii::t('app','Goalkeeper ability'),      '#ea580c', true) ?>
+                    <?= $slider('alloc_df',    (int)($skill['alloc_df']    ?? 10), Yii::t('app','Defence').' (DF)', Yii::t('app','Defensive ability'),       'var(--accent-blue)', true) ?>
+                    <?= $slider('alloc_cn',    (int)($skill['alloc_cn']    ?? 10), Yii::t('app','Tackles').' (CN)', Yii::t('app','Duels and aggression'),     'var(--accent-blue)', true) ?>
+                    <?= $slider('alloc_pa',    (int)($skill['alloc_pa']    ?? 10), Yii::t('app','Passes').' (PA)',  Yii::t('app','Passing accuracy'),        'var(--accent-green)', true) ?>
+                    <?= $slider('alloc_rg',    (int)($skill['alloc_rg']    ?? 10), Yii::t('app','Playmaker').' (RG)',Yii::t('app','Vision and build-up'),    'var(--accent-green)', true) ?>
+                    <?= $slider('alloc_cr',    (int)($skill['alloc_cr']    ?? 10), Yii::t('app','Cross').' (CR)',   Yii::t('app','Cross quality'),           'var(--gold)', true) ?>
+                    <?= $slider('alloc_tc',    (int)($skill['alloc_tc']    ?? 10), Yii::t('app','Technique').' (TC)',Yii::t('app','Ball control'),           'var(--gold)', true) ?>
+                    <?= $slider('alloc_tr',    (int)($skill['alloc_tr']    ?? 5),  Yii::t('app','Shot').' (TR)',    Yii::t('app','Power and precision'),      'var(--accent-red)', true) ?>
+                    <?= $slider('alloc_calci_piazzati', (int)($skill['alloc_calci_piazzati'] ?? 10), Yii::t('app','Set Pieces'), Yii::t('app','Corner and free kick schemes'), 'var(--gold)', true) ?>
                     <div class="d-flex align-items-center justify-content-between mt-4 pt-3" style="border-top:1px solid var(--border)">
                         <div>
-                            <span style="color:var(--text-secondary)">Totale: </span>
+                            <span style="color:var(--text-secondary)"><?= Yii::t('app', 'Total') ?>: </span>
                             <span id="total-pts" style="font-weight:900;font-size:1.1rem;color:var(--gold)">0</span>
                             <span style="color:var(--text-secondary)"> / 100</span>
                             <div style="font-size:.72rem;color:var(--text-secondary);margin-top:.2rem">
-                                Carico: <span id="load-label" style="font-weight:700;color:var(--gold)">—</span>
-                                · Freschezza giorno: <span id="freshness-impact" style="font-weight:700;color:var(--gold)">—</span>
+                                <?= Yii::t('app', 'Load') ?>: <span id="load-label" style="font-weight:700;color:var(--gold)">—</span>
+                                · <?= Yii::t('app', 'Daily freshness') ?>: <span id="freshness-impact" style="font-weight:700;color:var(--gold)">—</span>
                             </div>
                             <div id="match-week-warning" style="display:none;font-size:.72rem;color:#f87171;margin-top:.2rem">
-                                ⚠️ Partita entro 3 giorni: carico alto riduce la forma pre-gara.
+                                ⚠️ <?= Yii::t('app', 'Match within 3 days: heavy load reduces pre-match form') ?>.
                             </div>
                         </div>
-                        <button type="submit" class="btn btn-gold fw-bold px-4">Salva</button>
+                        <button type="submit" class="btn btn-gold fw-bold px-4"><?= Yii::t('app', 'Save') ?></button>
                     </div>
                 </form>
             </div>
         </div>
         <div class="col-lg-4">
             <div class="gm-card sticky-top" style="top:80px">
-                <h5 class="text-white mb-3"><i class="bi bi-info-circle text-gold me-2"></i>Come funziona</h5>
-                <p class="text-muted-gm small">Ogni giorno <code>EconomyController</code> applica l'XP guadagnato a tutti i giocatori in rosa.</p>
-                <p class="text-muted-gm small mb-2">Talenti: progresso giornaliero solo se allocazione correlata <strong class="text-white">&gt; 80</strong> e comunque con probabilità.</p>
+                <h5 class="text-white mb-3"><i class="bi bi-info-circle text-gold me-2"></i><?= Yii::t('app', 'How it works') ?></h5>
+                <p class="text-muted-gm small"><?= Yii::t('app', 'Every day') ?> <code>EconomyController</code> <?= Yii::t('app', "applica l'XP guadagnato a tutti i giocatori in rosa") ?>.</p>
+                <p class="text-muted-gm small mb-2"><?= Yii::t('app', 'Talents: daily progress only if related allocation') ?> <strong class="text-white">&gt; 80</strong> <?= Yii::t('app', 'and still with probability') ?>.</p>
                 <ul class="attribute-list small">
-                    <li><span class="text-muted-gm">Staff bonus</span><span style="color:var(--gold)">×<?= round(1 + $staffBonus['physical']/100, 2) ?></span></li>
-                    <li><span class="text-muted-gm">Età > 25</span><span class="text-muted-gm">−2%/anno</span></li>
-                    <li><span class="text-muted-gm">Diligente</span><span style="color:var(--accent-green)">+15% XP</span></li>
-                    <li><span class="text-muted-gm">Inflessibile</span><span style="color:var(--accent-red)">−20% skill non primaria</span></li>
-                    <li><span class="text-muted-gm">Capitano carismatico</span><span style="color:var(--accent-green)">+5% XP team</span></li>
-                    <li><span class="text-muted-gm">Popolare</span><span style="color:var(--accent-green)">+5% se forma team alta</span></li>
-                    <li><span class="text-muted-gm">Carico pesante</span><span style="color:var(--accent-red)">−3 freschezza/week</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Staff bonus') ?></span><span style="color:var(--gold)">×<?= round(1 + $staffBonus['physical']/100, 2) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Age > 25') ?></span><span class="text-muted-gm">−2%/anno</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Diligent') ?></span><span style="color:var(--accent-green)">+15% XP</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Inflexible') ?></span><span style="color:var(--accent-red)">−20% <?= Yii::t('app', 'non-primary skill') ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Charismatic captain') ?></span><span style="color:var(--accent-green)">+5% XP team</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Popular') ?></span><span style="color:var(--accent-green)">+5% <?= Yii::t('app', 'if team form is high') ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Heavy load') ?></span><span style="color:var(--accent-red)">−3 freschezza/week</span></li>
                 </ul>
                 <div class="mt-3 pt-2" style="border-top:1px solid var(--border)">
-                    <div class="text-white fw-semibold mb-2" style="font-size:.78rem">Mappa allenamento → talenti</div>
+                    <div class="text-white fw-semibold mb-2" style="font-size:.78rem"><?= Yii::t('app', 'Training → talents map') ?></div>
                     <div style="display:grid;gap:.35rem">
                         <?php foreach ([
-                            'alloc_forma' => 'Forma',
-                            'alloc_cond'  => 'Condizione',
-                            'alloc_po'    => 'Parate',
-                            'alloc_df'    => 'Difesa',
-                            'alloc_cn'    => 'Contrasti',
-                            'alloc_pa'    => 'Passaggi',
-                            'alloc_rg'    => 'Regia',
-                            'alloc_cr'    => 'Cross',
-                            'alloc_tc'    => 'Tecnica',
-                            'alloc_tr'    => 'Tiro',
-                            'alloc_calci_piazzati' => 'Calci piazzati',
+                            'alloc_forma' => Yii::t('app','Form'),
+                            'alloc_cond'  => Yii::t('app','Condition'),
+                            'alloc_po'    => Yii::t('app','Saves'),
+                            'alloc_df'    => Yii::t('app','Defence'),
+                            'alloc_cn'    => Yii::t('app','Tackles'),
+                            'alloc_pa'    => Yii::t('app','Passes'),
+                            'alloc_rg'    => Yii::t('app','Playmaker'),
+                            'alloc_cr'    => Yii::t('app','Cross'),
+                            'alloc_tc'    => Yii::t('app','Technique'),
+                            'alloc_tr'    => Yii::t('app','Shot'),
+                            'alloc_calci_piazzati' => Yii::t('app','Set Pieces'),
                         ] as $allocKey => $allocLabel): ?>
                         <div style="font-size:.68rem;display:flex;align-items:center;justify-content:space-between;gap:.5rem">
                             <span style="color:var(--text-secondary)"><?= Html::encode($allocLabel) ?></span>
@@ -189,20 +189,20 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="gm-card">
-                <h3 class="h5 fw-bold text-white mb-4"><i class="bi bi-grid-3x3 text-gold me-2"></i>Allenamento Tattico</h3>
+                <h3 class="h5 fw-bold text-white mb-4"><i class="bi bi-grid-3x3 text-gold me-2"></i><?= Yii::t('app', 'Tactical Training') ?></h3>
                 <p class="text-muted-gm small mb-4">
-                    Distribuisci <strong class="text-white">100 punti</strong> tra le tattiche.
-                    Ogni tattica mostra anche il suo valore attuale (0–100).
+                    <?= Yii::t('app', 'Distribute') ?> <strong class="text-white">100 <?= Yii::t('app', 'points') ?></strong> <?= Yii::t('app', 'among tactics') ?>.
+                    <?= Yii::t('app', 'Each tactic also shows its current value (0–100)') ?>.
                 </p>
                 <form method="post" action="<?= Url::to(['/training/save-tactic']) ?>">
                     <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
-                    <?= $slider('pressing',      (int)($tacticPlan['pressing']      ?? 15), 'Pressing',           '+% duello centrocampo offensivo', 'var(--accent-red)', false, true, (int)($tactic['pressing'] ?? 0), (int)($tacticDelta['pressing'] ?? 0)) ?>
-                    <?= $slider('contropiede',   (int)($tacticPlan['contropiede']   ?? 15), 'Contropiede',        '+% forza attacco in ripartenza',  '#f97316', false, true, (int)($tactic['contropiede'] ?? 0), (int)($tacticDelta['contropiede'] ?? 0)) ?>
-                    <?= $slider('possesso',      (int)($tacticPlan['possesso']      ?? 15), 'Possesso palla',     '+% dominio centrocampo',          'var(--accent-green)', false, true, (int)($tactic['possesso'] ?? 0), (int)($tacticDelta['possesso'] ?? 0)) ?>
-                    <?= $slider('palla_bassa',   (int)($tacticPlan['palla_bassa']   ?? 15), 'Gioco palla bassa',  '−% forza attacco avversario',     'var(--accent-blue)', false, true, (int)($tactic['palla_bassa'] ?? 0), (int)($tacticDelta['palla_bassa'] ?? 0)) ?>
-                    <?= $slider('lancio_lungo',  (int)($tacticPlan['lancio_lungo']  ?? 10), 'Lancio lungo',       '20% chance bypass centrocampo',   'var(--gold)', false, true, (int)($tactic['lancio_lungo'] ?? 0), (int)($tacticDelta['lancio_lungo'] ?? 0)) ?>
-                    <?= $slider('catenaccio',    (int)($tacticPlan['catenaccio']    ?? 15), 'Catenaccio',         '+% muro difensivo',               'var(--accent-blue)', false, true, (int)($tactic['catenaccio'] ?? 0), (int)($tacticDelta['catenaccio'] ?? 0)) ?>
-                    <?= $slider('fuorigioco',    (int)($tacticPlan['fuorigioco']    ?? 15), 'Trappola fuorigioco','15% chance annullare attacco',    'var(--text-secondary)', false, true, (int)($tactic['fuorigioco'] ?? 0), (int)($tacticDelta['fuorigioco'] ?? 0)) ?>
+                    <?= $slider('pressing',     (int)($tacticPlan['pressing']     ?? 15), Yii::t('app','Pressing'),         Yii::t('app','+% offensive midfield duel'),   'var(--accent-red)',    false, true, (int)($tactic['pressing']     ?? 0), (int)($tacticDelta['pressing']     ?? 0)) ?>
+                    <?= $slider('contropiede', (int)($tacticPlan['contropiede']  ?? 15), Yii::t('app','Counter-attack'),   Yii::t('app','+% attack strength on counter'), '#f97316',             false, true, (int)($tactic['contropiede']  ?? 0), (int)($tacticDelta['contropiede']  ?? 0)) ?>
+                    <?= $slider('possesso',    (int)($tacticPlan['possesso']     ?? 15), Yii::t('app','Ball Possession'),  Yii::t('app','+% midfield domination'),       'var(--accent-green)', false, true, (int)($tactic['possesso']     ?? 0), (int)($tacticDelta['possesso']     ?? 0)) ?>
+                    <?= $slider('palla_bassa', (int)($tacticPlan['palla_bassa']  ?? 15), Yii::t('app','Low Ball'),         Yii::t('app','−% opponent attack strength'),  'var(--accent-blue)',  false, true, (int)($tactic['palla_bassa']  ?? 0), (int)($tacticDelta['palla_bassa']  ?? 0)) ?>
+                    <?= $slider('lancio_lungo',(int)($tacticPlan['lancio_lungo'] ?? 10), Yii::t('app','Long Ball'),        Yii::t('app','20% chance to bypass midfield'), 'var(--gold)',         false, true, (int)($tactic['lancio_lungo'] ?? 0), (int)($tacticDelta['lancio_lungo'] ?? 0)) ?>
+                    <?= $slider('catenaccio',  (int)($tacticPlan['catenaccio']   ?? 15), Yii::t('app','Catenaccio'),       Yii::t('app','+% defensive wall'),            'var(--accent-blue)',  false, true, (int)($tactic['catenaccio']   ?? 0), (int)($tacticDelta['catenaccio']   ?? 0)) ?>
+                    <?= $slider('fuorigioco',  (int)($tacticPlan['fuorigioco']   ?? 15), Yii::t('app','Offside Trap'),     Yii::t('app','15% chance to nullify attack'), 'var(--text-secondary)',false, true, (int)($tactic['fuorigioco']   ?? 0), (int)($tacticDelta['fuorigioco']   ?? 0)) ?>
                     <?php
                     // Conflict warnings (SIP-0038)
                     $press = (int)($tactic['pressing'] ?? 30);
@@ -211,37 +211,37 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
                     $poss  = (int)($tactic['possesso'] ?? 40);
                     if ($press > 50 && $caten > 50): ?>
                     <div class="gm-card p-2 mb-2" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);font-size:.75rem">
-                        ⚠️ <strong>Conflitto:</strong> Pressing + Catenaccio entrambi >50% → pressing −30% efficacia
+                        ⚠️ <strong><?= Yii::t('app', 'Conflict') ?>:</strong> <?= Yii::t('app', 'Pressing + Catenaccio both >50% → pressing −30% effectiveness') ?>
                     </div>
                     <?php endif;
                     if ($lanc > 50 && $poss > 50): ?>
                     <div class="gm-card p-2 mb-2" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08);font-size:.75rem">
-                        ⚠️ <strong>Conflitto:</strong> Lancio lungo + Possesso entrambi >50% → possesso −40% efficacia
+                        ⚠️ <strong><?= Yii::t('app', 'Conflict') ?>:</strong> <?= Yii::t('app', 'Long ball + Possession both >50% → possession −40% effectiveness') ?>
                     </div>
                     <?php endif; ?>
                     <div class="d-flex align-items-center justify-content-between mt-4 pt-3" style="border-top:1px solid var(--border)">
                         <div>
-                            <span style="color:var(--text-secondary)">Totale: </span>
+                            <span style="color:var(--text-secondary)"><?= Yii::t('app', 'Total') ?>: </span>
                             <span id="total-pts" style="font-weight:900;font-size:1.1rem;color:var(--gold)">0</span>
                             <span style="color:var(--text-secondary)"> / 100</span>
                         </div>
-                        <button type="submit" class="btn btn-gold fw-bold px-4">Salva tattica</button>
+                        <button type="submit" class="btn btn-gold fw-bold px-4"><?= Yii::t('app', 'Save tactic') ?></button>
                     </div>
                 </form>
             </div>
         </div>
         <div class="col-lg-4">
             <div class="gm-card sticky-top" style="top:80px">
-                <h5 class="text-white mb-3"><i class="bi bi-info-circle text-gold me-2"></i>Effetti in partita</h5>
+                <h5 class="text-white mb-3"><i class="bi bi-info-circle text-gold me-2"></i><?= Yii::t('app', 'In-match effects') ?></h5>
                 <ul class="attribute-list small">
-                    <li><span class="text-muted-gm">Pressing max</span><span style="color:var(--accent-red)">+8% mid duel</span></li>
-                    <li><span class="text-muted-gm">Possesso max</span><span style="color:var(--accent-green)">+10% mid duel</span></li>
-                    <li><span class="text-muted-gm">Lancio max</span><span style="color:var(--gold)">20% bypass</span></li>
-                    <li><span class="text-muted-gm">Catenaccio max</span><span style="color:var(--accent-blue)">+12% difesa</span></li>
-                    <li><span class="text-muted-gm">Fuorigioco max</span><span style="color:var(--text-secondary)">15% annulla att.</span></li>
-                    <li><span class="text-muted-gm">Staff bonus</span><span style="color:var(--gold)">×<?= round(1 + $staffBonus['tactical']/100, 2) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Max pressing') ?></span><span style="color:var(--accent-red)">+8% mid duel</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Max possession') ?></span><span style="color:var(--accent-green)">+10% mid duel</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Max long ball') ?></span><span style="color:var(--gold)">20% bypass</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Max catenaccio') ?></span><span style="color:var(--accent-blue)">+12% <?= Yii::t('app', 'defence') ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Max offside trap') ?></span><span style="color:var(--text-secondary)">15% <?= Yii::t('app', 'cancel act.') ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Staff bonus') ?></span><span style="color:var(--gold)">×<?= round(1 + $staffBonus['tactical']/100, 2) ?></span></li>
                 </ul>
-                <p class="text-muted-gm small mt-3">I preset live (Difensivo/Bilanciato/Offensivo) in partita sovrascrivono temporaneamente questi valori.</p>
+                <p class="text-muted-gm small mt-3"><?= Yii::t('app', 'Live presets (Defensive/Balanced/Offensive) temporarily override these values in-match') ?>.</p>
             </div>
         </div>
     </div>
@@ -253,35 +253,35 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
     <div class="row g-4">
         <div class="col-lg-8">
             <div class="gm-card">
-                <h5 class="text-white fw-bold mb-3"><i class="bi bi-activity text-gold me-2"></i>Trend Forma Squadra (14 giorni)</h5>
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-activity text-gold me-2"></i><?= Yii::t('app', 'Team Form Trend (14 days)') ?></h5>
                 <canvas id="teamTrendChart" height="170"></canvas>
             </div>
         </div>
         <div class="col-lg-4">
             <div class="gm-card h-100">
-                <h5 class="text-white fw-bold mb-3"><i class="bi bi-speedometer2 text-gold me-2"></i>KPI Oggi</h5>
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-speedometer2 text-gold me-2"></i><?= Yii::t('app', 'KPI Today') ?></h5>
                 <div id="kpi-today" class="d-grid gap-2">
-                    <div class="text-muted-gm small">Caricamento...</div>
+                    <div class="text-muted-gm small"><?= Yii::t('app', 'Loading...') ?></div>
                 </div>
             </div>
         </div>
         <div class="col-lg-6">
             <div class="gm-card h-100">
-                <h5 class="text-white fw-bold mb-3"><i class="bi bi-graph-up-arrow text-gold me-2"></i>Top Crescita (7g)</h5>
-                <div id="top-growth"><p class="text-muted-gm small">Caricamento...</p></div>
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-graph-up-arrow text-gold me-2"></i><?= Yii::t('app', 'Top Growth (7d)') ?></h5>
+                <div id="top-growth"><p class="text-muted-gm small"><?= Yii::t('app', 'Loading...') ?></p></div>
             </div>
         </div>
         <div class="col-lg-6">
             <div class="gm-card h-100">
-                <h5 class="text-white fw-bold mb-3"><i class="bi bi-graph-down-arrow text-gold me-2"></i>Top Calo (7g)</h5>
-                <div id="top-drop"><p class="text-muted-gm small">Caricamento...</p></div>
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-graph-down-arrow text-gold me-2"></i><?= Yii::t('app', 'Top Decline (7d)') ?></h5>
+                <div id="top-drop"><p class="text-muted-gm small"><?= Yii::t('app', 'Loading...') ?></p></div>
             </div>
         </div>
         <div class="col-12">
             <div class="gm-card">
-                <h5 class="text-white fw-bold mb-3"><i class="bi bi-grid-3x3 text-gold me-2"></i>Tattiche Squadra (livello + trend 7g)</h5>
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-grid-3x3 text-gold me-2"></i><?= Yii::t('app', 'Team Tactics (level + 7d trend)') ?></h5>
                 <div id="tactic-trend-table" class="table-responsive">
-                    <p class="text-muted-gm small">Caricamento...</p>
+                    <p class="text-muted-gm small"><?= Yii::t('app', 'Loading...') ?></p>
                 </div>
             </div>
         </div>
@@ -330,7 +330,7 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
             data:{
                 labels: dates.map(function(d){ return String(d).slice(5); }),
                 datasets: [
-                    { label:'Forma', data: formData, borderColor:'#22c55e', backgroundColor:'transparent', tension:.35, pointRadius:2.8, borderWidth:2 },
+                    { label:'<?= Yii::t('app','Form') ?>', data: formData, borderColor:'#22c55e', backgroundColor:'transparent', tension:.35, pointRadius:2.8, borderWidth:2 },
                     { label:'Condizione', data: condData, borderColor:'#f59e0b', backgroundColor:'transparent', tension:.35, pointRadius:2.8, borderWidth:2 }
                 ]
             },
@@ -346,18 +346,22 @@ $slider = function(string $name, int $val, string $label, string $desc, string $
 
         var kpi = data.kpi || {};
         document.getElementById('kpi-today').innerHTML =
-            metricChip('Forma media', (kpi.avg_form || 0).toFixed ? (kpi.avg_form).toFixed(1) : kpi.avg_form) +
-            metricChip('Condizione media', (kpi.avg_condition || 0).toFixed ? (kpi.avg_condition).toFixed(1) : kpi.avg_condition) +
-            metricChip('Freschezza media', (kpi.avg_freshness || 0).toFixed ? (kpi.avg_freshness).toFixed(1) : kpi.avg_freshness);
+            metricChip('<?= Yii::t('app','Average form') ?>', (kpi.avg_form || 0).toFixed ? (kpi.avg_form).toFixed(1) : kpi.avg_form) +
+            metricChip('<?= Yii::t('app','Average condition') ?>', (kpi.avg_condition || 0).toFixed ? (kpi.avg_condition).toFixed(1) : kpi.avg_condition) +
+            metricChip('<?= Yii::t('app','Average freshness') ?>', (kpi.avg_freshness || 0).toFixed ? (kpi.avg_freshness).toFixed(1) : kpi.avg_freshness);
 
         renderPlayerRows('top-growth', data.topGrowth || [], false);
         renderPlayerRows('top-drop', data.topDrop || [], true);
 
-        var labels = {
-            pressing:'Pressing', contropiede:'Contropiede', possesso:'Possesso',
-            palla_bassa:'Palla bassa', lancio_lungo:'Lancio lungo', catenaccio:'Catenaccio',
-            fuorigioco:'Fuorigioco'
-        };
+        var labels = <?= \yii\helpers\Json::htmlEncode([
+            'pressing'    => Yii::t('app', 'Pressing'),
+            'contropiede' => Yii::t('app', 'Counter-attack'),
+            'possesso'    => Yii::t('app', 'Ball Possession'),
+            'palla_bassa' => Yii::t('app', 'Low Ball'),
+            'lancio_lungo'=> Yii::t('app', 'Long Ball'),
+            'catenaccio'  => Yii::t('app', 'Catenaccio'),
+            'fuorigioco'  => Yii::t('app', 'Offside Trap'),
+        ]) ?>;
         var t = data.tacticTrend || {};
         var rows = '';
         Object.keys(labels).forEach(function(k){
@@ -408,7 +412,7 @@ JS;
     <div class="row g-4">
         <div class="col-lg-4">
             <div class="gm-card" style="max-height:640px;overflow:auto">
-                <h5 class="text-white fw-bold mb-3"><i class="bi bi-people text-gold me-2"></i>Giocatori</h5>
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-people text-gold me-2"></i><?= Yii::t('app', 'Players') ?></h5>
                 <div class="d-grid gap-2">
                     <?php foreach ($players as $idx => $p): ?>
                     <button type="button"
@@ -428,8 +432,8 @@ JS;
         <div class="col-lg-8">
             <div class="gm-card">
                 <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-3">
-                    <h5 class="text-white fw-bold mb-0"><i class="bi bi-activity text-gold me-2"></i>Progressione giocatore</h5>
-                    <span class="text-muted-gm small">Ultimi 14 giorni</span>
+                    <h5 class="text-white fw-bold mb-0"><i class="bi bi-activity text-gold me-2"></i><?= Yii::t('app', 'Player progression') ?></h5>
+                    <span class="text-muted-gm small"><?= Yii::t('app', 'Last 14 days') ?></span>
                 </div>
                 <div id="progress-player-name" class="text-white fw-semibold mb-2" style="font-size:.9rem">—</div>
                 <canvas id="playerChart" height="170"></canvas>
@@ -448,7 +452,7 @@ JS;
     var STAT_LABELS = {
         skill_po:'PO', skill_df:'DF', skill_cn:'CN', skill_pa:'PA',
         skill_rg:'RG', skill_cr:'CR', skill_tc:'TC', skill_tr:'TR',
-        form:'Forma', condition_val:'Cond.'
+        form:'<?= Yii::t('app','Form') ?>', condition_val:'<?= Yii::t('app','Cond.') ?>'
     };
     var COLORS = ['#f59e0b','#3b82f6','#22c55e','#ef4444','#a855f7','#06b6d4','#f97316','#84cc16','#ec4899','#94a3b8'];
     var playerChart = null;

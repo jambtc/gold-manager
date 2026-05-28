@@ -7,21 +7,21 @@
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Amichevole Rapida';
+$this->title = Yii::t('app', 'Quick Friendly');
 ?>
 
 <div class="py-4" style="max-width:640px;margin:0 auto">
 
     <div class="d-flex align-items-center gap-3 mb-4">
         <?= Html::a('<i class="bi bi-arrow-left"></i>', ['/admin/index'], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false]) ?>
-        <h1 class="h3 fw-black mb-0">Amichevole Rapida</h1>
+        <h1 class="h3 fw-black mb-0"><?= Yii::t('app', 'Quick Friendly') ?></h1>
         <span class="badge-gm px-2 py-1" style="background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3);font-size:.7rem">TEST</span>
     </div>
 
     <div class="gm-card mb-4 p-4">
         <p class="text-muted-gm small mb-4">
-            Crea e simula istantaneamente una partita amichevole tra due squadre.<br>
-            Il risultato <strong class="text-white">non incide sulla classifica</strong>. Utile per testare il motore di gioco.
+            <?= Yii::t('app', 'Create and instantly simulate a friendly match between two teams.') ?><br>
+            <?= Yii::t('app', 'The result') ?> <strong class="text-white"><?= Yii::t('app', 'does not affect standings') ?></strong>. <?= Yii::t('app', 'Useful for testing the game engine.') ?>
         </p>
 
         <?php if (Yii::$app->session->hasFlash('error')): ?>
@@ -36,9 +36,9 @@ $this->title = 'Amichevole Rapida';
 
             <div class="row g-3 align-items-end mb-4">
                 <div class="col">
-                    <label class="form-label text-muted-gm" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Squadra Casa</label>
+                    <label class="form-label text-muted-gm" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Home Team') ?></label>
                     <select name="home_team_id" class="form-select" style="background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;border-radius:.6rem" required>
-                        <option value="">— Seleziona —</option>
+                        <option value="">— <?= Yii::t('app', 'Select') ?> —</option>
                         <?php foreach ($teams as $team): ?>
                         <option value="<?= $team->id ?>" style="background:#1e293b">
                             <?= Html::encode($team->name) ?>
@@ -53,9 +53,9 @@ $this->title = 'Amichevole Rapida';
                 </div>
 
                 <div class="col">
-                    <label class="form-label text-muted-gm" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em">Squadra Trasferta</label>
+                    <label class="form-label text-muted-gm" style="font-size:.72rem;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Away Team') ?></label>
                     <select name="away_team_id" class="form-select" style="background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;border-radius:.6rem" required>
-                        <option value="">— Seleziona —</option>
+                        <option value="">— <?= Yii::t('app', 'Select') ?> —</option>
                         <?php foreach ($teams as $team): ?>
                         <option value="<?= $team->id ?>" style="background:#1e293b">
                             <?= Html::encode($team->name) ?>
@@ -67,7 +67,7 @@ $this->title = 'Amichevole Rapida';
             </div>
 
             <button type="submit" class="btn btn-gold w-100 fw-bold" id="sim-btn">
-                <i class="bi bi-play-circle me-2"></i>Simula Amichevole
+                <i class="bi bi-play-circle me-2"></i><?= Yii::t('app', 'Simulate Friendly') ?>
             </button>
         </form>
     </div>
@@ -75,7 +75,7 @@ $this->title = 'Amichevole Rapida';
     <div class="gm-card p-3" style="border-color:rgba(245,158,11,.2)">
         <p class="text-muted-gm small mb-0">
             <i class="bi bi-terminal text-gold me-2"></i>
-            Puoi anche simulare da console:<br>
+            <?= Yii::t('app', 'You can also simulate from console') ?>:<br>
             <code style="color:var(--accent-blue)">docker exec gold-manager-php php /var/www/html/v2/yii game/friendly &lt;homeId&gt; &lt;awayId&gt;</code>
         </p>
     </div>

@@ -10,66 +10,18 @@ final class CharacterTraitHelper
     public static function definitions(): array
     {
         return [
-            'grintoso' => [
-                'label' => 'Grintoso',
-                'match' => '+10% quando in svantaggio',
-                'training' => '+10% su difesa/contrasti/tiro',
-            ],
-            'ambizioso' => [
-                'label' => 'Ambizioso',
-                'match' => '+5% rendimento generale',
-                'training' => '+8% XP generale',
-            ],
-            'razionale' => [
-                'label' => 'Razionale',
-                'match' => '+5% in trasferta e rigorista più preciso',
-                'training' => 'XP stabile',
-            ],
-            'diligente' => [
-                'label' => 'Diligente',
-                'match' => '+condizione, ma si affatica di più',
-                'training' => '+15% XP generale',
-            ],
-            'corretto' => [
-                'label' => 'Corretto',
-                'match' => '-30% rischio cartellino',
-                'training' => 'XP normale, rischio infortuni ridotto',
-            ],
-            'duttile' => [
-                'label' => 'Duttile',
-                'match' => 'meno penalità fuori ruolo',
-                'training' => '+5% apprendimento skill',
-            ],
-            'inflessibile' => [
-                'label' => 'Inflessibile',
-                'match' => '+10% in ruolo, penalità fuori ruolo',
-                'training' => '+primaria / -20% non primaria',
-            ],
-            'introverso' => [
-                'label' => 'Introverso',
-                'match' => 'rende meglio con sforzo basso',
-                'training' => '-5% XP',
-            ],
-            'carismatico' => [
-                'label' => 'Carismatico',
-                'match' => 'aura su compagni vicini (capitano)',
-                'training' => '+5% XP compagni se capitano',
-            ],
-            'popolare' => [
-                'label' => 'Popolare',
-                'match' => 'boost morale squadra',
-                'training' => '+5% XP con forma squadra alta',
-            ],
-            'costante' => [
-                'label' => 'Costante',
-                'match' => 'varianza forma ridotta',
-                'training' => 'XP regolare',
-            ],
-            'irrequieto' => [
-                'label' => 'Irrequieto',
-                'match' => '+10% in casa, più nervoso fuori',
-                'training' => '-10% XP se resta fuori',
-            ],
+            'grintoso'    => ['label' => 'Gritty',       'match' => '+10% when losing',              'training' => '+10% defence/tackles/shot'],
+            'ambizioso'   => ['label' => 'Ambitious',    'match' => '+5% overall performance',        'training' => '+8% general XP'],
+            'razionale'   => ['label' => 'Rational',     'match' => '+5% away & more precise penalty','training' => 'Stable XP'],
+            'diligente'   => ['label' => 'Diligent',     'match' => '+condition, tires faster',        'training' => '+15% general XP'],
+            'corretto'    => ['label' => 'Fair',         'match' => '-30% card risk',                 'training' => 'Normal XP, lower injury risk'],
+            'duttile'     => ['label' => 'Versatile',    'match' => 'lower off-role penalty',         'training' => '+5% skill learning'],
+            'inflessibile'=> ['label' => 'Inflexible',   'match' => '+10% in role, penalty off-role', 'training' => '+primary / -20% non-primary'],
+            'introverso'  => ['label' => 'Introverted',  'match' => 'better under low effort',        'training' => '-5% XP'],
+            'carismatico' => ['label' => 'Charismatic',  'match' => 'aura on nearby teammates (captain)', 'training' => '+5% XP teammates if captain'],
+            'popolare'    => ['label' => 'Popular',      'match' => 'team morale boost',              'training' => '+5% XP with high team form'],
+            'costante'    => ['label' => 'Consistent',   'match' => 'reduced form variance',          'training' => 'Regular XP'],
+            'irrequieto'  => ['label' => 'Restless',     'match' => '+10% at home, nervier away',     'training' => '-10% XP if benched'],
         ];
     }
 
@@ -81,7 +33,8 @@ final class CharacterTraitHelper
     public static function display(string $character): string
     {
         $key = self::normalize($character);
-        return self::definitions()[$key]['label'] ?? ucfirst($key);
+        $label = self::definitions()[$key]['label'] ?? ucfirst($key);
+        return \Yii::t('app', $label);
     }
 
     public static function matchTooltip(string $character): string
@@ -94,7 +47,10 @@ final class CharacterTraitHelper
         if (!$def) {
             return ucfirst($key);
         }
-        return "{$def['label']}: {$def['match']} · {$def['training']}";
+        $label = \Yii::t('app', $def['label']);
+        $match = \Yii::t('app', $def['match']);
+        $training = \Yii::t('app', $def['training']);
+        return "{$label}: {$match} · {$training}";
     }
 
     public static function trainingModifier(

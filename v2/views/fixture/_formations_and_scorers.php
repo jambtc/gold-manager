@@ -13,7 +13,7 @@ $panelColumnClass = $panelColumnClass ?? 'col-lg-5';
 <div class="<?= $panelColumnClass ?>" id="tab-formazioni-panel">
     <div class="gm-card">
         <div id="formations-loading" class="text-center py-4 text-muted-gm">
-            <i class="bi bi-hourglass-split me-2"></i>Caricamento formazioni...
+            <i class="bi bi-hourglass-split me-2"></i><?= Yii::t('app', 'Loading lineups...') ?>
         </div>
         <div id="formations-content" style="display:none">
             <div class="row g-3">
@@ -42,7 +42,7 @@ $panelColumnClass = $panelColumnClass ?? 'col-lg-5';
             <div class="col-12">
                 <div class="gm-card flex-shrink-0" id="scorer-sheet-card">
                     <h6 class="text-white fw-bold mb-2" style="font-size:.8rem">
-                        <i class="bi bi-list-ol text-gold me-1"></i>Marcatori
+                        <i class="bi bi-list-ol text-gold me-1"></i><?= Yii::t('app', 'Scorers') ?>
                     </h6>
                     <div id="scorer-sheet" class="gm-scorer-sheet">
                         <div class="text-muted-gm text-center py-1">—</div>

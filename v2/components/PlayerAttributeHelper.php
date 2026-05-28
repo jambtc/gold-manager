@@ -30,14 +30,14 @@ final class PlayerAttributeHelper
     public static function technicalAttributes(Player $player): array
     {
         return [
-            ['key' => 'skill_po', 'label' => 'Parate',    'value' => (int) $player->skill_po],
-            ['key' => 'skill_df', 'label' => 'Difesa',    'value' => (int) $player->skill_df],
-            ['key' => 'skill_cn', 'label' => 'Contrasti', 'value' => (int) $player->skill_cn],
-            ['key' => 'skill_pa', 'label' => 'Passaggi',  'value' => (int) $player->skill_pa],
-            ['key' => 'skill_rg', 'label' => 'Regia',     'value' => (int) $player->skill_rg],
-            ['key' => 'skill_cr', 'label' => 'Cross',     'value' => (int) $player->skill_cr],
-            ['key' => 'skill_tc', 'label' => 'Tecnica',   'value' => (int) $player->skill_tc],
-            ['key' => 'skill_tr', 'label' => 'Tiro',      'value' => (int) $player->skill_tr],
+            ['key' => 'skill_po', 'label' => \Yii::t('app', 'Saves'),     'value' => (int) $player->skill_po],
+            ['key' => 'skill_df', 'label' => \Yii::t('app', 'Defence'),   'value' => (int) $player->skill_df],
+            ['key' => 'skill_cn', 'label' => \Yii::t('app', 'Tackles'),   'value' => (int) $player->skill_cn],
+            ['key' => 'skill_pa', 'label' => \Yii::t('app', 'Passes'),    'value' => (int) $player->skill_pa],
+            ['key' => 'skill_rg', 'label' => \Yii::t('app', 'Playmaker'), 'value' => (int) $player->skill_rg],
+            ['key' => 'skill_cr', 'label' => \Yii::t('app', 'Cross'),     'value' => (int) $player->skill_cr],
+            ['key' => 'skill_tc', 'label' => \Yii::t('app', 'Technique'), 'value' => (int) $player->skill_tc],
+            ['key' => 'skill_tr', 'label' => \Yii::t('app', 'Shot'),      'value' => (int) $player->skill_tr],
         ];
     }
 
@@ -45,10 +45,10 @@ final class PlayerAttributeHelper
     public static function formAttributes(Player $player): array
     {
         return [
-            ['key' => 'form',       'label' => 'Forma',      'value' => (int) $player->form,      'is_percent' => true],
-            ['key' => 'freshness',  'label' => 'Freschezza', 'value' => (int) $player->freshness, 'is_percent' => true],
-            ['key' => 'condition',  'label' => 'Condizione', 'value' => (int) $player->condition, 'is_percent' => true],
-            ['key' => 'experience', 'label' => 'Esperienza', 'value' => (int) $player->experience,'is_percent' => false],
+            ['key' => 'form',       'label' => \Yii::t('app', 'Form'),       'value' => (int) $player->form,      'is_percent' => true],
+            ['key' => 'freshness',  'label' => \Yii::t('app', 'Freshness'), 'value' => (int) $player->freshness, 'is_percent' => true],
+            ['key' => 'condition',  'label' => \Yii::t('app', 'Condition'), 'value' => (int) $player->condition, 'is_percent' => true],
+            ['key' => 'experience', 'label' => \Yii::t('app', 'Experience'),'value' => (int) $player->experience,'is_percent' => false],
         ];
     }
 
@@ -75,7 +75,7 @@ final class PlayerAttributeHelper
             $score = (int) round(((int) $talent->level / 3) * 100);
             $out[] = [
                 'code'  => (string) $talent->code,
-                'label' => self::talentDefinitions()[(string) $talent->code]['label'] ?? ucfirst((string) $talent->code),
+                'label' => \Yii::t('app', self::talentDefinitions()[(string) $talent->code]['label'] ?? ucfirst((string) $talent->code)),
                 'level' => max(1, min(3, (int) $talent->level)),
                 'score' => $score,
             ];
@@ -274,19 +274,19 @@ final class PlayerAttributeHelper
     public static function talentDefinitions(): array
     {
         return [
-            'creativita'     => ['label' => 'Creativita'],
-            'resistenza'     => ['label' => 'Resistenza'],
+            'creativita'     => ['label' => 'Creativity'],
+            'resistenza'     => ['label' => 'Stamina'],
             'dribbling'      => ['label' => 'Dribbling'],
-            'velocita'       => ['label' => 'Velocita'],
-            'visione'        => ['label' => 'Visione'],
+            'velocita'       => ['label' => 'Speed'],
+            'visione'        => ['label' => 'Vision'],
             'leadership'     => ['label' => 'Leadership'],
-            'marcatura'      => ['label' => 'Marcatura'],
-            'riflessi'       => ['label' => 'Riflessi'],
-            'finalizzazione' => ['label' => 'Finalizzazione'],
-            'disciplina'     => ['label' => 'Disciplina'],
-            'tenacia'        => ['label' => 'Tenacia'],
-            'freddezza'      => ['label' => 'Freddezza'],
-            'calci_piazzati' => ['label' => 'Calci piazzati'],
+            'marcatura'      => ['label' => 'Marking'],
+            'riflessi'       => ['label' => 'Reflexes'],
+            'finalizzazione' => ['label' => 'Finishing'],
+            'disciplina'     => ['label' => 'Discipline'],
+            'tenacia'        => ['label' => 'Tenacity'],
+            'freddezza'      => ['label' => 'Composure'],
+            'calci_piazzati' => ['label' => 'Set Pieces'],
         ];
     }
 

@@ -14,16 +14,16 @@ declare(strict_types=1);
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Scouting';
+$this->title = Yii::t('app', 'Scouting');
 $this->params['breadcrumbs'][] = $this->title;
 ?>
 
 <div class="py-2">
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
-        <h1 class="h3 fw-black mb-0"><i class="bi bi-binoculars text-gold me-2"></i>Scouting</h1>
+        <h1 class="h3 fw-black mb-0"><i class="bi bi-binoculars text-gold me-2"></i><?= Yii::t('app', 'Scouting') ?></h1>
         <?php if (!$hasScout): ?>
         <a href="<?= Url::to(['/staff/view']) ?>" class="btn btn-outline-gold btn-sm">
-            <i class="bi bi-person-plus me-1"></i>Assumi uno scout
+            <i class="bi bi-person-plus me-1"></i><?= Yii::t('app', 'Hire a scout') ?>
         </a>
         <?php endif; ?>
     </div>
@@ -39,22 +39,22 @@ $this->params['breadcrumbs'][] = $this->title;
     <?php if (!$hasScout): ?>
     <div class="gm-card text-center py-5">
         <i class="bi bi-binoculars d-block mb-3 text-muted-gm" style="font-size:3rem;opacity:.4"></i>
-        <h3 class="text-white mb-2">Nessuno scout in rosa</h3>
-        <p class="text-muted-gm mb-4">Assumi uno scout per iniziare ad osservare i giocatori avversari.</p>
-        <?= Html::a('<i class="bi bi-person-plus me-1"></i> Vai allo staff', ['/staff/view'], ['class' => 'btn btn-gold', 'encode' => false]) ?>
+        <h3 class="text-white mb-2"><?= Yii::t('app', 'No scout in squad') ?></h3>
+        <p class="text-muted-gm mb-4"><?= Yii::t('app', 'Hire a scout to start scouting opponent players.') ?></p>
+        <?= Html::a('<i class="bi bi-person-plus me-1"></i> ' . Yii::t('app', 'Go to staff'), ['/staff/view'], ['class' => 'btn btn-gold', 'encode' => false]) ?>
     </div>
     <?php else: ?>
 
     <div class="gm-card mb-4">
         <div class="d-flex align-items-center justify-content-between mb-2">
-            <h5 class="text-white fw-bold mb-0"><i class="bi bi-funnel text-gold me-2"></i>Richieste Scout</h5>
-            <span class="text-muted-gm" style="font-size:.75rem">Efficienza scout: <?= (int) $scoutEff ?></span>
+            <h5 class="text-white fw-bold mb-0"><i class="bi bi-funnel text-gold me-2"></i><?= Yii::t('app', 'Scout Requests') ?></h5>
+            <span class="text-muted-gm" style="font-size:.75rem"><?= Yii::t('app', 'Scout efficiency') ?>: <?= (int) $scoutEff ?></span>
         </div>
         <p class="text-muted-gm mb-3" style="font-size:.78rem">
-            Seleziona fino a 3 ruoli: quando entra un profilo interessante nel mercato unico, ricevi una news automatica.
+            <?= Yii::t('app', 'Select up to 3 roles: when an interesting profile enters the single market, you receive an automatic alert.') ?>
         </p>
         <?= Html::beginForm(['/scouting/save-needs'], 'post', ['class' => 'd-flex flex-wrap align-items-center gap-3']) ?>
-            <?php foreach (['GK' => 'Portiere', 'DF' => 'Difensore', 'MF' => 'Centrocampista', 'FW' => 'Attaccante'] as $code => $label): ?>
+            <?php foreach (['GK' => Yii::t('app', 'Goalkeeper'), 'DF' => Yii::t('app', 'Defender'), 'MF' => Yii::t('app', 'Midfielder'), 'FW' => Yii::t('app', 'Forward')] as $code => $label): ?>
                 <label class="d-inline-flex align-items-center gap-1 text-white" style="font-size:.82rem">
                     <input type="checkbox"
                            name="need_positions[]"
@@ -63,21 +63,21 @@ $this->params['breadcrumbs'][] = $this->title;
                     <span><?= Html::encode($label) ?></span>
                 </label>
             <?php endforeach; ?>
-            <button type="submit" class="btn btn-gold btn-sm ms-auto">Salva richieste</button>
+            <button type="submit" class="btn btn-gold btn-sm ms-auto"><?= Yii::t('app', 'Save requests') ?></button>
         <?= Html::endForm() ?>
     </div>
 
     <!-- Pending -->
     <?php if (!empty($pending)): ?>
     <div class="gm-card mb-4">
-        <h5 class="text-white fw-bold mb-3"><i class="bi bi-hourglass-split text-muted-gm me-2"></i>In attesa (<?= count($pending) ?>)</h5>
+        <h5 class="text-white fw-bold mb-3"><i class="bi bi-hourglass-split text-muted-gm me-2"></i><?= Yii::t('app', 'Pending') ?> (<?= count($pending) ?>)</h5>
         <?php foreach ($pending as $i => $r): ?>
         <div style="display:flex;align-items:center;gap:.8rem;padding:.6rem 0;<?= $i > 0 ? 'border-top:1px solid var(--border)' : '' ?>">
             <span style="font-size:1.2rem">🔍</span>
             <div style="flex:1">
                 <div class="fw-bold text-white" style="font-size:.85rem"><?= Html::encode($r->player->name ?? 'Giocatore #'.$r->player_id) ?></div>
                 <div class="text-muted-gm" style="font-size:.72rem">
-                    Rapporto pronto tra <?= max(1, (int)ceil(($r->ready_at - time()) / 86400)) ?> giorno/i
+                    <?= Yii::t('app', 'Report ready in') ?> <?= max(1, (int)ceil(($r->ready_at - time()) / 86400)) ?> <?= Yii::t('app', 'day(s)') ?>
                 </div>
             </div>
         </div>
@@ -88,7 +88,7 @@ $this->params['breadcrumbs'][] = $this->title;
     <!-- Ready -->
     <?php if (!empty($ready)): ?>
     <div class="gm-card mb-4">
-        <h5 class="text-white fw-bold mb-3"><i class="bi bi-check-circle text-accent-green me-2"></i>Pronti (<?= count($ready) ?>)</h5>
+        <h5 class="text-white fw-bold mb-3"><i class="bi bi-check-circle text-accent-green me-2"></i><?= Yii::t('app', 'Ready') ?> (<?= count($ready) ?>)</h5>
         <?php foreach ($ready as $i => $r): ?>
         <?php $d = $r->report_text ? (json_decode($r->report_text, true) ?? []) : []; ?>
         <div style="display:flex;align-items:center;gap:.8rem;padding:.6rem 0;<?= $i > 0 ? 'border-top:1px solid var(--border)' : '' ?>">
@@ -96,13 +96,13 @@ $this->params['breadcrumbs'][] = $this->title;
             <div style="flex:1;min-width:0">
                 <div class="fw-bold text-white" style="font-size:.85rem"><?= Html::encode($d['name'] ?? 'Giocatore') ?></div>
                 <div class="text-muted-gm" style="font-size:.72rem">
-                    <?= Html::encode($d['position'] ?? '') ?> · <?= Html::encode($d['age'] ?? '') ?> anni · OVR ~<?= Html::encode($d['natural_overall'] ?? $d['general_skill'] ?? '?') ?>
+                    <?= Html::encode($d['position'] ?? '') ?> · <?= Html::encode($d['age'] ?? '') ?> <?= Yii::t('app', 'years') ?> · OVR ~<?= Html::encode($d['natural_overall'] ?? $d['general_skill'] ?? '?') ?>
                 </div>
             </div>
             <div class="d-flex gap-1">
-                <?= Html::a('Vedi', ['/scouting/report', 'id' => $r->id], ['class' => 'btn btn-gold btn-sm']) ?>
+                <?= Html::a(Yii::t('app', 'View'), ['/scouting/report', 'id' => $r->id], ['class' => 'btn btn-gold btn-sm']) ?>
                 <?= Html::beginForm(['/scouting/dismiss', 'id' => $r->id], 'post', ['class' => 'd-inline']) ?>
-                <button type="submit" class="btn btn-outline-secondary btn-sm">Archivia</button>
+                <button type="submit" class="btn btn-outline-secondary btn-sm"><?= Yii::t('app', 'Archive') ?></button>
                 <?= Html::endForm() ?>
             </div>
         </div>
@@ -111,14 +111,14 @@ $this->params['breadcrumbs'][] = $this->title;
     <?php elseif (empty($pending)): ?>
     <div class="gm-card text-center py-4 text-muted-gm mb-4">
         <i class="bi bi-file-earmark-text d-block mb-2" style="font-size:2rem;opacity:.4"></i>
-        Nessun rapporto disponibile. Osserva un giocatore dal <a href="<?= Url::to(['/transfer/market']) ?>" style="color:var(--gold)">Mercato</a>.
+        <?= Yii::t('app', 'No report available. Scout a player from') ?> <a href="<?= Url::to(['/transfer/market']) ?>" style="color:var(--gold)"><?= Yii::t('app', 'Market') ?></a>.
     </div>
     <?php endif; ?>
 
     <!-- Archived -->
     <?php if (!empty($archived)): ?>
     <div class="gm-card">
-        <h5 class="text-white fw-bold mb-3"><i class="bi bi-archive text-muted-gm me-2"></i>Archivio</h5>
+        <h5 class="text-white fw-bold mb-3"><i class="bi bi-archive text-muted-gm me-2"></i><?= Yii::t('app', 'Archive') ?></h5>
         <?php foreach ($archived as $i => $r): ?>
         <?php $d = $r->report_text ? (json_decode($r->report_text, true) ?? []) : []; ?>
         <div style="display:flex;align-items:center;gap:.8rem;padding:.4rem 0;<?= $i > 0 ? 'border-top:1px solid var(--border)' : '' ?>;opacity:.6">

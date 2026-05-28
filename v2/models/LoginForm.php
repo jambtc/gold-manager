@@ -51,7 +51,7 @@ class LoginForm extends Model
     public function validatePassword(string $attribute, array|null $params): void
     {
         if ($this->isTemporarilyBlocked()) {
-            $this->addError($attribute, 'Too many attempts. Try again later.');
+            $this->addError($attribute, Yii::t('app', 'Too many attempts. Try again later.'));
             return;
         }
 
@@ -60,7 +60,7 @@ class LoginForm extends Model
 
             if (!$user || !$this->security->validatePassword($this->password, $user->password_hash)) {
                 $this->registerFailedAttempt();
-                $this->addError($attribute, 'Incorrect username or password.');
+                $this->addError($attribute, Yii::t('app', 'Incorrect username or password.'));
                 Yii::warning(
                     sprintf(
                         'Login failed for username="%s" ip="%s"',

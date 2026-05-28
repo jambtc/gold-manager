@@ -19,7 +19,7 @@ $this->title = 'Admin Panel';
     <div class="d-flex align-items-center mb-4">
         <h1 class="h3 fw-black mb-0 me-3">Admin Panel</h1>
         <span class="badge bg-danger px-2">Admin</span>
-        <span class="ms-3 text-muted-gm small">Stagione <?= (int)$stats['season'] ?></span>
+        <span class="ms-3 text-muted-gm small"><?= Yii::t('app', 'Season') ?> <?= (int)$stats['season'] ?></span>
     </div>
 
     <!-- Flash messages -->
@@ -39,13 +39,13 @@ $this->title = 'Admin Panel';
     <!-- Stats cards -->
     <div class="row g-3 mb-5">
         <?php foreach ([
-            ['bi-people-fill',     'Manager attivi',   $stats['managers'],      'var(--accent-blue)'],
-            ['bi-controller',      'Slot liberi (C)',  $stats['free_slots'],    'var(--accent-green)'],
-            ['bi-trophy-fill',     'Campionati',       $stats['competitions'],  'var(--gold)'],
-            ['bi-broadcast',       'In corso',         $stats['playing'],       'var(--accent-red)'],
-            ['bi-calendar2-check', 'Programmate',      $stats['scheduled'],     'var(--text-secondary)'],
-            ['bi-flag-fill',       'Giocate',          $stats['finished'],      'var(--text-secondary)'],
-            ['bi-person-badge',    'Giocatori',        $stats['total_players'], 'var(--accent-blue)'],
+            ['bi-people-fill',     Yii::t('app', 'Active managers'),   $stats['managers'],      'var(--accent-blue)'],
+            ['bi-controller',      Yii::t('app', 'Free slots (B)'),  $stats['free_slots'],    'var(--accent-green)'],
+            ['bi-trophy-fill',     Yii::t('app', 'Leagues'),       $stats['competitions'],  'var(--gold)'],
+            ['bi-broadcast',       Yii::t('app', 'In progress'),         $stats['playing'],       'var(--accent-red)'],
+            ['bi-calendar2-check', Yii::t('app', 'Scheduled'),      $stats['scheduled'],     'var(--text-secondary)'],
+            ['bi-flag-fill',       Yii::t('app', 'Played'),          $stats['finished'],      'var(--text-secondary)'],
+            ['bi-person-badge',    Yii::t('app', 'Players'),        $stats['total_players'], 'var(--accent-blue)'],
         ] as [$icon, $label, $value, $color]): ?>
         <div class="col-6 col-md-3 col-xl">
             <div class="gm-card h-100 py-3 px-3">
@@ -59,7 +59,7 @@ $this->title = 'Admin Panel';
 
     <!-- Leagues -->
     <h2 class="h5 fw-bold mb-3 text-white">
-        <i class="bi bi-trophy text-gold me-2"></i>Campionati
+        <i class="bi bi-trophy text-gold me-2"></i><?= Yii::t('app', 'Leagues') ?>
     </h2>
 
     <?php foreach ($competitions as $comp): ?>
@@ -67,7 +67,7 @@ $this->title = 'Admin Panel';
         <div class="d-flex align-items-center justify-content-between px-4 py-3" style="border-bottom:1px solid var(--border)">
             <span class="fw-bold text-white"><?= Html::encode($comp->getLabel()) ?></span>
             <span class="badge-gm" style="background:rgba(255,255,255,.08);color:var(--text-secondary);font-size:.72rem">
-                Stagione <?= $comp->season ?>
+                <?= Yii::t('app', 'Season') ?> <?= $comp->season ?>
             </span>
         </div>
         <div class="p-0">
@@ -75,8 +75,8 @@ $this->title = 'Admin Panel';
                 <thead>
                     <tr>
                         <th style="width:2rem">#</th>
-                        <th>Squadra</th>
-                        <th>Manager</th>
+                        <th><?= Yii::t('app', 'Team') ?></th>
+                        <th><?= Yii::t('app', 'Manager') ?></th>
                         <th class="text-center">G</th>
                         <th class="text-center">V</th>
                         <th class="text-center">P</th>
@@ -118,7 +118,7 @@ $this->title = 'Admin Panel';
 
     <!-- Managers -->
     <h2 class="h5 fw-bold mb-3 text-white mt-2">
-        <i class="bi bi-people text-gold me-2"></i>Manager
+        <i class="bi bi-people text-gold me-2"></i><?= Yii::t('app', 'Manager') ?>
     </h2>
 
     <div class="gm-card p-0" style="overflow:hidden">
@@ -126,16 +126,16 @@ $this->title = 'Admin Panel';
             <thead>
                 <tr>
                     <th>Username</th>
-                    <th>Squadra</th>
-                    <th>Lega</th>
-                    <th>Registrato</th>
+                    <th><?= Yii::t('app', 'Team') ?></th>
+                    <th><?= Yii::t('app', 'League') ?></th>
+                    <th><?= Yii::t('app', 'Registered') ?></th>
                     <th></th>
                 </tr>
             </thead>
             <tbody>
                 <?php if (empty($managers)): ?>
                 <tr>
-                    <td colspan="5" class="text-center text-muted-gm py-4">Nessun manager registrato.</td>
+                    <td colspan="5" class="text-center text-muted-gm py-4"><?= Yii::t('app', 'No manager registered.') ?></td>
                 </tr>
                 <?php endif; ?>
                 <?php foreach ($managers as $manager): ?>
@@ -174,21 +174,21 @@ $this->title = 'Admin Panel';
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content" style="background:var(--bg-dark);border:1px solid var(--border)">
             <div class="modal-header" style="border-color:var(--border)">
-                <h5 class="modal-title text-white"><i class="bi bi-trash3 text-danger me-2"></i>Elimina manager</h5>
+                <h5 class="modal-title text-white"><i class="bi bi-trash3 text-danger me-2"></i><?= Yii::t('app', 'Delete manager') ?></h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body" style="color:var(--text-secondary)">
-                <p class="mb-2">Stai per eliminare il manager <strong class="text-white" id="modal-username"></strong>.</p>
+                <p class="mb-2"><?= Yii::t('app', 'You are about to delete the manager') ?> <strong class="text-white" id="modal-username"></strong>.</p>
                 <p class="mb-0 small" id="modal-team-line" style="color:var(--text-secondary)"></p>
             </div>
             <div class="modal-footer" style="border-color:var(--border)">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"><?= Yii::t('app', 'Cancel') ?></button>
                 <!-- Single form: hidden id field populated by JS -->
                 <form id="delete-user-form" method="post" action="<?= Url::to(['/admin/delete-user']) ?>" style="display:inline">
                     <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
                     <input type="hidden" name="id" id="delete-user-id" value="">
                     <button type="submit" class="btn btn-danger btn-sm">
-                        <i class="bi bi-trash3"></i> Elimina
+                        <i class="bi bi-trash3"></i> <?= Yii::t('app', 'Delete') ?>
                     </button>
                 </form>
             </div>

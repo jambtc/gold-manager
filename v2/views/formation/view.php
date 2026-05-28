@@ -22,9 +22,9 @@ use app\components\PlayerExperienceService;
 use app\components\QuadrantHelper;
 use app\components\UiIconHelper;
 
-$this->title = 'Tattica: ' . $team->name;
-$this->params['breadcrumbs'][] = ['label' => 'Squadra', 'url' => ['/team/view']];
-$this->params['breadcrumbs'][] = 'Tattica';
+$this->title = Yii::t('app', 'Tactic') . ': ' . $team->name;
+$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Team'), 'url' => ['/team/view']];
+$this->params['breadcrumbs'][] = Yii::t('app', 'Tactic');
 
 // activeSlots keyed by LEGACY zone code (1-63) or 64 for GK.
 // Grid displays 7×9 = 63 outfield cells + 1 GK = 64 boxes total.
@@ -76,9 +76,9 @@ $formationId = $formation->id;
 
 $moduleOptions = FormationAutoHelper::moduleOptions();
 $tacticOptions = [
-    'balanced' => 'Bilanciata',
-    'ultra_defensive' => 'Difensiva',
-    'all_out_attack' => 'Offensiva',
+    'balanced' => Yii::t('app', 'Balanced'),
+    'ultra_defensive' => Yii::t('app', 'Defensive'),
+    'all_out_attack' => Yii::t('app', 'Offensive'),
 ];
 
 $currentModule = '4-4-2';
@@ -126,10 +126,10 @@ $roleIcons = [
     'corner'   => UiIconHelper::renderRoleIcon('corner', 12),
 ];
 $roleLabels = [
-    'captain'  => 'Capitano',
-    'penalty'  => 'Rigorista',
-    'freekick' => 'Punizioni',
-    'corner'   => 'Angoli',
+    'captain'  => Yii::t('app', 'Captain'),
+    'penalty'  => Yii::t('app', 'Penalty taker'),
+    'freekick' => Yii::t('app', 'Free kicks'),
+    'corner'   => Yii::t('app', 'Corners'),
 ];
 $effectiveRoleByPlayer = [];
 foreach ($roleSummary as $role => $data) {
@@ -249,7 +249,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
         <div class="col-lg-4">
             <div class="gm-card h-100 d-flex flex-column" id="player-list-panel">
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h5 mb-0 text-white fw-bold">Forza squadra</h2>
+                    <h2 class="h5 mb-0 text-white fw-bold"><?= Yii::t('app', 'Team strength') ?></h2>
                     <span class="badge-gm px-2 py-1" id="count-badge"
                         style="background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3);font-size:.72rem">
                         <?= $overall > 0 ? $overall : '—' ?>
@@ -259,10 +259,10 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                 <div>
                     <?php foreach (
                         [
-                            ['GK', 'Portiere',   'var(--accent-red)',   '#ea580c'],
-                            ['DF', 'Difesa',      'var(--accent-blue)',  '#2563eb'],
-                            ['MF', 'Centrocampo', 'var(--accent-green)', '#15803d'],
-                            ['FW', 'Attacco',    'var(--accent-red)',   '#b91c1c'],
+                            ['GK', Yii::t('app', 'Goalkeeper'),   'var(--accent-red)',   '#ea580c'],
+                            ['DF', Yii::t('app', 'Defence'),      'var(--accent-blue)',  '#2563eb'],
+                            ['MF', Yii::t('app', 'Midfield'), 'var(--accent-green)', '#15803d'],
+                            ['FW', Yii::t('app', 'Attack'),    'var(--accent-red)',   '#b91c1c'],
                         ] as [$dept, $label, $color, $barColor]
                     ): ?>
                         <div class="d-flex align-items-center gap-2 mb-1">
@@ -278,7 +278,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                 </div>
 
                 <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h2 class="h5 mb-0 text-white fw-bold">Rosa</h2>
+                    <h2 class="h5 mb-0 text-white fw-bold"><?= Yii::t('app', 'Squad') ?></h2>
                     <span class="badge-gm px-2 py-1" id="count-badge"
                         style="background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.3);font-size:.72rem">
                         <?= $startersCount ?>/11
@@ -287,7 +287,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
 
                 <div id="selection-status" class="mb-2">
                     <div style="padding:.4rem .8rem;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:.5rem;font-size:.75rem;color:var(--text-secondary)">
-                        <i class="bi bi-hand-index"></i> Trascina o clicca dopo aver selezionato una zona
+                        <i class="bi bi-hand-index"></i> <?= Yii::t('app', 'Drag or click after selecting a zone') ?>
                     </div>
                 </div>
 
@@ -301,10 +301,10 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                             border:2px dashed transparent;border-radius:.6rem;transition:border-color .15s,background .15s;padding:2px">
                     <?php
                     $roleGroups = [
-                        'GK' => 'Portieri',
-                        'DF' => 'Difensori',
-                        'MF' => 'Centrocampisti',
-                        'FW' => 'Attaccanti',
+                        'GK' => Yii::t('app', 'Goalkeepers'),
+                        'DF' => Yii::t('app', 'Defenders'),
+                        'MF' => Yii::t('app', 'Midfielders'),
+                        'FW' => Yii::t('app', 'Forwards'),
                     ];
                     $groupedPlayers = [];
                     foreach ($players as $player) {
@@ -339,11 +339,11 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                             . '</span>';
                     };
                     $suggestZone = function (\app\models\Player $p): array {
-                        if ($p->skill_po > 70) return ['🥅', 'Portiere'];
-                        if ($p->skill_df >= max($p->skill_pa, $p->skill_tr) && $p->skill_tc >= 45) return ['🛡️', 'Difensore'];
-                        if ($p->skill_rg >= 58 && $p->skill_pa >= 52) return ['⚙️', 'Regia/Mezzala'];
-                        if ($p->skill_cr >= 58) return ['⚡', 'Ala (fascia)'];
-                        if ($p->skill_tr >= 58) return ['⚽', 'Attaccante'];
+                        if ($p->skill_po > 70) return ['🥅', Yii::t('app', 'Goalkeeper')];
+                        if ($p->skill_df >= max($p->skill_pa, $p->skill_tr) && $p->skill_tc >= 45) return ['🛡️', Yii::t('app', 'Defender')];
+                        if ($p->skill_rg >= 58 && $p->skill_pa >= 52) return ['⚙️', Yii::t('app', 'Playmaker/Mezzala')];
+                        if ($p->skill_cr >= 58) return ['⚡', Yii::t('app', 'Winger')];
+                        if ($p->skill_tr >= 58) return ['⚽', Yii::t('app', 'Forward')];
                         return ['', ''];
                     };
                     $positionBadge = function (\app\models\Player $p): string {
@@ -354,9 +354,9 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                     };
                     $footBadge = function (\app\models\Player $p): string {
                         $label = match ($p->foot) {
-                            'LR' => 'Amb',
-                            'L'  => 'Sin',
-                            'R'  => 'Des',
+                            'LR' => Yii::t('app', 'Amb'),
+                            'L'  => Yii::t('app', 'Left'),
+                            'R'  => Yii::t('app', 'Des'),
                             default => strtoupper((string) $p->foot),
                         };
                         return '<span style="display:inline-flex;align-items:center;gap:.2rem">'
@@ -368,7 +368,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                         $groupKey = array_key_exists($player->position, $roleGroups) ? $player->position : 'OTHER';
                         if ($groupKey !== $currentGroup) {
                             $currentGroup = $groupKey;
-                            $groupLabel = $groupKey === 'OTHER' ? 'Altri ruoli' : $roleGroups[$groupKey];
+                            $groupLabel = $groupKey === 'OTHER' ? Yii::t('app', 'Other roles') : $roleGroups[$groupKey];
                             echo '<div class="text-muted-gm mt-2 mb-1" style="font-size:.65rem;letter-spacing:.08em;text-transform:uppercase">'
                                 . \yii\helpers\Html::encode($groupLabel)
                                 . '</div>';
@@ -411,19 +411,19 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                 <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:.25rem .5rem;margin-bottom:.15rem">
                                     <div>
                                         <div style="display:flex;justify-content:space-between;font-size:.55rem;color:var(--text-secondary);margin-bottom:1px">
-                                            <span>Forma</span><span style="color:<?= $formColor ?>"><?= $player->form ?>%</span>
+                                            <span><?= Yii::t('app', 'Form') ?></span><span style="color:<?= $formColor ?>"><?= $player->form ?>%</span>
                                         </div>
                                         <?= $statBar($player->form, $formColor) ?>
                                     </div>
                                     <div>
                                         <div style="display:flex;justify-content:space-between;font-size:.55rem;color:var(--text-secondary);margin-bottom:1px">
-                                            <span>Fresc.</span><span style="color:<?= $freshColor ?>"><?= $player->freshness ?>%</span>
+                                            <span><?= Yii::t('app', 'Fresh.') ?></span><span style="color:<?= $freshColor ?>"><?= $player->freshness ?>%</span>
                                         </div>
                                         <?= $statBar($player->freshness, $freshColor) ?>
                                     </div>
                                     <div>
                                         <div style="display:flex;justify-content:space-between;font-size:.55rem;color:var(--text-secondary);margin-bottom:1px">
-                                            <span>Cond.</span><span style="color:<?= $condColor ?>"><?= $player->condition ?>%</span>
+                                            <span><?= Yii::t('app', 'Cond.') ?></span><span style="color:<?= $condColor ?>"><?= $player->condition ?>%</span>
                                         </div>
                                         <?= $statBar($player->condition, $condColor) ?>
                                     </div>
@@ -438,7 +438,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                             🧠 <?= Html::encode(CharacterTraitHelper::display((string) $player->character)) ?>
                                         </span>
                                     <?php endif; ?>
-                                    <?php if ($sugLabel !== ''): ?><span title="Zona suggerita: <?= $sugLabel ?>" style="font-size:.6rem;background:rgba(255,255,255,.06);border-radius:.2rem;padding:.05rem .3rem;color:var(--text-secondary)"><?= $sugIcon ?> <?= $sugLabel ?></span><?php endif; ?>
+                                    <?php if ($sugLabel !== ''): ?><span title="<?= Yii::t('app', 'Suggested zone') ?>: <?= $sugLabel ?>" style="font-size:.6rem;background:rgba(255,255,255,.06);border-radius:.2rem;padding:.05rem .3rem;color:var(--text-secondary)"><?= $sugIcon ?> <?= $sugLabel ?></span><?php endif; ?>
                                     <?= $badges ?>
                                     <?php if (($player->injury_weeks ?? 0) > 0): ?>
                                         <?php $injLabel = match ($player->injury_type) {
@@ -446,11 +446,11 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                             'grave' => '🚑',
                                             default => '🏥'
                                         }; ?>
-                                        <span title="Infortunato: <?= $player->injury_type ?> (<?= $player->injury_weeks ?> sett.)" style="font-size:.6rem;background:rgba(220,38,38,.18);color:#fca5a5;border-radius:.2rem;padding:.05rem .35rem;font-weight:700"><?= $injLabel ?> <?= $player->injury_weeks ?>sett.</span>
+                                        <span title="<?= Yii::t('app', 'Injured') ?>: <?= $player->injury_type ?> (<?= $player->injury_weeks ?> <?= Yii::t('app', 'wk.') ?>)" style="font-size:.6rem;background:rgba(220,38,38,.18);color:#fca5a5;border-radius:.2rem;padding:.05rem .35rem;font-weight:700"><?= $injLabel ?> <?= $player->injury_weeks ?><?= Yii::t('app', 'wk.') ?></span>
                                     <?php elseif (($player->suspended_matches ?? 0) > 0): ?>
-                                        <span title="Squalificato per <?= $player->suspended_matches ?> gara/e" style="font-size:.6rem;background:rgba(220,38,38,.18);color:#f87171;border-radius:.2rem;padding:.05rem .35rem;font-weight:700">🚫 SQ</span>
+                                        <span title="<?= Yii::t('app', 'Suspended for') ?> <?= $player->suspended_matches ?> <?= Yii::t('app', 'match(es)') ?>" style="font-size:.6rem;background:rgba(220,38,38,.18);color:#f87171;border-radius:.2rem;padding:.05rem .35rem;font-weight:700">🚫 <?= Yii::t('app', 'SQ') ?></span>
                                     <?php elseif (($player->yellow_cards ?? 0) >= 2): ?>
-                                        <span title="<?= $player->yellow_cards ?> gialli stagionali — a rischio squalifica" style="font-size:.6rem;background:rgba(245,158,11,.15);color:#fbbf24;border-radius:.2rem;padding:.05rem .35rem;font-weight:700">⚠️ <?= $player->yellow_cards ?>🟨</span>
+                                        <span title="<?= $player->yellow_cards ?> <?= Yii::t('app', 'seasonal yellows — at risk of suspension') ?>" style="font-size:.6rem;background:rgba(245,158,11,.15);color:#fbbf24;border-radius:.2rem;padding:.05rem .35rem;font-weight:700">⚠️ <?= $player->yellow_cards ?>🟨</span>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -464,7 +464,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
 
                 <div class="mt-3 pt-3" style="border-top:1px solid var(--border)">
                     <button class="btn btn-outline-danger w-100 btn-sm" onclick="window.clearZone()">
-                        <i class="bi bi-trash3 me-1"></i>Rimuovi da zona selezionata
+                        <i class="bi bi-trash3 me-1"></i><?= Yii::t('app', 'Remove from selected zone') ?>
                     </button>
                 </div>
             </div>
@@ -474,8 +474,8 @@ $_bestZoneJson = json_encode($_bestZoneMap);
         <div class="col-lg-8">
             <div class="gm-card">
                 <div class="d-flex justify-content-between align-items-center mb-4">
-                    <h2 class="h4 mb-0 text-white">Campo di Gioco</h2>
-                    <span class="badge bg-gold text-dark"><?= count($slots) ?> / 11 Giocatori</span>
+                    <h2 class="h4 mb-0 text-white"><?= Yii::t('app', 'Pitch') ?></h2>
+                    <span class="badge bg-gold text-dark"><?= count($slots) ?> / 11 <?= Yii::t('app', 'Players') ?></span>
                 </div>
                 <div class="row g-3">
                     <div class="col-xl-8">
@@ -483,7 +483,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                         <div class="d-flex align-items-center justify-content-center gap-2 mb-1" style="font-size:.7rem;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase">
                             <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                             <i class="bi bi-arrow-up-circle" style="color:var(--accent-red)"></i>
-                            <span style="color:var(--accent-red)">ATTACCO</span>
+                            <span style="color:var(--accent-red)"><?= Yii::t('app', 'ATTACK') ?></span>
                             <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                         </div>
 
@@ -524,7 +524,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                                     <?php endif; ?>
                                                 </div>
                                                 <div class="player-name"><?= Html::encode($shortPitchName((string) $p->name)) ?></div>
-                                                <div class="player-strength" title="Forza <?= $pStrength ?>/100">
+                                                <div class="player-strength" title="<?= Yii::t('app', 'Strength') ?> <?= $pStrength ?>/100">
                                                     <div class="player-strength-fill" style="width:<?= $pStrength ?>%"></div>
                                                 </div>
                                                 <?php if (isset($starterExpBonus[(int)$p->id])): ?>
@@ -567,7 +567,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                             <?= $jersey($p->position, (int)$p->number, 0.72) ?>
                                         </div>
                                         <div class="player-name"><?= Html::encode($shortPitchName((string) $p->name)) ?></div>
-                                        <div class="player-strength" title="Forza <?= $pStrength ?>/100">
+                                        <div class="player-strength" title="<?= Yii::t('app', 'Strength') ?> <?= $pStrength ?>/100">
                                             <div class="player-strength-fill" style="width:<?= $pStrength ?>%"></div>
                                         </div>
                                         <?php if (isset($starterExpBonus[(int)$p->id])): ?>
@@ -589,19 +589,19 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                         <div class="d-flex align-items-center justify-content-center gap-2 mt-1" style="font-size:.7rem;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase">
                             <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                             <i class="bi bi-shield-fill" style="color:var(--accent-blue)"></i>
-                            <span style="color:var(--accent-blue)">DIFESA</span>
+                            <span style="color:var(--accent-blue)"><?= Yii::t('app', 'DEFENCE') ?></span>
                             <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                         </div>
 
                         <p class="text-center text-muted-gm mt-2 mb-0" style="font-size:.7rem">
-                            <i class="bi bi-info-circle"></i> Clicca zona → seleziona giocatore
+                            <i class="bi bi-info-circle"></i> <?= Yii::t('app', 'Click zone → select player') ?>
                         </p>
                     </div>
                     <div class="col-xl-4">
                         <div class="p-3 rounded-3 mb-3" style="background:rgba(255,255,255,.03);border:1px solid var(--border)">
-                            <div class="text-muted-gm mb-2" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em">Impostazioni tattiche</div>
+                            <div class="text-muted-gm mb-2" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Tactical settings') ?></div>
                             <div class="mb-2">
-                                <label class="form-label text-muted-gm small mb-1">Modulo</label>
+                                <label class="form-label text-muted-gm small mb-1"><?= Yii::t('app', 'Formation') ?></label>
                                 <div class="d-flex gap-1 align-items-center">
                                     <select id="auto-module" class="form-select form-select-sm bg-dark text-white border-secondary flex-grow-1">
                                         <?php foreach ($moduleOptions as $module): ?>
@@ -610,13 +610,13 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
-                                    <button type="button" class="btn btn-gold btn-sm px-2 flex-shrink-0" onclick="window.autoAssignFormation()" title="Auto formazione">
+                                    <button type="button" class="btn btn-gold btn-sm px-2 flex-shrink-0" onclick="window.autoAssignFormation()" title="<?= Yii::t('app', 'Auto lineup') ?>">
                                         <i class="bi bi-magic"></i>
                                     </button>
                                 </div>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label text-muted-gm small mb-1">Stile gara</label>
+                                <label class="form-label text-muted-gm small mb-1"><?= Yii::t('app', 'Match style') ?></label>
                                 <select id="auto-tactic" class="form-select form-select-sm bg-dark text-white border-secondary">
                                     <?php foreach ($tacticOptions as $value => $label): ?>
                                         <option value="<?= Html::encode($value) ?>" <?= $currentTactic === $value ? 'selected' : '' ?>>
@@ -626,21 +626,21 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label text-muted-gm small mb-1">Marcatura</label>
+                                <label class="form-label text-muted-gm small mb-1"><?= Yii::t('app', 'Marking') ?></label>
                                 <select id="marking-type" class="form-select form-select-sm bg-dark text-white border-secondary">
-                                    <option value="zone" <?= $currentMarking === 'zone' ? 'selected' : '' ?>>A zona</option>
-                                    <option value="man" <?= $currentMarking === 'man' ? 'selected' : '' ?>>A uomo</option>
+                                    <option value="zone" <?= $currentMarking === 'zone' ? 'selected' : '' ?>><?= Yii::t('app', 'Zonal marking') ?></option>
+                                    <option value="man" <?= $currentMarking === 'man' ? 'selected' : '' ?>><?= Yii::t('app', 'Man marking') ?></option>
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label text-muted-gm small mb-1">Trappola fuorigioco</label>
+                                <label class="form-label text-muted-gm small mb-1"><?= Yii::t('app', 'Offside trap') ?></label>
                                 <select id="offside-trap" class="form-select form-select-sm bg-dark text-white border-secondary">
-                                    <option value="1" <?= $currentOffside === 1 ? 'selected' : '' ?>>Sì</option>
-                                    <option value="0" <?= $currentOffside === 0 ? 'selected' : '' ?>>No</option>
+                                    <option value="1" <?= $currentOffside === 1 ? 'selected' : '' ?>><?= Yii::t('app', 'Yes') ?></option>
+                                    <option value="0" <?= $currentOffside === 0 ? 'selected' : '' ?>><?= Yii::t('app', 'No') ?></option>
                                 </select>
                             </div>
                             <div class="mb-2">
-                                <label class="form-label text-muted-gm small mb-1">Tattica allenata focus</label>
+                                <label class="form-label text-muted-gm small mb-1"><?= Yii::t('app', 'Focus trained tactic') ?></label>
                                 <select id="trained-tactic" class="form-select form-select-sm bg-dark text-white border-secondary">
                                     <?php foreach ($trainedTactics as $key => $info): ?>
                                         <option value="<?= Html::encode($key) ?>" <?= $currentTrainedTactic === $key ? 'selected' : '' ?>>
@@ -651,14 +651,14 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                             </div>
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-outline-gold btn-sm" onclick="window.saveFormationSettings()">
-                                    <i class="bi bi-save me-1"></i> Salva impostazioni
+                                    <i class="bi bi-save me-1"></i> <?= Yii::t('app', 'Save settings') ?>
                                 </button>
                             </div>
                             <div id="auto-assign-alert" style="display:none;margin-top:.75rem;font-size:.72rem;border-radius:.5rem;padding:.55rem .7rem;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);color:var(--gold)"></div>
                         </div>
 
                         <div class="p-3 rounded-3" style="background:rgba(255,255,255,.03);border:1px solid var(--border)">
-                            <div class="text-muted-gm mb-2" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em">Ruoli speciali</div>
+                            <div class="text-muted-gm mb-2" style="font-size:.68rem;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Special roles') ?></div>
                             <div id="role-hint" style="display:none;font-size:.68rem;background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.4);border-radius:.4rem;padding:.3rem .5rem;color:var(--gold);margin-bottom:.5rem;text-align:center"></div>
                             <?php foreach (['captain', 'penalty', 'freekick', 'corner'] as $r):
                                 $item = $roleSummary[$r] ?? [];
@@ -668,7 +668,7 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                 <div class="d-flex align-items-center justify-content-between mb-1" style="cursor:pointer"
                                     id="role-row-<?= $r ?>"
                                     onclick="window.activateRoleMode('<?= $r ?>')"
-                                    title="Clicca per assegnare <?= $roleLabels[$r] ?>">
+                                    title="<?= Yii::t('app', 'Click to assign') ?> <?= $roleLabels[$r] ?>">
                                     <span style="font-size:.72rem;font-weight:600;color:var(--text-secondary)"
                                         id="role-btn-<?= $r ?>"><span style="display:inline-flex;align-items:center;gap:.28rem"><?= $roleIcons[$r] ?> <?= $roleLabels[$r] ?></span></span>
                                     <span style="font-size:.68rem;color:#e2e8f0;max-width:60%;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">

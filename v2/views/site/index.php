@@ -55,8 +55,8 @@ $crest = function (?\app\models\Team $club, int $width = 30, int $height = 34): 
 <div class="d-flex align-items-center justify-content-center" style="min-height:60vh">
     <div class="text-center">
         <div class="fs-1 mb-3">⏳</div>
-        <h2 class="text-gold">Squadra non ancora assegnata</h2>
-        <p class="text-muted-gm">Contatta l'amministratore o riprova tra qualche istante.</p>
+        <h2 class="text-gold"><?= Yii::t('app', 'Team not yet assigned') ?></h2>
+        <p class="text-muted-gm"><?= Yii::t('app', 'Contact administrator or try again in a moment.') ?></p>
     </div>
 </div>
 
@@ -68,17 +68,16 @@ $crest = function (?\app\models\Team $club, int $width = 30, int $height = 34): 
             <span class="text-gold">GOLD</span> MANAGER
         </h1>
         <p class="lead text-muted-gm mb-4">
-            Il campionato di calcio manageriale più avvincente. Costruisci la tua squadra,
-            scala dalle serie minori fino alla vetta, e diventa una leggenda.
+            <?= Yii::t('app', 'The most thrilling football management game. Build your team, climb from the lower leagues to the top, and become a legend.') ?>
         </p>
         <div class="d-flex gap-3 flex-wrap">
-            <?= Html::a('Registrati — è gratis', ['/site/register'], ['class' => 'btn btn-gold btn-lg px-5']) ?>
-            <?= Html::a('Accedi', ['/site/login'], ['class' => 'btn btn-outline-gold btn-lg px-4']) ?>
+            <?= Html::a(Yii::t('app', 'Register — it\'s free'), ['/site/register'], ['class' => 'btn btn-gold btn-lg px-5']) ?>
+            <?= Html::a(Yii::t('app', 'Login'), ['/site/login'], ['class' => 'btn btn-outline-gold btn-lg px-4']) ?>
         </div>
         <div class="mt-4 d-flex gap-4">
-            <div><span class="text-gold fw-bold fs-5">3</span> <span class="text-muted-gm small">Serie</span></div>
-            <div><span class="text-gold fw-bold fs-5">16</span> <span class="text-muted-gm small">Squadre per girone</span></div>
-            <div><span class="text-gold fw-bold fs-5">30</span> <span class="text-muted-gm small">Giornate</span></div>
+            <div><span class="text-gold fw-bold fs-5">3</span> <span class="text-muted-gm small"><?= Yii::t('app', 'Division') ?></span></div>
+            <div><span class="text-gold fw-bold fs-5">16</span> <span class="text-muted-gm small"><?= Yii::t('app', 'Teams per group') ?></span></div>
+            <div><span class="text-gold fw-bold fs-5">30</span> <span class="text-muted-gm small"><?= Yii::t('app', 'Matchdays') ?></span></div>
         </div>
     </div>
     <div class="col-lg-6">
@@ -88,15 +87,15 @@ $crest = function (?\app\models\Team $club, int $width = 30, int $height = 34): 
                     <i class="bi bi-trophy-fill text-gold fs-5"></i>
                 </div>
                 <div>
-                    <div class="fw-bold">Come funziona</div>
-                    <div class="text-muted-gm small">Registrati e inizia subito</div>
+                    <div class="fw-bold"><?= Yii::t('app', 'How it works') ?></div>
+                    <div class="text-muted-gm small"><?= Yii::t('app', 'Register and start now') ?></div>
                 </div>
             </div>
             <?php foreach ([
-                ['bi-person-plus','Registrati','Crea il tuo account in 30 secondi'],
-                ['bi-shield-shaded','Prendi la squadra','Ti viene assegnata una squadra in Serie C'],
-                ['bi-graph-up-arrow','Scala le serie','Vinci il campionato e sali in B, poi in A'],
-                ['bi-stars','Diventa leggenda','Costruisci una dinastia vincente'],
+                ['bi-person-plus', Yii::t('app', 'Register'), Yii::t('app', 'Create your account in 30 seconds')],
+                ['bi-shield-shaded', Yii::t('app', 'Take the team'), Yii::t('app', 'You are assigned a team in Serie C')],
+                ['bi-graph-up-arrow', Yii::t('app', 'Climb the leagues'), Yii::t('app', 'Win the league and get promoted to B, then A')],
+                ['bi-stars', Yii::t('app', 'Become a legend'), Yii::t('app', 'Build a winning dynasty')],
             ] as $i => [$icon, $title, $desc]): ?>
             <div class="d-flex gap-3 mb-3 <?= $i < 3 ? 'pb-3 border-bottom' : '' ?>" style="border-color: var(--border) !important">
                 <div class="text-gold mt-1"><i class="bi <?= $icon ?>"></i></div>
@@ -135,9 +134,9 @@ foreach ($leagueTable as $i => $s) {
     <div class="d-flex align-items-center justify-content-between">
         <div class="d-flex align-items-center gap-3">
             <span class="badge bg-danger pulse">LIVE</span>
-            <span class="fw-bold">Partita in corso — la tua squadra è in campo!</span>
+            <span class="fw-bold"><?= Yii::t('app', 'Match in progress — your team is on the pitch!') ?></span>
         </div>
-        <?= Html::a('Segui live &rarr;', ['/fixture/live', 'id' => $nextFixture->id], ['class' => 'btn btn-danger btn-sm px-3', 'encode' => false]) ?>
+        <?= Html::a(Yii::t('app', 'Follow live') . ' &rarr;', ['/fixture/live', 'id' => $nextFixture->id], ['class' => 'btn btn-danger btn-sm px-3', 'encode' => false]) ?>
     </div>
 </div>
 <?php endif; ?>
@@ -158,23 +157,23 @@ foreach ($leagueTable as $i => $s) {
                     <div class="text-muted-gm small">
                         <?= $competition ? Html::encode($competition->getLabel()) : '—' ?>
                         <?php if ($myRank): ?>
-                            &nbsp;·&nbsp; <span class="text-gold fw-bold"><?= $pos($myRank) ?> posto</span>
+                            &nbsp;·&nbsp; <span class="text-gold fw-bold"><?= $pos($myRank) ?> <?= Yii::t('app', 'seat') ?></span>
                         <?php endif; ?>
                     </div>
                 </div>
                 <div class="text-end">
                     <div class="fs-4 fw-black text-gold"><?= $eur($team->budget) ?></div>
-                    <div class="text-muted-gm" style="font-size:.75rem">budget disponibile</div>
+                    <div class="text-muted-gm" style="font-size:.75rem"><?= Yii::t('app', 'available budget') ?></div>
                 </div>
             </div>
 
             <!-- Stat pills -->
             <div class="row g-3 mb-4">
                 <?php foreach ([
-                    ['Giocatori',    count($players),                   'bi-people'],
-                    ['Media OVR',    $avgSkill,                         'bi-bar-chart'],
-                    ['Ingaggi/sett', $eur($wageBill),                   'bi-cash-stack'],
-                    ['Capienza std', $stadium ? number_format($stadium->capacity) : '—', 'bi-building'],
+                    [Yii::t('app', 'Players'),    count($players),                   'bi-people'],
+                    [Yii::t('app', 'Avg OVR'),    $avgSkill,                         'bi-bar-chart'],
+                    [Yii::t('app', 'Wages/week'), $eur($wageBill),                   'bi-cash-stack'],
+                    [Yii::t('app', 'Stadium cap.'), $stadium ? number_format($stadium->capacity) : '—', 'bi-building'],
                 ] as [$label, $val, $icon]): ?>
                 <div class="col-6 col-md-3">
                     <div class="p-3 rounded-3 text-center" style="background:rgba(255,255,255,.03);border:1px solid var(--border)">
@@ -192,7 +191,7 @@ foreach ($leagueTable as $i => $s) {
             usort($sorted, fn($a, $b) => $b->getNaturalOverall() <=> $a->getNaturalOverall());
             $top3 = array_slice($sorted, 0, 3);
             ?>
-            <div class="small text-muted-gm text-uppercase fw-bold mb-2" style="letter-spacing:.06em">Top player</div>
+            <div class="small text-muted-gm text-uppercase fw-bold mb-2" style="letter-spacing:.06em"><?= Yii::t('app', 'Top player') ?></div>
             <div class="row g-2">
                 <?php foreach ($top3 as $rank => $p): ?>
                 <div class="col-md-4">
@@ -200,7 +199,7 @@ foreach ($leagueTable as $i => $s) {
                         <span class="badge-gm pos-<?= strtolower($p->position) ?>"><?= $p->position ?></span>
                         <div class="flex-grow-1 overflow-hidden">
                             <div class="text-truncate fw-semibold small"><?= Html::encode($p->name) ?></div>
-                            <div class="text-gold" style="font-size:.7rem">OVR <?= $p->getNaturalOverall() ?> · <?= $p->age ?> anni</div>
+                            <div class="text-gold" style="font-size:.7rem">OVR <?= $p->getNaturalOverall() ?> · <?= $p->age ?> <?= Yii::t('app', 'years') ?></div>
                         </div>
                         <?php if ($rank === 0): ?><i class="bi bi-star-fill text-gold" style="font-size:.75rem"></i><?php endif; ?>
                     </div>
@@ -213,8 +212,8 @@ foreach ($leagueTable as $i => $s) {
                 <?= Html::beginForm(['/test-time/advance-day'], 'post', ['class' => 'd-inline']) ?>
                     <button type="submit"
                             class="btn btn-outline-warning btn-sm"
-                            data-confirm="Operazione test: avanzare di 1 giorno?">
-                        <i class="bi bi-fast-forward"></i> +1 giorno (test)
+                            data-confirm="<?= Yii::t('app', 'Test operation: advance by 1 day?') ?>">
+                        <i class="bi bi-fast-forward"></i> <?= Yii::t('app', '+1 day (test)') ?>
                     </button>
                 <?= Html::endForm() ?>
             </div>
@@ -224,11 +223,11 @@ foreach ($leagueTable as $i => $s) {
         <!-- Recent results -->
         <div class="gm-card">
             <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history text-gold me-2"></i>Ultimi risultati</h5>
-                <?= Html::a('Tutti', ['/fixture/index'], ['class' => 'text-gold small text-decoration-none']) ?>
+                <h5 class="mb-0 fw-bold"><i class="bi bi-clock-history text-gold me-2"></i><?= Yii::t('app', 'Recent results') ?></h5>
+                <?= Html::a(Yii::t('app', 'All'), ['/fixture/index'], ['class' => 'text-gold small text-decoration-none']) ?>
             </div>
             <?php if (empty($recentFixtures)): ?>
-                <p class="text-muted-gm small mb-0">Nessuna partita giocata ancora. Il campionato deve ancora iniziare.</p>
+                <p class="text-muted-gm small mb-0"><?= Yii::t('app', 'No matches played yet. The season has not started.') ?></p>
             <?php else: ?>
                 <?php foreach ($recentFixtures as $f): ?>
                 <?php
@@ -242,7 +241,7 @@ foreach ($leagueTable as $i => $s) {
                 <div class="d-flex align-items-center gap-3 py-2 border-bottom" style="border-color:var(--border)!important">
                     <span class="fw-black" style="color:<?= $colors[$result] ?>;min-width:1.2rem"><?= $result ?></span>
                     <span class="text-muted-gm small" style="min-width:3rem"><?= date('d/m', $f->match_date) ?></span>
-                    <span class="flex-grow-1 small text-truncate"><?= $isHome ? 'vs ' : '@ ' ?><?= Html::encode($opponent) ?></span>
+                    <span class="flex-grow-1 small text-truncate"><?= $isHome ? Yii::t('app', 'vs') . ' ' : '@ ' ?><?= Html::encode($opponent) ?></span>
                     <span class="fw-bold" style="color:<?= $colors[$result] ?>"><?= $myScore ?>–<?= $opScore ?></span>
                 </div>
                 <?php endforeach; ?>
@@ -255,7 +254,7 @@ foreach ($leagueTable as $i => $s) {
 
         <!-- Next fixture -->
         <div class="gm-card mb-4">
-            <h5 class="mb-3 fw-bold"><i class="bi bi-calendar-event text-gold me-2"></i>Prossima partita</h5>
+            <h5 class="mb-3 fw-bold"><i class="bi bi-calendar-event text-gold me-2"></i><?= Yii::t('app', 'Next match') ?></h5>
             <?php if ($nextFixture && $nextFixture->status !== Fixture::STATUS_PLAYING): ?>
             <?php
             $isHome   = $nextFixture->home_team_id === $team->id;
@@ -263,7 +262,7 @@ foreach ($leagueTable as $i => $s) {
             $daysLeft = max(0, (int)(($nextFixture->match_date - time()) / 86400));
             ?>
             <div class="text-center py-2">
-                <div class="text-muted-gm small mb-3"><?= $isHome ? 'CASA' : 'TRASFERTA' ?></div>
+                <div class="text-muted-gm small mb-3"><?= $isHome ? Yii::t('app', 'HOME') : Yii::t('app', 'AWAY') ?></div>
                 <div class="d-flex align-items-center justify-content-center gap-3 mb-3">
                     <div class="text-center">
                         <div class="mb-1"><?= $crest($team, 42, 47) ?></div>
@@ -277,23 +276,23 @@ foreach ($leagueTable as $i => $s) {
                 </div>
                 <div class="text-gold fw-bold mb-1"><?= date('d M Y — H:i', $nextFixture->match_date) ?></div>
                 <div class="text-muted-gm small">
-                    <?= $daysLeft === 0 ? 'Oggi!' : "fra $daysLeft " . ($daysLeft === 1 ? 'giorno' : 'giorni') ?>
+                    <?= $daysLeft === 0 ? Yii::t('app', 'Today!') : Yii::t('app', 'in') . " $daysLeft " . ($daysLeft === 1 ? Yii::t('app', 'day') : Yii::t('app', 'days')) ?>
                 </div>
             </div>
             <div class="mt-3 d-grid gap-2">
-                <?= Html::a('Dettagli match', ['/fixture/view', 'id' => $nextFixture->id], ['class' => 'btn btn-outline-gold btn-sm']) ?>
+                <?= Html::a(Yii::t('app', 'Match details'), ['/fixture/view', 'id' => $nextFixture->id], ['class' => 'btn btn-outline-gold btn-sm']) ?>
             </div>
             <?php else: ?>
             <div class="text-center py-4">
                 <i class="bi bi-calendar-x text-muted-gm fs-1 d-block mb-2"></i>
-                <span class="text-muted-gm small">Nessuna partita programmata.</span>
+                <span class="text-muted-gm small"><?= Yii::t('app', 'No matches scheduled.') ?></span>
             </div>
             <?php endif; ?>
         </div>
 
         <!-- Next friendly -->
         <div class="gm-card mb-4">
-            <h5 class="mb-3 fw-bold"><i class="bi bi-play-circle text-gold me-2"></i>Prossima amichevole</h5>
+            <h5 class="mb-3 fw-bold"><i class="bi bi-play-circle text-gold me-2"></i><?= Yii::t('app', 'Next friendly') ?></h5>
             <?php if ($nextFriendlyFixture): ?>
             <?php
             $isHomeFriendly = $nextFriendlyFixture->home_team_id === $team->id;
@@ -301,7 +300,7 @@ foreach ($leagueTable as $i => $s) {
             $friendlyDays = max(0, (int)(($nextFriendlyFixture->match_date - time()) / 86400));
             ?>
             <div class="text-center py-2">
-                <div class="text-muted-gm small mb-2"><?= $isHomeFriendly ? 'CASA' : 'TRASFERTA' ?></div>
+                <div class="text-muted-gm small mb-2"><?= $isHomeFriendly ? Yii::t('app', 'HOME') : Yii::t('app', 'AWAY') ?></div>
                 <div class="d-flex align-items-center justify-content-center gap-2 mb-1">
                     <span><?= $crest($team, 24, 27) ?></span>
                     <span class="small fw-bold text-white"><?= Html::encode($team->name) ?></span>
@@ -311,16 +310,16 @@ foreach ($leagueTable as $i => $s) {
                 </div>
                 <div class="text-gold fw-bold mb-1"><?= date('d M Y — H:i', $nextFriendlyFixture->match_date) ?></div>
                 <div class="text-muted-gm small">
-                    <?= $friendlyDays === 0 ? 'Oggi!' : "fra $friendlyDays " . ($friendlyDays === 1 ? 'giorno' : 'giorni') ?>
+                    <?= $friendlyDays === 0 ? Yii::t('app', 'Today!') : Yii::t('app', 'in') . " $friendlyDays " . ($friendlyDays === 1 ? Yii::t('app', 'day') : Yii::t('app', 'days')) ?>
                 </div>
             </div>
             <div class="mt-3 d-grid gap-2">
-                <?= Html::a('Dettagli amichevole', ['/fixture/view', 'id' => $nextFriendlyFixture->id], ['class' => 'btn btn-outline-gold btn-sm']) ?>
+                <?= Html::a(Yii::t('app', 'Friendly details'), ['/fixture/view', 'id' => $nextFriendlyFixture->id], ['class' => 'btn btn-outline-gold btn-sm']) ?>
             </div>
             <?php else: ?>
             <div class="text-center py-4">
                 <i class="bi bi-calendar-plus text-muted-gm fs-1 d-block mb-2"></i>
-                <span class="text-muted-gm small">Nessuna amichevole programmata.</span>
+                <span class="text-muted-gm small"><?= Yii::t('app', 'No friendly scheduled.') ?></span>
             </div>
             <?php endif; ?>
         </div>
@@ -329,8 +328,8 @@ foreach ($leagueTable as $i => $s) {
         <?php if (!empty($latestNews)): ?>
         <div class="gm-card mb-4">
             <div class="d-flex align-items-center justify-content-between mb-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-bell text-gold me-2"></i>Notizie</h5>
-                <?= Html::a('Tutte →', ['/news/index'], ['style' => 'font-size:.75rem;color:var(--gold)']) ?>
+                <h5 class="mb-0 fw-bold"><i class="bi bi-bell text-gold me-2"></i><?= Yii::t('app', 'News') ?></h5>
+                <?= Html::a(Yii::t('app', 'All') . ' →', ['/news/index'], ['style' => 'font-size:.75rem;color:var(--gold)']) ?>
             </div>
             <?php foreach ($latestNews as $i => $item): ?>
             <div style="display:flex;align-items:flex-start;gap:.6rem;padding:.5rem 0;<?= $i > 0 ? 'border-top:1px solid var(--border)' : '' ?>">
@@ -344,55 +343,6 @@ foreach ($leagueTable as $i => $s) {
             <?php endforeach; ?>
         </div>
         <?php endif; ?>
-
-        <!-- League table -->
-        <div class="gm-card">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0 fw-bold"><i class="bi bi-trophy text-gold me-2"></i>Classifica</h5>
-                <?php if ($competition): ?>
-                <span class="text-muted-gm" style="font-size:.75rem"><?= Html::encode($competition->getLabel()) ?></span>
-                <?php endif; ?>
-            </div>
-            <?php if (empty($leagueTable)): ?>
-                <p class="text-muted-gm small mb-0">Classifica non disponibile.</p>
-            <?php else: ?>
-            <div style="overflow-x:auto">
-                <table class="table-gm w-100 mb-0" style="font-size:.82rem">
-                    <thead>
-                        <tr style="color:var(--text-secondary);border-color:var(--border)">
-                            <th style="width:1.5rem">#</th>
-                            <th>Squadra</th>
-                            <th class="text-center">G</th>
-                            <th class="text-center">GF</th>
-                            <th class="text-center fw-bold">Pt</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <?php foreach ($leagueTable as $i => $s): ?>
-                        <?php $isMe = $s->team_id === $team->id; ?>
-                        <tr style="border-color:var(--border);<?= $isMe ? 'background:rgba(245,158,11,.07)' : '' ?>">
-                            <td class="text-muted-gm"><?= $i + 1 ?></td>
-                            <td class="<?= $isMe ? 'text-gold fw-bold' : '' ?>" style="max-width:140px">
-                                <div class="d-flex align-items-center gap-1 text-truncate">
-                                    <span style="line-height:1"><?= $crest($s->team, 18, 20) ?></span>
-                                    <span class="text-truncate"><?= Html::encode($s->team->name) ?></span>
-                                    <?php if (!$s->team->is_cpu): ?><i class="bi bi-person-fill ms-1" style="font-size:.65rem;opacity:.7"></i><?php endif; ?>
-                                </div>
-                            </td>
-                            <td class="text-center text-muted-gm"><?= $s->played ?></td>
-                            <td class="text-center text-muted-gm"><?= $s->goals_for ?></td>
-                            <td class="text-center fw-black <?= $isMe ? 'text-gold' : '' ?>"><?= $s->points ?></td>
-                        </tr>
-                        <?php endforeach; ?>
-                    </tbody>
-                </table>
-            </div>
-            <div class="mt-3">
-                <?= Html::a('Classifica completa', ['/standing/index'], ['class' => 'btn btn-outline-gold btn-sm w-100']) ?>
-            </div>
-            <?php endif; ?>
-        </div>
-
     </div>
 </div>
 

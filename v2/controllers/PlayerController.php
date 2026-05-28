@@ -30,7 +30,7 @@ class PlayerController extends Controller
     {
         $player = Player::findOne($id);
         if (!$player) {
-            throw new NotFoundHttpException('Giocatore non trovato.');
+            throw new NotFoundHttpException(Yii::t('app', 'Player not found.'));
         }
 
         $contract  = Contract::findOne(['player_id' => $id, 'status' => Contract::STATUS_ACTIVE]);

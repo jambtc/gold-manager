@@ -21,8 +21,8 @@ use app\components\CommentaryTemplateService;
 use app\components\FixtureViewHelper;
 
 $this->title = $fixture->homeTeam->name . ' vs ' . $fixture->awayTeam->name;
-$this->params['breadcrumbs'][] = ['label' => 'Calendario', 'url' => ['index']];
-$this->params['breadcrumbs'][] = 'Live';
+$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Calendar'), 'url' => ['index']];
+$this->params['breadcrumbs'][] = Yii::t('app', 'Live');
 $isDevLiveUi = YII_ENV_DEV;
 FixtureLiveAsset::register($this);
 
@@ -49,8 +49,8 @@ foreach ($existingEvents as $seedEvent) {
     $initialSpectators = isset($seedDetail['spectators']) ? (int) $seedDetail['spectators'] : null;
     break;
 }
-$weatherLabel = $initialWeather ?: 'In aggiornamento…';
-$fieldLabel = $initialFieldCondition ?: 'In aggiornamento…';
+$weatherLabel = $initialWeather ?: Yii::t('app', 'Updating…');
+$fieldLabel = $initialFieldCondition ?: Yii::t('app', 'Updating…');
 $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectators, 0, ',', '.') : '—';
 
 ?>
@@ -76,7 +76,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                             <div class="col-5">
                                 <div class="text-end">
                                     <div class="team-name-live text-white mb-1"><?= Html::encode($fixture->homeTeam->name) ?></div>
-                                    <div class="text-muted-gm" style="font-size:.68rem;letter-spacing:.04em">CASA</div>
+                                    <div class="text-muted-gm" style="font-size:.68rem;letter-spacing:.04em"><?= Yii::t('app', 'HOME') ?></div>
                                     <div class="mt-1 team-dept-stats" style="margin-left:auto">
                                         <?= FixtureViewHelper::renderStrengthBar('DIF', (int)$homeStrength['def']) ?>
                                         <?= FixtureViewHelper::renderStrengthBar('CEN', (int)$homeStrength['mid']) ?>
@@ -98,7 +98,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                             <div class="col-5">
                                 <div class="text-start">
                                     <div class="team-name-live text-white mb-1" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"><?= Html::encode($fixture->awayTeam->name) ?></div>
-                                    <div class=" text-muted-gm" style="font-size:.68rem;letter-spacing:.04em">TRASFERTA</div>
+                                    <div class=" text-muted-gm" style="font-size:.68rem;letter-spacing:.04em"><?= Yii::t('app', 'AWAY') ?></div>
                                     <div class="mt-1 team-dept-stats">
                                         <?= FixtureViewHelper::renderStrengthBar('DIF', (int)$awayStrength['def']) ?>
                                         <?= FixtureViewHelper::renderStrengthBar('CEN', (int)$awayStrength['mid']) ?>
@@ -122,7 +122,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                             <div style="text-align:center;font-size:.7rem;color:var(--text-secondary);margin-top:.3rem;letter-spacing:.04em">
                                 <i class="bi bi-clock me-1"></i><?= date('H:i', $fixture->match_date) ?>
                                 <?php if ($fixture->match_date > time()): ?>
-                                    — tra <?= max(0, (int)(($fixture->match_date - time()) / 60)) ?> min
+                                    — <?= Yii::t('app', 'in') ?> <?= max(0, (int)(($fixture->match_date - time()) / 60)) ?> <?= Yii::t('app', 'min') ?>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
@@ -148,21 +148,21 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
 
     <!-- ── Row 2: cronaca + formazioni ───────────────────── -->
     <div id="half-time-banner" class="d-none gm-card text-center mb-3" style="background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.35);padding:.8rem;border-radius:.6rem">
-    <div class="fw-bold" style="color:#bfdbfe;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase">Intervallo</div>
+    <div class="fw-bold" style="color:#bfdbfe;font-size:.85rem;letter-spacing:.06em;text-transform:uppercase"><?= Yii::t('app', 'Half time') ?></div>
     <div class="text-white" style="font-size:1.6rem;font-weight:900"><span id="half-time-countdown">15</span>s</div>
-    <div class="text-muted-gm" style="font-size:.7rem">Puoi inviare comandi ora, verranno applicati all'inizio del 2° tempo</div>
+    <div class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'You can send commands now, they will be applied to'inizio del 2° tempo') ?></div>
 </div>
 
 <div class="row g-4">
         <!-- Cronaca col-4 -->
         <div class="col-lg-4" id="tab-cronaca-panel">
             <div class="gm-card h-100">
-                <h3 class="h5 mb-4 text-white"><i class="bi bi-chat-left-text"></i> Cronaca in Diretta</h3>
+                <h3 class="h5 mb-4 text-white"><i class="bi bi-chat-left-text"></i> <?= Yii::t('app', 'Live Commentary') ?></h3>
                 <div class="event-log" id="event-log">
                     <?php if (empty($existingEvents)): ?>
                         <div class="text-center py-5 text-muted-gm" id="no-events-msg">
                             <i class="bi bi-broadcast fs-1 d-block mb-2 pulse"></i>
-                            <?= (!$state || $state->current_minute === 0) ? 'In attesa della telecronaca pre-partita...' : 'In attesa di eventi dal campo...' ?>
+                            <?= (!$state || $state->current_minute === 0) ? Yii::t('app', 'Awaiting pre-match commentary...') : Yii::t('app', 'Awaiting events from the pitch...') ?>
                         </div>
                     <?php else: ?>
                         <?php
@@ -205,21 +205,21 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                 <!-- Admin panel: simulate button -->
                 <div class="gm-card live-bench-panel">
                     <h3 class="h5 mb-3 text-white">
-                        <i class="bi bi-sliders text-gold me-2"></i>Controllo Admin
+                        <i class="bi bi-sliders text-gold me-2"></i><?= Yii::t('app', 'Admin Panel') ?>
                     </h3>
                     <p class="text-muted-gm small mb-3">
-                        Simula questa partita istantaneamente tramite il motore PHP.
-                        Il risultato sarà disponibile in <a href="<?= Url::to(['/fixture/view', 'id' => $fixture->id]) ?>" class="text-gold">Report</a>.
+                        <?= Yii::t('app', 'Simulate this match instantly via the PHP engine.') ?>
+                        <?= Yii::t('app', 'The result will be available in') ?> <a href="<?= Url::to(['/fixture/view', 'id' => $fixture->id]) ?>" class="text-gold"><?= Yii::t('app', 'Report') ?></a>.
                     </p>
                     <form id="admin-simulate-form" method="post" action="<?= Url::to(['/admin/simulate-fixture']) ?>">
                         <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
                         <input type="hidden" name="fixture_id" value="<?= $fixture->id ?>">
                         <button type="submit" class="btn btn-gold w-100 fw-bold">
-                            <i class="bi bi-play-fill me-1"></i>Simula ora
+                            <i class="bi bi-play-fill me-1"></i><?= Yii::t('app', 'Simulate now') ?>
                         </button>
                     </form>
                     <div class="mt-2 text-center" style="font-size:.7rem;color:var(--text-secondary)">
-                        oppure via console:
+                        <?= Yii::t('app', 'or via console:') ?>
                         <code style="color:var(--accent-blue);display:block;margin-top:.25rem">./yii game/simulate-fixture <?= $fixture->id ?></code>
                     </div>
                 </div>
@@ -227,7 +227,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                 <!-- Manager panel: tactics -->
                 <div class="gm-card">
                     <h3 class="h5 mb-3 text-white">
-                        <i class="bi bi-gear text-gold me-2"></i>Panchina
+                        <i class="bi bi-gear text-gold me-2"></i><?= Yii::t('app', 'Bench') ?>
                     </h3>
                     <?php
                     // Show current formation starters count
@@ -264,45 +264,45 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                     ?>
                     <div class="live-formation-card p-2 mb-3">
                         <div class="d-flex justify-content-between align-items-center">
-                            <span class="text-muted-gm small">Formazione attiva</span>
+                            <span class="text-muted-gm small"><?= Yii::t('app', 'Active lineup') ?></span>
                             <span class="text-gold fw-bold"><?= $startersCount ?>/11</span>
                         </div>
                         <?php if ($startersCount < 11): ?>
                             <div class="mt-1" style="font-size:.7rem;color:var(--accent-red)">
                                 <i class="bi bi-exclamation-triangle"></i>
-                                Formazione incompleta — <?= Html::a('completa in tattica', ['/formation/view'], ['class' => 'text-gold']) ?>
+                                <?= Yii::t('app', 'Incomplete lineup') ?> — <?= Html::a(Yii::t('app', 'complete in tactics'), ['/formation/view'], ['class' => 'text-gold']) ?>
                             </div>
                         <?php endif; ?>
                     </div>
 
                     <div class="live-asset-panel mb-3">
-                        <div class="text-muted-gm small fw-bold text-uppercase mb-2" style="letter-spacing:.06em">Assetto live</div>
+                        <div class="text-muted-gm small fw-bold text-uppercase mb-2" style="letter-spacing:.06em"><?= Yii::t('app', 'Live setup') ?></div>
                         <div class="live-badge-grid">
-                            <span id="live-badge-focus" style="font-size:.64rem;border:1px solid rgba(245,158,11,.4);padding:.1rem .38rem;border-radius:.35rem;color:var(--gold)">Tattica: —</span>
-                            <span id="live-badge-style" style="font-size:.64rem;border:1px solid rgba(255,255,255,.2);padding:.1rem .38rem;border-radius:.35rem;color:var(--text-secondary)">Stile: —</span>
-                            <span id="live-badge-marking" style="font-size:.64rem;border:1px solid rgba(255,255,255,.2);padding:.1rem .38rem;border-radius:.35rem;color:var(--text-secondary)">Marcatura: —</span>
-                            <span id="live-badge-offside" style="font-size:.64rem;border:1px solid rgba(255,255,255,.2);padding:.1rem .38rem;border-radius:.35rem;color:var(--text-secondary)">Fuorigioco: —</span>
+                            <span id="live-badge-focus" style="font-size:.64rem;border:1px solid rgba(245,158,11,.4);padding:.1rem .38rem;border-radius:.35rem;color:var(--gold)"><?= Yii::t('app', 'Tactic') ?>: —</span>
+                            <span id="live-badge-style" style="font-size:.64rem;border:1px solid rgba(255,255,255,.2);padding:.1rem .38rem;border-radius:.35rem;color:var(--text-secondary)"><?= Yii::t('app', 'Style') ?>: —</span>
+                            <span id="live-badge-marking" style="font-size:.64rem;border:1px solid rgba(255,255,255,.2);padding:.1rem .38rem;border-radius:.35rem;color:var(--text-secondary)"><?= Yii::t('app', 'Marking') ?>: —</span>
+                            <span id="live-badge-offside" style="font-size:.64rem;border:1px solid rgba(255,255,255,.2);padding:.1rem .38rem;border-radius:.35rem;color:var(--text-secondary)"><?= Yii::t('app', 'Offside trap') ?>: —</span>
                         </div>
                         <div class="row mb-2">
-                            <label class="live-section-label">Stile gara</label>
+                            <label class="live-section-label"><?= Yii::t('app', 'Match style') ?></label>
                             <div class="btn-group w-100 mt-2">
-                                <button id="btn-style-def" class="btn btn-outline-secondary btn-sm live-btn-mini" data-tactic="ultra_defensive">Difensivo</button>
-                                <button id="btn-style-bal" class="btn btn-outline-gold btn-sm live-btn-mini" data-tactic="balanced">Bilanciato</button>
-                                <button id="btn-style-att" class="btn btn-outline-danger btn-sm live-btn-mini" data-tactic="all_out_attack">Offensivo</button>
+                                <button id="btn-style-def" class="btn btn-outline-secondary btn-sm live-btn-mini" data-tactic="ultra_defensive"><?= Yii::t('app', 'Defensive') ?></button>
+                                <button id="btn-style-bal" class="btn btn-outline-gold btn-sm live-btn-mini" data-tactic="balanced"><?= Yii::t('app', 'Balanced') ?></button>
+                                <button id="btn-style-att" class="btn btn-outline-danger btn-sm live-btn-mini" data-tactic="all_out_attack"><?= Yii::t('app', 'Offensive') ?></button>
                             </div>
                         </div>
                         <div class="row mb-2">
-                            <label class="live-section-label">Marcatura</label>
+                            <label class="live-section-label"><?= Yii::t('app', 'Marking') ?></label>
                             <div class="btn-group w-100 mt-2">
-                                <button id="btn-mark-zone" class="btn btn-sm live-btn-mini live-btn-mark-zone" data-marking="zone">A zona</button>
-                                <button id="btn-mark-man" class="btn btn-sm live-btn-mini live-btn-mark-man" data-marking="man">A uomo</button>
+                                <button id="btn-mark-zone" class="btn btn-sm live-btn-mini live-btn-mark-zone" data-marking="zone"><?= Yii::t('app', 'Zonal marking') ?></button>
+                                <button id="btn-mark-man" class="btn btn-sm live-btn-mini live-btn-mark-man" data-marking="man"><?= Yii::t('app', 'Man marking') ?></button>
                             </div>
                         </div>
                         <div class="row mb-2">
-                            <label class="live-section-label">Trappola fuorigioco</label>
+                            <label class="live-section-label"><?= Yii::t('app', 'Offside trap') ?></label>
                             <div class="btn-group w-100 mt-2">
-                                <button id="btn-offside-yes" class="btn btn-sm live-btn-mini live-btn-off-yes" data-offside="1">Sì</button>
-                                <button id="btn-offside-no" class="btn btn-sm live-btn-mini live-btn-off-no" data-offside="0">No</button>
+                                <button id="btn-offside-yes" class="btn btn-sm live-btn-mini live-btn-off-yes" data-offside="1"><?= Yii::t('app', 'Yes') ?></button>
+                                <button id="btn-offside-no" class="btn btn-sm live-btn-mini live-btn-off-no" data-offside="0"><?= Yii::t('app', 'No') ?></button>
                             </div>
                         </div>
 
@@ -311,11 +311,11 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                     <!-- ── Sostituzioni ─────────────────────────────── -->
                     <div class="pt-2" style="border-top:1px solid var(--border)">
                         <div class="d-flex justify-content-between align-items-center mb-2">
-                            <span class="text-muted-gm small fw-bold text-uppercase" style="letter-spacing:.06em">Sostituzioni</span>
+                            <span class="text-muted-gm small fw-bold text-uppercase" style="letter-spacing:.06em"><?= Yii::t('app', 'Substitutions') ?></span>
                             <span id="subs-counter" style="font-size:.75rem;color:var(--gold);font-weight:700">0/5</span>
                         </div>
                         <button id="sub-btn" class="btn btn-outline-gold w-100 btn-sm">
-                            <i class="bi bi-arrow-left-right me-1"></i>Effettua sostituzione
+                            <i class="bi bi-arrow-left-right me-1"></i><?= Yii::t('app', 'Make substitution') ?>
                         </button>
                         <div id="sub-msg" class="small mt-2" style="display:none;color:var(--accent-green)"></div>
                     </div>
@@ -325,7 +325,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
             <?php else: ?>
                 <div class="gm-card text-center py-4">
                     <i class="bi bi-eye text-muted-gm d-block mb-2 fs-2 opacity-25"></i>
-                    <p class="text-muted-gm small mb-0">Stai guardando come spettatore.</p>
+                    <p class="text-muted-gm small mb-0"><?= Yii::t('app', 'You are watching as a spectator.') ?></p>
                 </div>
             <?php endif; ?>
         </div>
@@ -434,7 +434,7 @@ $this->registerJs('window.GM_LIVE_CONFIG = ' . Json::htmlEncode([
         <div class="modal-content" style="background:var(--bg-dark);border:1px solid var(--border)">
             <div class="modal-header" style="border-color:var(--border)">
                 <h5 class="modal-title text-white">
-                    <i class="bi bi-arrow-left-right text-gold me-2"></i>Sostituzione
+                    <i class="bi bi-arrow-left-right text-gold me-2"></i><?= Yii::t('app', 'Substitution') ?>
                     <span id="sub-modal-counter" class="text-muted-gm ms-2" style="font-size:.75rem"></span>
                 </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
@@ -443,13 +443,13 @@ $this->registerJs('window.GM_LIVE_CONFIG = ' . Json::htmlEncode([
                 <div class="row g-3 sub-lists-wrap" id="sub-lists">
                     <div class="col-6">
                         <div class="text-muted-gm small fw-bold text-uppercase mb-2" style="letter-spacing:.06em">
-                            <i class="bi bi-person-dash me-1"></i>Chi esce
+                            <i class="bi bi-person-dash me-1"></i><?= Yii::t('app', 'Coming off') ?>
                         </div>
                         <div id="starters-list" style="max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gold) transparent"></div>
                     </div>
                     <div class="col-6">
                         <div class="text-muted-gm small fw-bold text-uppercase mb-2" style="letter-spacing:.06em">
-                            <i class="bi bi-person-plus me-1"></i>Chi entra
+                            <i class="bi bi-person-plus me-1"></i><?= Yii::t('app', 'Coming on') ?>
                         </div>
                         <div id="bench-list" style="max-height:320px;overflow-y:auto;scrollbar-width:thin;scrollbar-color:var(--gold) transparent"></div>
                     </div>
@@ -457,9 +457,9 @@ $this->registerJs('window.GM_LIVE_CONFIG = ' . Json::htmlEncode([
                 <div id="sub-selection-info" class="mt-3 text-center text-muted-gm small" style="min-height:1.5rem"></div>
             </div>
             <div class="modal-footer" style="border-color:var(--border)">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"><?= Yii::t('app', 'Cancel') ?></button>
                 <button type="button" id="sub-confirm-btn" class="btn btn-gold btn-sm fw-bold" disabled>
-                    <i class="bi bi-check-lg me-1"></i>Conferma sostituzione
+                    <i class="bi bi-check-lg me-1"></i><?= Yii::t('app', 'Confirm substitution') ?>
                 </button>
             </div>
         </div>

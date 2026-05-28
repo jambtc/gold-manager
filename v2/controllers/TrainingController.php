@@ -198,12 +198,12 @@ class TrainingController extends Controller
             $total += $v;
         }
         if ($total > 100) {
-            Yii::$app->session->setFlash('error', "Totale punti ($total) supera 100.");
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Total points ({total}) exceeds 100.', ['{total}' => $total]));
             return $this->redirect(['index']);
         }
         Yii::$app->db->createCommand()->update('{{%training_skill}}', $data,
             ['team_id' => $team->id, 'season' => $season])->execute();
-        Yii::$app->session->setFlash('success', 'Allenamento fisico salvato.');
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Physical training saved.'));
         return $this->redirect(['index']);
     }
 
@@ -230,17 +230,17 @@ class TrainingController extends Controller
             $total += $v;
         }
         if ($total > 100) {
-            Yii::$app->session->setFlash('error', "Totale punti tattici ($total) supera 100.");
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Total tactical points ({total}) exceeds 100.', ['{total}' => $total]));
             return $this->redirect(['index', 'tab' => 'tattico']);
         }
         try {
             Yii::$app->db->createCommand()->update('{{%training_tactic_plan}}', $data,
                 ['team_id' => $team->id, 'season' => $season])->execute();
         } catch (\Throwable) {
-            Yii::$app->session->setFlash('error', 'Tabella piano tattico non presente. Esegui le migrazioni.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Tactical training table not present. Run migrations.'));
             return $this->redirect(['index', 'tab' => 'tattico']);
         }
-        Yii::$app->session->setFlash('success', 'Piano allenamento tattico aggiornato.');
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Tactical training plan updated.'));
         return $this->redirect(['index', 'tab' => 'tattico']);
     }
 

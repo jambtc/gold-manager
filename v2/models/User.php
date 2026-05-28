@@ -19,6 +19,7 @@ use yii\filters\RateLimitInterface;
  * @property string $auth_key
  * @property string|null $access_token
  * @property string $status
+ * @property string $language
  * @property string|null $telegram_bot_token
  * @property string|null $telegram_chat_id
  * @property int    $telegram_enabled

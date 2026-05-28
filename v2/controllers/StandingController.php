@@ -53,7 +53,7 @@ class StandingController extends Controller
 
         $competition = Competition::findOne($competitionId);
         if (!$competition) {
-            throw new NotFoundHttpException('Competizione non trovata.');
+            throw new NotFoundHttpException(Yii::t('app', 'Competition not found.'));
         }
 
         $standings = Standing::find()

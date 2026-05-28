@@ -97,11 +97,11 @@ class StaffController extends Controller
 
         $candidate = StaffMarket::findOne(['id' => $id, 'team_id' => $team->id]);
         if (!$candidate) {
-            Yii::$app->session->setFlash('error', 'Candidato non disponibile.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Candidate not available.'));
             return $this->redirect(['view']);
         }
         if ((int) $candidate->expires_at <= time()) {
-            Yii::$app->session->setFlash('error', 'Asta scaduta: non puoi più piazzare offerte su questo candidato.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Auction ended: you can no longer bid on this candidate.'));
             return $this->redirect(['view']);
         }
 
@@ -110,7 +110,7 @@ class StaffController extends Controller
             $offered = max(1000, (int) $candidate->salary);
         }
         if ((int) $team->budget < $offered) {
-            Yii::$app->session->setFlash('error', 'Budget insufficiente per piazzare questa offerta.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget to place this bid.'));
             return $this->redirect(['view']);
         }
 
@@ -122,11 +122,10 @@ class StaffController extends Controller
         );
         Yii::$app->session->setFlash(
             'success',
-            sprintf(
-                'Offerta staff piazzata: €%s (scade %s).',
-                number_format((int) $bid->bid_amount, 0, ',', '.'),
-                date('d/m H:i', (int) $bid->expires_at)
-            )
+            Yii::t('app', 'Staff offer placed: €{amount} (expires {date}).', [
+                '{amount}' => number_format((int) $bid->bid_amount, 0, ',', '.'),
+                '{date}'   => date('d/m H:i', (int) $bid->expires_at),
+            ])
         );
         return $this->redirect(['view']);
     }
@@ -141,11 +140,11 @@ class StaffController extends Controller
 
         $candidate = StaffMarket::findOne(['id' => $id, 'team_id' => $team->id]);
         if (!$candidate) {
-            Yii::$app->session->setFlash('error', 'Candidato non disponibile.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Candidate not available.'));
             return $this->redirect(['view']);
         }
         if ((int) $candidate->expires_at <= time()) {
-            Yii::$app->session->setFlash('error', 'Asta scaduta: non puoi più rialzare l\'offerta.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Auction ended: you can no longer raise the offer.'));
             return $this->redirect(['view']);
         }
         $existing = MarketBid::findOne([
@@ -157,7 +156,7 @@ class StaffController extends Controller
         $base = $existing ? (int) $existing->bid_amount : max(1000, (int) $candidate->salary);
         $newBid = max($base + 1000, (int) round($base * 1.15));
         if ((int) $team->budget < $newBid) {
-            Yii::$app->session->setFlash('error', 'Budget insufficiente per il rialzo.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget for bid raise.'));
             return $this->redirect(['view']);
         }
 
@@ -169,7 +168,7 @@ class StaffController extends Controller
         );
         Yii::$app->session->setFlash(
             'success',
-            "Offerta staff alzata a €" . number_format((int) $bid->bid_amount, 0, ',', '.') . "."
+            Yii::t('app', 'Staff offer raised to €{amount}.', ['{amount}' => number_format((int) $bid->bid_amount, 0, ',', '.')])
         );
         return $this->redirect(['view']);
     }
@@ -191,7 +190,7 @@ class StaffController extends Controller
             $team->save(false, ['budget', 'updated_at']);
 
             $staff->delete();
-            Yii::$app->session->setFlash('success', 'Addetto licenziato. Indennizzo: €' . number_format($compensation, 0, ',', '.'));
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Staff member fired. Severance: €{amount}', ['{amount}' => number_format($compensation, 0, ',', '.')]));
         }
 
         return $this->redirect(['view']);

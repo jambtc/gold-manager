@@ -38,14 +38,14 @@ class MarkingController extends Controller
     {
         $fixture = Fixture::findOne($fixtureId);
         if (!$fixture || $fixture->status === Fixture::STATUS_FINISHED) {
-            throw new NotFoundHttpException('Partita non trovata o già conclusa.');
+            throw new NotFoundHttpException(Yii::t('app', 'Match not found or already concluded.'));
         }
 
         $myTeam = Team::findOne(['user_id' => Yii::$app->user->id]);
         if (!$myTeam) return $this->redirect(['/site/index']);
 
         $isMine = $fixture->home_team_id === $myTeam->id || $fixture->away_team_id === $myTeam->id;
-        if (!$isMine) throw new NotFoundHttpException('Non sei coinvolto in questa partita.');
+        if (!$isMine) throw new NotFoundHttpException(Yii::t('app', 'You are not involved in this match.'));
 
         $oppTeamId = $fixture->home_team_id === $myTeam->id
             ? $fixture->away_team_id
@@ -87,7 +87,7 @@ class MarkingController extends Controller
 
         $fixture = Fixture::findOne($fixtureId);
         if (!$fixture || !$myTeam || $fixture->status !== Fixture::STATUS_SCHEDULED) {
-            Yii::$app->session->setFlash('error', 'Partita non valida o già iniziata.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Invalid match or already started.'));
             return $this->redirect(['index', 'fixtureId' => $fixtureId]);
         }
 
@@ -95,7 +95,7 @@ class MarkingController extends Controller
             ->where(['fixture_id' => $fixtureId, 'team_id' => $myTeam->id])
             ->count();
         if ($count >= 3) {
-            Yii::$app->session->setFlash('error', 'Massimo 3 marcature per partita.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Maximum 3 markings per match.'));
             return $this->redirect(['index', 'fixtureId' => $fixtureId]);
         }
 
@@ -107,7 +107,7 @@ class MarkingController extends Controller
         $m->created_at = time();
 
         if (!$m->save()) {
-            Yii::$app->session->setFlash('error', 'Marcatura già presente o errore.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Marking already present or error.'));
         }
         return $this->redirect(['index', 'fixtureId' => $fixtureId]);
     }

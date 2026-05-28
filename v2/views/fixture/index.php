@@ -13,7 +13,7 @@ use app\models\Fixture;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = $type === 'friendly' ? 'Amichevoli' : 'Calendario';
+$this->title = $type === 'friendly' ? Yii::t('app', 'Friendlies') : Yii::t('app', 'Calendar');
 $this->params['breadcrumbs'][] = $this->title;
 
 $urlLeague   = Url::to(['/fixture/index', 'type' => 'league',   'round' => $round]);
@@ -23,7 +23,7 @@ $urlNext     = $round < $totalRounds ? Url::to(['/fixture/index', 'type' => $typ
 
 // Compute leg: first half of rounds = andata, second = ritorno
 $midRound = (int) ceil($totalRounds / 2);
-$legLabel = $round <= $midRound ? 'Andata' : 'Ritorno';
+$legLabel = $round <= $midRound ? Yii::t('app', 'Home leg') : Yii::t('app', 'Return leg');
 $legRound = $round <= $midRound ? $round : ($round - $midRound);
 ?>
 
@@ -35,11 +35,11 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
         <div class="d-flex gap-2">
             <a href="<?= Url::to(['/fixture/index', 'type' => 'league']) ?>"
                class="btn btn-sm <?= $type === 'league' ? 'btn-gold' : 'btn-outline-secondary' ?>">
-                <i class="bi bi-trophy me-1"></i>Campionato
+                <i class="bi bi-trophy me-1"></i><?= Yii::t('app', 'League') ?>
             </a>
             <a href="<?= Url::to(['/fixture/index', 'type' => 'friendly']) ?>"
                class="btn btn-sm <?= $type === 'friendly' ? 'btn-gold' : 'btn-outline-secondary' ?>">
-                <i class="bi bi-play-circle me-1"></i>Amichevoli
+                <i class="bi bi-play-circle me-1"></i><?= Yii::t('app', 'Friendlies') ?>
             </a>
         </div>
     </div>
@@ -56,8 +56,8 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
         <?php endif; ?>
 
         <div class="text-center">
-            <div class="fw-bold text-white"><?= $legLabel ?> — Giornata <?= $legRound ?></div>
-            <div class="text-muted-gm" style="font-size:.72rem">Giornata <?= $round ?> / <?= $totalRounds ?></div>
+            <div class="fw-bold text-white"><?= $legLabel ?> — <?= Yii::t('app', 'Matchday') ?> <?= $legRound ?></div>
+            <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Matchday') ?> <?= $round ?> / <?= $totalRounds ?></div>
         </div>
 
         <?php if ($urlNext): ?>
@@ -73,7 +73,7 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
     <?php if (empty($fixtures)): ?>
         <div class="gm-card text-center py-5 text-muted-gm">
             <i class="bi bi-calendar-x d-block fs-1 mb-2 opacity-25"></i>
-            Nessuna partita in questa giornata.
+            <?= Yii::t('app', 'No matches on this matchday.') ?>
         </div>
     <?php else: ?>
     <div class="gm-card p-0 overflow-hidden">
@@ -81,11 +81,11 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
             <table class="table-gm table-gm-sm w-100 mb-0">
                 <thead>
                     <tr>
-                        <th style="width:110px">Orario</th>
-                        <th class="text-end">Casa</th>
-                        <th class="text-center" style="width:90px">Risultato</th>
-                        <th>Trasferta</th>
-                        <th class="text-center" style="width:90px">Stato</th>
+                        <th style="width:110px"><?= Yii::t('app', 'Time') ?></th>
+                        <th class="text-end"><?= Yii::t('app', 'Home') ?></th>
+                        <th class="text-center" style="width:90px"><?= Yii::t('app', 'Result') ?></th>
+                        <th><?= Yii::t('app', 'Away') ?></th>
+                        <th class="text-center" style="width:90px"><?= Yii::t('app', 'Status') ?></th>
                         <th class="text-end" style="width:110px"></th>
                     </tr>
                 </thead>
@@ -129,7 +129,7 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
                             <?php if ($f->status === Fixture::STATUS_PLAYING): ?>
                                 <span class="badge bg-danger pulse" style="font-size:.65rem">LIVE</span>
                             <?php elseif ($f->status === Fixture::STATUS_FINISHED): ?>
-                                <span class="badge bg-secondary" style="font-size:.65rem">FINITA</span>
+                                <span class="badge bg-secondary" style="font-size:.65rem"><?= Yii::t('app', 'FINISHED') ?></span>
                             <?php else: ?>
                                 <span style="font-size:.65rem;color:var(--text-secondary)">prog.</span>
                             <?php endif; ?>
@@ -139,8 +139,8 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
                                 <?= Html::a('<i class="bi bi-broadcast"></i> Live', ['live', 'id' => $f->id], ['class' => 'btn btn-danger btn-sm', 'encode' => false]) ?>
                             <?php elseif ($f->status === Fixture::STATUS_FINISHED): ?>
                                 <div class="d-flex gap-1 justify-content-end">
-                                    <?= Html::a('Report', ['view', 'id' => $f->id], ['class' => 'btn btn-outline-secondary btn-sm']) ?>
-                                    <?= Html::a('<i class="bi bi-play-circle"></i>', ['replay', 'id' => $f->id], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false, 'title' => 'Replay']) ?>
+                                    <?= Html::a(Yii::t('app', 'Report'), ['view', 'id' => $f->id], ['class' => 'btn btn-outline-secondary btn-sm']) ?>
+                                    <?= Html::a('<i class="bi bi-play-circle"></i>', ['replay', 'id' => $f->id], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false, 'title' => Yii::t('app', 'Replay')]) ?>
                                 </div>
                             <?php else: ?>
                                 <span class="text-muted-gm" style="font-size:.75rem"><?= date('H:i', $f->match_date) ?></span>

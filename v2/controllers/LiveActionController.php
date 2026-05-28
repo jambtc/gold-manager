@@ -123,7 +123,7 @@ class LiveActionController extends Controller
     public function actionSubstitution(int $fixtureId): Response
     {
         if (!MultiplayerSyncService::ensureOnce('live.sub.' . $fixtureId, 6)) {
-            return $this->asJson(['success' => true, 'message' => 'Richiesta duplicata ignorata.']);
+            return $this->asJson(['success' => true, 'message' => Yii::t('app', 'Duplicate request ignored.')]);
         }
 
         $fixture = Fixture::findOne($fixtureId);
@@ -131,21 +131,21 @@ class LiveActionController extends Controller
 
         if (!$fixture || !$team) throw new BadRequestHttpException();
         if ($fixture->home_team_id !== $team->id && $fixture->away_team_id !== $team->id) {
-            throw new BadRequestHttpException('Non hai il controllo di questa partita.');
+            throw new BadRequestHttpException(Yii::t('app', 'You do not control this match.'));
         }
 
         $playerOutId = (int) Yii::$app->request->post('player_out_id');
         $playerInId  = (int) Yii::$app->request->post('player_in_id');
 
         if (!$playerOutId || !$playerInId) {
-            return $this->asJson(['success' => false, 'message' => 'Seleziona giocatore uscente e entrante.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Select outgoing and incoming player.')]);
         }
 
         $side  = $fixture->home_team_id === $team->id ? 'home' : 'away';
         $state = MatchState::findOne(['fixture_id' => $fixtureId]);
         $lockToken = MultiplayerSyncService::acquireLock('live.fixture.' . $fixtureId . '.team.' . (int) $team->id, 8);
         if ($lockToken === null) {
-            return $this->asJson(['success' => false, 'message' => 'Operazione concorrente in corso.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Concurrent operation in progress.')]);
         }
         try {
 
@@ -153,7 +153,7 @@ class LiveActionController extends Controller
         $subsField = "{$side}_subs_used";
         $subsUsed  = $state ? (int)($state->$subsField ?? 0) : 0;
         if ($subsUsed >= 5) {
-            return $this->asJson(['success' => false, 'message' => 'Hai già effettuato 5 sostituzioni.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'You have already made 5 substitutions.')]);
         }
 
         // ── PHP engine: write to MatchState.pending_{side}_actions ──
@@ -197,7 +197,7 @@ class LiveActionController extends Controller
     public function actionTactic(int $fixtureId): Response
     {
         if (!MultiplayerSyncService::ensureOnce('live.tactic.' . $fixtureId, 3)) {
-            return $this->asJson(['success' => true, 'message' => 'Richiesta duplicata ignorata.']);
+            return $this->asJson(['success' => true, 'message' => Yii::t('app', 'Duplicate request ignored.')]);
         }
 
         $fixture = Fixture::findOne($fixtureId);
@@ -274,15 +274,15 @@ class LiveActionController extends Controller
         $cmd->save();
 
         $label = match($tactic) {
-            'ultra_defensive' => 'Difensivo',
-            'all_out_attack'  => 'Offensivo',
-            default           => 'Bilanciato',
+            'ultra_defensive' => Yii::t('app', 'Defensive'),
+            'all_out_attack'  => Yii::t('app', 'Offensive'),
+            default           => Yii::t('app', 'Balanced'),
         };
 
         // SIP-0038: keep tactical levels aligned with live preset (for next ticks and later matches)
         $this->syncTeamTrainingTacticPreset((int) $team->id, $presetLevels);
 
-        return $this->asJson(['success' => true, 'message' => "Stile gara: $label. Attivo dal prossimo tick."]);
+        return $this->asJson(['success' => true, 'message' => Yii::t('app', 'Match style: {label}. Active from next tick.', ['{label}' => $label])]);
     }
 
     /**

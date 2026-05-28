@@ -6,7 +6,7 @@
 use yii\bootstrap5\ActiveForm;
 use yii\bootstrap5\Html;
 
-$this->title = 'Accedi';
+$this->title = Yii::t('app', 'Login');
 ?>
 
 <div class="auth-page">
@@ -15,7 +15,7 @@ $this->title = 'Accedi';
         <a href="<?= Yii::$app->homeUrl ?>" class="auth-logo">
             GOLD <span>MANAGER</span>
         </a>
-        <p class="auth-subtitle">Accedi al tuo account per continuare</p>
+        <p class="auth-subtitle"><?= Yii::t('app', 'Log in to your account to continue') ?></p>
 
         <?php if (Yii::$app->session->hasFlash('error')): ?>
             <div class="alert alert-danger rounded-3 small py-2 mb-3">
@@ -34,7 +34,7 @@ $this->title = 'Accedi';
                 'labelOptions' => [],
                 'inputOptions' => [
                     'class'       => 'form-control',
-                    'placeholder' => 'Il tuo username',
+                    'placeholder' => Yii::t('app', 'Your username'),
                     'autofocus'   => true,
                 ],
             ])->label('Username') ?>
@@ -53,19 +53,19 @@ $this->title = 'Accedi';
 
         <div class="mb-3">
             <?= $form->field($model, 'rememberMe')->checkbox([
-                'label'       => 'Ricordami',
+                'label'       => Yii::t('app', 'Remember me'),
                 'labelOptions'=> ['class' => 'form-check-label text-secondary small'],
             ]) ?>
         </div>
 
-        <?= Html::submitButton('Accedi', ['class' => 'btn-auth', 'name' => 'login-button']) ?>
+        <?= Html::submitButton(Yii::t('app', 'Login'), ['class' => 'btn-auth', 'name' => 'login-button']) ?>
 
         <?php ActiveForm::end(); ?>
 
         <hr class="auth-divider">
 
         <div class="auth-footer">
-            Non hai un account? <?= Html::a('Registrati ora', ['/site/register']) ?>
+            <?= Yii::t('app', 'Don\'t have an account?') ?> <?= Html::a(Yii::t('app', 'Register now'), ['/site/register']) ?>
         </div>
 
     </div>

@@ -14,8 +14,8 @@ declare(strict_types=1);
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Marcature';
-$this->params['breadcrumbs'][] = ['label' => 'Partite', 'url' => ['/fixture/index']];
+$this->title = Yii::t('app', 'Markings');
+$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Matches'), 'url' => ['/fixture/index']];
 $this->params['breadcrumbs'][] = $this->title;
 
 $posColors = ['GK' => 'pos-po', 'DF' => 'pos-d', 'MF' => 'pos-c', 'FW' => 'pos-a'];
@@ -26,7 +26,7 @@ $markerIds  = array_map(fn($m) => (int)$m->marker_id, $markings);
 <div class="py-2">
     <div class="d-flex align-items-center gap-3 mb-4 flex-wrap">
         <div>
-            <h1 class="h3 fw-black mb-0">Marcature a Uomo</h1>
+            <h1 class="h3 fw-black mb-0"><?= Yii::t('app', 'Man Markings') ?></h1>
             <p class="text-muted-gm mb-0">
                 <?= Html::encode($fixture->homeTeam->name) ?> vs <?= Html::encode($fixture->awayTeam->name) ?>
                 · <?= date('d/m H:i', $fixture->match_date) ?>
@@ -34,7 +34,7 @@ $markerIds  = array_map(fn($m) => (int)$m->marker_id, $markings);
         </div>
         <div class="ms-auto">
             <span style="font-size:.78rem;color:var(--text-secondary)">
-                <?= count($markings) ?>/3 marcature assegnate
+                <?= count($markings) ?>/3 <?= Yii::t('app', 'markings assigned') ?>
             </span>
         </div>
     </div>
@@ -52,10 +52,10 @@ $markerIds  = array_map(fn($m) => (int)$m->marker_id, $markings);
         <!-- Marcature attive -->
         <div class="col-lg-5">
             <div class="gm-card">
-                <h5 class="text-white fw-bold mb-3"><i class="bi bi-shield-fill text-gold me-2"></i>Le mie marcature</h5>
+                <h5 class="text-white fw-bold mb-3"><i class="bi bi-shield-fill text-gold me-2"></i><?= Yii::t('app', 'My markings') ?></h5>
 
                 <?php if (empty($markings)): ?>
-                <p class="text-muted-gm small">Nessuna marcatura. Usa il modulo a destra.</p>
+                <p class="text-muted-gm small"><?= Yii::t('app', 'No markings. Use the form on the right.') ?></p>
                 <?php else: ?>
                 <?php foreach ($markings as $m): ?>
                 <div style="display:flex;align-items:center;justify-content:space-between;padding:.6rem 0;border-bottom:1px solid var(--border)">
@@ -75,11 +75,11 @@ $markerIds  = array_map(fn($m) => (int)$m->marker_id, $markings);
 
                 <?php if ($canAdd): ?>
                 <div class="mt-3 pt-2" style="border-top:1px solid var(--border)">
-                    <h6 class="text-white mb-2" style="font-size:.78rem">Aggiungi marcatura</h6>
+                    <h6 class="text-white mb-2" style="font-size:.78rem"><?= Yii::t('app', 'Add marking') ?></h6>
                     <?= Html::beginForm(['/marking/assign'], 'post') ?>
                     <input type="hidden" name="fixture_id" value="<?= $fixture->id ?>">
                     <div class="mb-2">
-                        <label class="text-muted-gm" style="font-size:.7rem">Mio difensore</label>
+                        <label class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'My defender') ?></label>
                         <select name="marker_id" class="form-select form-select-sm mt-1"
                                 style="background:#0f172a;border:1px solid var(--border);color:#fff">
                             <?php foreach ($myDefenders as $s): ?>
@@ -89,7 +89,7 @@ $markerIds  = array_map(fn($m) => (int)$m->marker_id, $markings);
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label class="text-muted-gm" style="font-size:.7rem">Avversario da marcare</label>
+                        <label class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'Opponent to mark') ?></label>
                         <select name="marked_id" class="form-select form-select-sm mt-1"
                                 style="background:#0f172a;border:1px solid var(--border);color:#fff">
                             <?php foreach ($oppRoster as $opp): ?>
@@ -100,23 +100,23 @@ $markerIds  = array_map(fn($m) => (int)$m->marker_id, $markings);
                             <?php endforeach; ?>
                         </select>
                     </div>
-                    <button type="submit" class="btn btn-gold btn-sm w-100">Assegna marcatura</button>
+                    <button type="submit" class="btn btn-gold btn-sm w-100"><?= Yii::t('app', 'Assign marking') ?></button>
                     <?= Html::endForm() ?>
                 </div>
                 <?php elseif (!$canAdd && $fixture->status === \app\models\Fixture::STATUS_SCHEDULED): ?>
-                <p class="text-muted-gm small mt-3">Massimo 3 marcature raggiunto.</p>
+                <p class="text-muted-gm small mt-3"><?= Yii::t('app', 'Maximum 3 markings reached.') ?></p>
                 <?php elseif ($fixture->status !== \app\models\Fixture::STATUS_SCHEDULED): ?>
-                <p class="text-muted-gm small mt-3">Partita già iniziata — marcature bloccate.</p>
+                <p class="text-muted-gm small mt-3"><?= Yii::t('app', 'Match already started — markings locked.') ?></p>
                 <?php endif; ?>
             </div>
 
             <!-- Effetti -->
             <div class="gm-card mt-3">
-                <h6 class="text-white fw-bold mb-2"><i class="bi bi-info-circle text-gold me-2"></i>Effetti in partita</h6>
+                <h6 class="text-white fw-bold mb-2"><i class="bi bi-info-circle text-gold me-2"></i><?= Yii::t('app', 'In-match effects') ?></h6>
                 <ul class="attribute-list small">
-                    <li><span class="text-muted-gm">Marcatore attivo</span><span style="color:var(--accent-green)">+8% Difesa</span></li>
-                    <li><span class="text-muted-gm">Avversario marcato</span><span style="color:var(--accent-red)">−12% Attacco</span></li>
-                    <li><span class="text-muted-gm">Sostituzione marcatore</span><span class="text-muted-gm">marcatura annullata</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Active marker') ?></span><span style="color:var(--accent-green)">+8% <?= Yii::t('app', 'Defence') ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Marked opponent') ?></span><span style="color:var(--accent-red)">−12% <?= Yii::t('app', 'Attack') ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Marker substitution') ?></span><span class="text-muted-gm"><?= Yii::t('app', 'marking cancelled') ?></span></li>
                 </ul>
             </div>
         </div>
@@ -126,12 +126,12 @@ $markerIds  = array_map(fn($m) => (int)$m->marker_id, $markings);
             <div class="gm-card">
                 <h5 class="text-white fw-bold mb-3">
                     <i class="bi bi-people text-gold me-2"></i>
-                    Rosa <?= Html::encode($oppTeam?->name ?? 'Avversario') ?>
-                    <span class="text-muted-gm" style="font-size:.68rem;font-weight:400">(dati <?= empty($oppRoster) || ($oppRoster[0]['approx'] ?? false) ? 'approssimativi' : 'precisi' ?>)</span>
+                    <?= Yii::t('app', 'Squad') ?> <?= Html::encode($oppTeam?->name ?? Yii::t('app', 'Opponent')) ?>
+                    <span class="text-muted-gm" style="font-size:.68rem;font-weight:400">(<?= Yii::t('app', 'data') ?> <?= empty($oppRoster) || ($oppRoster[0]['approx'] ?? false) ? Yii::t('app', 'approximate') : Yii::t('app', 'accurate') ?>)</span>
                 </h5>
 
                 <?php if (empty($oppRoster)): ?>
-                <p class="text-muted-gm small">Rosa non disponibile.</p>
+                <p class="text-muted-gm small"><?= Yii::t('app', 'Squad not available.') ?></p>
                 <?php else: ?>
                 <div class="row g-2">
                     <?php foreach ($oppRoster as $opp):

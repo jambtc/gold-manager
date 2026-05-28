@@ -189,7 +189,7 @@ final class UiIconHelper
     {
         if ($nationality === '') return '';
         $cc = self::FLAG_CODE[$nationality] ?? strtolower(substr($nationality, 0, 2));
-        $url = 'https://flagcdn.com/w40/' . $cc . '.svg';
+        $url = 'https://flagcdn.com/' . $cc . '.svg';
         return '<img src="' . Html::encode($url) . '" width="' . $width . '"'
             . ' alt="' . Html::encode($nationality) . '"'
             . ' style="border-radius:2px;vertical-align:middle;box-shadow:0 0 0 1px rgba(255,255,255,.15)">';

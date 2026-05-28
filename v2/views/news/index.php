@@ -8,7 +8,7 @@ declare(strict_types=1);
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Notizie';
+$this->title = Yii::t('app', 'News');
 $this->params['breadcrumbs'][] = $this->title;
 
 $priorityColors = [0 => 'var(--text-secondary)', 1 => 'var(--gold)', 2 => 'var(--accent-red)'];
@@ -17,21 +17,21 @@ $dayLabel = function(string $date): string {
     $ts    = strtotime($date);
     $today = date('Y-m-d');
     $yest  = date('Y-m-d', strtotime('-1 day'));
-    if ($date === $today) return 'Oggi';
-    if ($date === $yest)  return 'Ieri';
+    if ($date === $today) return Yii::t('app', 'Today');
+    if ($date === $yest)  return Yii::t('app', 'Yesterday');
     return date('d M Y', $ts);
 };
 ?>
 
 <div class="py-2">
     <div class="d-flex align-items-center justify-content-between mb-4">
-        <h1 class="h3 fw-black mb-0"><i class="bi bi-bell text-gold me-2"></i>Notizie</h1>
+        <h1 class="h3 fw-black mb-0"><i class="bi bi-bell text-gold me-2"></i><?= Yii::t('app', 'News') ?></h1>
     </div>
 
     <?php if (empty($grouped)): ?>
     <div class="gm-card text-center py-5 text-muted-gm">
         <i class="bi bi-bell-slash fs-1 d-block mb-2"></i>
-        Nessuna notizia per ora.
+        <?= Yii::t('app', 'No news for now.') ?>
     </div>
     <?php else: ?>
     <?php foreach ($grouped as $date => $items): ?>
@@ -55,7 +55,7 @@ $dayLabel = function(string $date): string {
                 <?php endif; ?>
                 <?php if ($item->link_url): ?>
                 <a href="<?= Html::encode($item->link_url) ?>" class="btn btn-outline-secondary btn-sm py-0 px-2" style="font-size:.7rem">
-                    Vedi →
+                    <?= Yii::t('app', 'View →') ?>
                 </a>
                 <?php endif; ?>
             </div>

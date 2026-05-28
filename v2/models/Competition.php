@@ -71,7 +71,7 @@ class Competition extends ActiveRecord
             'season'       => 'Season',
             'type'         => 'Type',
             'tier'         => 'Tier',
-            'group_number' => 'Girone',
+            'group_number' => Yii::t('app', 'Group'),
             'created_at'   => 'Created At',
             'updated_at'   => 'Updated At',
         ];
@@ -80,7 +80,7 @@ class Competition extends ActiveRecord
     public function getLabel(): string
     {
         $tierName = self::TIER_NAMES[$this->tier] ?? "Tier {$this->tier}";
-        return $this->group_number > 1 ? "$tierName - Girone {$this->group_number}" : $tierName;
+        return $this->group_number > 1 ? "$tierName - " . Yii::t('app', 'Group') . " {$this->group_number}" : $tierName;
     }
 
     /**

@@ -38,15 +38,15 @@ use yii\helpers\Html;
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content gm-card" style="border:1px solid var(--border);background:var(--card-bg)">
             <div class="modal-header border-0 pb-0">
-                <h5 class="modal-title text-white">Conferma azione</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Chiudi"></button>
+                <h5 class="modal-title text-white"><?= Yii::t('app', 'Confirm action') ?></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="<?= Yii::t('app', 'Close') ?>"></button>
             </div>
             <div class="modal-body">
                 <p id="gmConfirmMessage" class="mb-0 text-muted-gm"></p>
             </div>
             <div class="modal-footer border-0 pt-0">
-                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
-                <button type="button" class="btn btn-gold btn-sm" id="gmConfirmOk">Conferma</button>
+                <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"><?= Yii::t('app', 'Cancel') ?></button>
+                <button type="button" class="btn btn-gold btn-sm" id="gmConfirmOk"><?= Yii::t('app', 'Confirm') ?></button>
             </div>
         </div>
     </div>

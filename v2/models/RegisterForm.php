@@ -21,7 +21,7 @@ class RegisterForm extends Model
             [['username'], 'match', 'pattern' => '/^[a-zA-Z0-9_]+$/'],
             [['username'], 'unique', 'targetClass' => User::class, 'targetAttribute' => 'username'],
             [['password'], 'string', 'min' => 6],
-            [['passwordConfirm'], 'compare', 'compareAttribute' => 'password', 'message' => 'Passwords do not match.'],
+            [['passwordConfirm'], 'compare', 'compareAttribute' => 'password', 'message' => Yii::t('app', 'Passwords do not match.')],
         ];
     }
 

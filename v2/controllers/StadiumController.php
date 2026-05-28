@@ -63,12 +63,12 @@ class StadiumController extends Controller
         if (!$team) return $this->redirect(['/site/index']);
 
         $stadium = Stadium::findOne(['team_id' => $team->id]);
-        if (!$stadium) throw new NotFoundHttpException('Stadio non trovato.');
+        if (!$stadium) throw new NotFoundHttpException(Yii::t('app', 'Stadium not found.'));
 
         if ($stadium->upgrade()) {
-            Yii::$app->session->setFlash('success', "Stadio potenziato con successo! Nuova capacità: {$stadium->capacity} posti.");
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Stadium upgraded successfully! New capacity: {capacity} seats.', ['{capacity}' => $stadium->capacity]));
         } else {
-            Yii::$app->session->setFlash('error', "Budget insufficiente per il potenziamento. Servono €" . number_format($stadium->upgrade_cost, 0, ',', '.') . ".");
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget for upgrade. €{amount} required.', ['{amount}' => number_format($stadium->upgrade_cost, 0, ',', '.')]));
         }
 
         return $this->redirect(['view']);
@@ -92,7 +92,10 @@ class StadiumController extends Controller
         $stadium->friendly_ticket_price = max(0, min(100, $friendlyPrice));
         $stadium->save();
 
-        Yii::$app->session->setFlash('success', "Prezzi aggiornati: campionato €{$stadium->ticket_price} · amichevole €{$stadium->friendly_ticket_price}.");
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Prices updated: league €{comp} · friendly €{friendly}.', [
+            '{comp}'     => $stadium->ticket_price,
+            '{friendly}' => $stadium->friendly_ticket_price,
+        ]));
         return $this->redirect(['view']);
     }
 }

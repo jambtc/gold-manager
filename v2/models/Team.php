@@ -70,8 +70,8 @@ class Team extends ActiveRecord
             'is_cpu'     => 'CPU Team',
             'budget'     => 'Budget (€)',
             'logo'       => 'Logo',
-            'color_left' => 'Colore SX',
-            'color_right'=> 'Colore DX',
+            'color_left' => Yii::t('app', 'Left color'),
+            'color_right'=> Yii::t('app', 'Right color'),
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];

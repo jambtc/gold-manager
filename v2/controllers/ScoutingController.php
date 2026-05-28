@@ -58,7 +58,7 @@ class ScoutingController extends Controller
     {
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         $report = ScoutingReport::findOne(['id' => $id, 'team_id' => $team?->id ?? 0, 'status' => 'ready']);
-        if (!$report) throw new NotFoundHttpException('Rapporto non trovato.');
+        if (!$report) throw new NotFoundHttpException(Yii::t('app', 'Report not found.'));
 
         $data = $report->report_text ? (json_decode($report->report_text, true) ?? []) : [];
         return $this->render('report', compact('report', 'data'));
@@ -71,24 +71,24 @@ class ScoutingController extends Controller
 
         $playerId = (int) Yii::$app->request->post('player_id');
         if (!$playerId) {
-            Yii::$app->session->setFlash('error', 'Giocatore non specificato.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Player not specified.'));
             return $this->redirect(['index']);
         }
 
         if (!ScoutingService::canScout((int) $team->id)) {
-            Yii::$app->session->setFlash('error', 'Devi assumere uno scout prima di poter osservare i giocatori.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'You must hire a scout before scouting players.'));
             return $this->redirect(['/staff/view']);
         }
 
         if (ScoutingService::isPending((int) $team->id, $playerId)) {
-            Yii::$app->session->setFlash('info', 'Questo giocatore è già sotto osservazione.');
+            Yii::$app->session->setFlash('info', Yii::t('app', 'This player is already under observation.'));
             return $this->redirect(['index']);
         }
 
         $report = ScoutingService::queueReport((int) $team->id, $playerId);
         $days   = max(1, (int) ceil(($report->ready_at - time()) / 86400));
 
-        Yii::$app->session->setFlash('success', "Giocatore sotto osservazione. Rapporto in {$days} giorno/i.");
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Player under observation. Report in {days} day(s).', ['{days}' => $days]));
         return $this->redirect(['index']);
     }
 
@@ -111,7 +111,7 @@ class ScoutingController extends Controller
         }
 
         if (!ScoutingService::canScout((int) $team->id)) {
-            Yii::$app->session->setFlash('error', 'Serve uno scout attivo per impostare le richieste.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'An active scout is required to set requests.'));
             return $this->redirect(['index']);
         }
 
@@ -120,7 +120,7 @@ class ScoutingController extends Controller
             $positions = [];
         }
         ScoutingService::saveNeedPositions((int) $team->id, $positions);
-        Yii::$app->session->setFlash('success', 'Richieste scout aggiornate (max 3 ruoli).');
+        Yii::$app->session->setFlash('success', Yii::t('app', 'Scout requests updated (max 3 roles).'));
         return $this->redirect(['index']);
     }
 }

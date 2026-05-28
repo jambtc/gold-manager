@@ -11,7 +11,7 @@ declare(strict_types=1);
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Classifica: ' . $competition->getLabel();
+$this->title = Yii::t('app', 'Standings') . ': ' . $competition->getLabel();
 $this->params['breadcrumbs'][] = $this->title;
 $crest = function (?\app\models\Team $club, int $width = 22, int $height = 25): string {
     if ($club === null) {
@@ -44,7 +44,7 @@ $crest = function (?\app\models\Team $club, int $width = 22, int $height = 25): 
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div>
             <h1 class="mb-0 fw-black"><?= Html::encode($competition->getLabel()) ?></h1>
-            <p class="text-muted-gm mb-0">Stagione <?= $competition->season ?> · <?= count($standings) ?> squadre</p>
+            <p class="text-muted-gm mb-0"><?= Yii::t('app', 'Season') ?> <?= $competition->season ?> · <?= count($standings) ?> <?= Yii::t('app', 'teams') ?></p>
         </div>
         <div class="d-flex gap-2 align-items-center flex-wrap">
             <!-- Competition switcher -->
@@ -56,7 +56,7 @@ $crest = function (?\app\models\Team $club, int $width = 22, int $height = 25): 
                 </option>
                 <?php endforeach; ?>
             </select>
-            <?= Html::a('<i class="bi bi-calendar3"></i>', ['/fixture/index'], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false, 'title' => 'Calendario']) ?>
+            <?= Html::a('<i class="bi bi-calendar3"></i>', ['/fixture/index'], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false, 'title' => Yii::t('app', 'Calendar')]) ?>
         </div>
     </div>
 
@@ -65,8 +65,8 @@ $crest = function (?\app\models\Team $club, int $width = 22, int $height = 25): 
             <table class="table-gm w-100 mb-0">
                 <thead>
                     <tr>
-                        <th class="text-center" style="width: 60px;">Pos</th>
-                        <th>Squadra</th>
+                        <th class="text-center" style="width: 60px;"><?= Yii::t('app', 'Pos') ?></th>
+                        <th><?= Yii::t('app', 'Team') ?></th>
                         <th class="text-center">P</th>
                         <th class="text-center">V</th>
                         <th class="text-center">N</th>
@@ -127,7 +127,7 @@ $crest = function (?\app\models\Team $club, int $width = 22, int $height = 25): 
     </div>
 
     <div class="mt-4 d-flex gap-4 small text-muted-gm">
-        <div><span class="badge bg-success me-1" style="width: 10px; height: 10px; padding: 0;">&nbsp;</span> Promozione / Playoff</div>
-        <div><span class="badge bg-danger me-1" style="width: 10px; height: 10px; padding: 0;">&nbsp;</span> Retrocessione</div>
+        <div><span class="badge bg-success me-1" style="width: 10px; height: 10px; padding: 0;">&nbsp;</span> <?= Yii::t('app', 'Promotion / Playoff') ?></div>
+        <div><span class="badge bg-danger me-1" style="width: 10px; height: 10px; padding: 0;">&nbsp;</span> <?= Yii::t('app', 'Relegation') ?></div>
     </div>
 </div>

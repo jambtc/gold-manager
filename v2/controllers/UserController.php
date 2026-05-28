@@ -49,6 +49,17 @@ class UserController extends Controller
             $team->ensureUiColors();
         }
 
+        if (Yii::$app->request->isPost) {
+            $lang = Yii::$app->request->post('language');
+            if ($lang && in_array($lang, ['it-IT', 'en-US'], true) && $lang !== $user->language) {
+                $user->language = $lang;
+                $user->save(false, ['language']);
+                Yii::$app->language = $lang;
+                Yii::$app->session->setFlash('success', Yii::t('app', 'Language updated.'));
+                return $this->redirect(['/user/profile']);
+            }
+        }
+
         if ($team && Yii::$app->request->isPost) {
             $newTeamName = trim((string) Yii::$app->request->post('team_name', $team->name));
             if ($newTeamName === '') {
@@ -56,7 +67,7 @@ class UserController extends Controller
             }
 
             if (mb_strlen($newTeamName) > 255) {
-                Yii::$app->session->setFlash('error', 'Nome squadra troppo lungo (max 255 caratteri).');
+                Yii::$app->session->setFlash('error', Yii::t('app', 'Team name too long (max 255 characters).'));
                 return $this->redirect(['/user/profile']);
             }
 
@@ -65,7 +76,7 @@ class UserController extends Controller
                 ->andWhere(['<>', 'id', $team->id])
                 ->exists();
             if ($nameTaken) {
-                Yii::$app->session->setFlash('error', 'Nome squadra già usato. Scegli un nome diverso.');
+                Yii::$app->session->setFlash('error', Yii::t('app', 'Team name already taken. Choose a different name.'));
                 return $this->redirect(['/user/profile']);
             }
 
@@ -89,7 +100,7 @@ class UserController extends Controller
             $team->color_right = $right;
             $team->save(false, ['name', 'color_left', 'color_right']);
 
-            Yii::$app->session->setFlash('success', 'Dati club aggiornati.');
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Club data updated.'));
             return $this->redirect(['/user/profile']);
         }
 

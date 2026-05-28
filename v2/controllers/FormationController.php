@@ -89,16 +89,16 @@ class FormationController extends Controller
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         if (!$team) {
-            return $this->asJson(['success' => false, 'message' => 'Squadra non trovata.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Team not found.')]);
         }
         $formation = Formation::findOne(['id' => $formationId, 'team_id' => (int) $team->id]);
         if (!$formation) {
-            return $this->asJson(['success' => false, 'message' => 'Formazione non valida.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid lineup.')]);
         }
 
         $zoneId = (int) $zoneId;
         if (!PitchZoneHelper::isOnPitch($zoneId)) {
-            return $this->asJson(['success' => false, 'message' => 'Zona non valida.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid zone.')]);
         }
 
         // Persist outfield display zones with unambiguous storage (1001..1063),
@@ -118,20 +118,20 @@ class FormationController extends Controller
             // Block injured and suspended players
             $player = Player::findOne(['id' => $playerId, 'team_id' => (int) $team->id]);
             if (!$player) {
-                return $this->asJson(['success' => false, 'message' => 'Giocatore non valido per questa squadra.']);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid player for this team.')]);
             }
             if ($player && $player->injury_weeks > 0) {
-                return $this->asJson(['success' => false, 'message' => "Giocatore infortunato ({$player->injury_type}, {$player->injury_weeks} sett. rimanenti)."]);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Player injured ({type}, {weeks} week(s) remaining).', ['{type}' => $player->injury_type, '{weeks}' => $player->injury_weeks])]);
             }
             if ($player && $player->suspended_matches > 0) {
-                return $this->asJson(['success' => false, 'message' => "Giocatore squalificato ({$player->suspended_matches} gara/e)."]);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Player suspended ({matches} match(es)).', ['{matches}' => $player->suspended_matches])]);
             }
             $isGkZone = PitchZoneHelper::isGoalkeeperZone($zoneId);
             if ($player && $isGkZone && strtoupper((string) $player->position) !== 'GK') {
-                return $this->asJson(['success' => false, 'message' => 'La cella portiere accetta solo un portiere (GK).']);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'The goalkeeper slot only accepts a goalkeeper (GK).')]);
             }
             if ($player && strtoupper((string) $player->position) === 'GK' && !$isGkZone) {
-                return $this->asJson(['success' => false, 'message' => 'Il portiere titolare deve stare nella cella portiere.']);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'The starting goalkeeper must be in the goalkeeper slot.')]);
             }
             $tx = Yii::$app->db->beginTransaction();
             try {
@@ -150,7 +150,7 @@ class FormationController extends Controller
                     ->count();
                 if ($current >= 11) {
                     $tx->rollBack();
-                    return $this->asJson(['success' => false, 'message' => 'Massimo 11 giocatori in campo.']);
+                    return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Maximum 11 players on the pitch.')]);
                 }
 
                 $slot = new FormationSlot();
@@ -162,7 +162,7 @@ class FormationController extends Controller
             } catch (\Throwable $e) {
                 $tx->rollBack();
                 Yii::error('save-slot failed: ' . $e->getMessage(), __METHOD__);
-                return $this->asJson(['success' => false, 'message' => 'Errore salvataggio formazione.']);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Error saving lineup.')]);
             }
         } else {
             // Clear zone only.
@@ -186,12 +186,12 @@ class FormationController extends Controller
     public function actionAutoAssign(): Response
     {
         if (!Yii::$app->request->isPost) {
-            return $this->asJson(['success' => false, 'message' => 'Metodo non consentito.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Method not allowed.')]);
         }
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         if (!$team) {
-            return $this->asJson(['success' => false, 'message' => 'Squadra non trovata.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Team not found.')]);
         }
 
         $formationId = (int) Yii::$app->request->post('formation_id', 0);
@@ -203,7 +203,7 @@ class FormationController extends Controller
 
         $formation = Formation::findOne(['id' => $formationId, 'team_id' => $team->id]);
         if (!$formation) {
-            return $this->asJson(['success' => false, 'message' => 'Formazione non valida.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid lineup.')]);
         }
 
         try {
@@ -213,7 +213,7 @@ class FormationController extends Controller
             if (($result['total_players'] ?? 0) === 0) {
                 return $this->asJson([
                     'success' => false,
-                    'message' => 'Auto-formazione non disponibile: rosa vuota.',
+                    'message' => Yii::t('app', 'Auto-lineup unavailable: empty squad.'),
                 ]);
             }
 
@@ -228,14 +228,13 @@ class FormationController extends Controller
                         $parts[] = $label . ' x' . $value;
                     }
                 }
-                $roleHint = empty($parts) ? '' : (' Ruoli mancanti: ' . implode(', ', $parts) . '.');
-                $warning = sprintf(
-                    'Auto-formazione completata ma solo %d/11 slot sono stati riempiti (rosa attuale: %d). Mancano %d giocatori: completa manualmente o firma nuovi elementi.%s',
-                    (int) $result['assigned'],
-                    (int) ($result['total_players'] ?? 0),
-                    $missing,
-                    $roleHint
-                );
+                $roleHint = empty($parts) ? '' : (' ' . Yii::t('app', 'Missing roles: {roles}.', ['{roles}' => implode(', ', $parts)]));
+                $warning = Yii::t('app', 'Auto-lineup completed but only {assigned}/11 slots were filled (current squad: {total}). Missing {missing} players: complete manually or sign new ones.{hint}', [
+                    '{assigned}' => (int) $result['assigned'],
+                    '{total}'    => (int) ($result['total_players'] ?? 0),
+                    '{missing}'  => $missing,
+                    '{hint}'     => $roleHint,
+                ]);
             }
 
             return $this->asJson([
@@ -248,25 +247,25 @@ class FormationController extends Controller
             ]);
         } catch (\Throwable $e) {
             Yii::error('Formation auto-assign failed: ' . $e->getMessage(), __METHOD__);
-            return $this->asJson(['success' => false, 'message' => 'Errore durante auto-formazione.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Error during auto-lineup.')]);
         }
     }
 
     public function actionSaveSettings(): Response
     {
         if (!Yii::$app->request->isPost) {
-            return $this->asJson(['success' => false, 'message' => 'Metodo non consentito.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Method not allowed.')]);
         }
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         if (!$team) {
-            return $this->asJson(['success' => false, 'message' => 'Squadra non trovata.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Team not found.')]);
         }
 
         $formationId = (int) Yii::$app->request->post('formation_id', 0);
         $formation = Formation::findOne(['id' => $formationId, 'team_id' => $team->id]);
         if (!$formation) {
-            return $this->asJson(['success' => false, 'message' => 'Formazione non valida.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid lineup.')]);
         }
 
         $helper = new FormationAutoHelper();
@@ -281,7 +280,7 @@ class FormationController extends Controller
 
         return $this->asJson([
             'success' => true,
-            'message' => 'Impostazioni tattiche salvate.',
+            'message' => Yii::t('app', 'Tactical settings saved.'),
         ]);
     }
 
@@ -291,12 +290,12 @@ class FormationController extends Controller
     public function actionSetRole(): Response
     {
         if (!Yii::$app->request->isPost) {
-            return $this->asJson(['success' => false, 'message' => 'Metodo non consentito.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Method not allowed.')]);
         }
 
         $team = Team::findOne(['user_id' => Yii::$app->user->id]);
         if (!$team) {
-            return $this->asJson(['success' => false, 'message' => 'Squadra non trovata.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Team not found.')]);
         }
 
         $formationId = (int) Yii::$app->request->post('formation_id', 0);
@@ -306,7 +305,7 @@ class FormationController extends Controller
 
         $formation = Formation::findOne(['id' => $formationId, 'team_id' => $team->id]);
         if (!$formation) {
-            return $this->asJson(['success' => false, 'message' => 'Formazione non valida.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid lineup.')]);
         }
 
         $fieldMap = [
@@ -317,7 +316,7 @@ class FormationController extends Controller
         ];
         $field = $fieldMap[$role] ?? null;
         if ($field === null) {
-            return $this->asJson(['success' => false, 'message' => 'Ruolo non valido.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid role.')]);
         }
 
         $slots = FormationSlot::find()
@@ -333,11 +332,11 @@ class FormationController extends Controller
 
         if ($playerId !== null) {
             if (!in_array($playerId, $starterIds, true)) {
-                return $this->asJson(['success' => false, 'message' => 'Puoi assegnare il ruolo solo a un titolare in campo.']);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'You can only assign the role to a starting player.')]);
             }
             $player = Player::findOne(['id' => $playerId, 'team_id' => $team->id]);
             if (!$player) {
-                return $this->asJson(['success' => false, 'message' => 'Giocatore non valido.']);
+                return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid player.')]);
             }
             $formation->$field = $playerId;
         } else {
@@ -346,7 +345,7 @@ class FormationController extends Controller
         }
 
         if (!$formation->save(false, [$field, 'updated_at'])) {
-            return $this->asJson(['success' => false, 'message' => 'Errore salvataggio ruolo.']);
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Error saving role.')]);
         }
 
         $summary = (new FormationRoleHelper())->resolveRolePlayers($formation);

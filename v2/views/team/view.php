@@ -11,13 +11,27 @@ declare(strict_types=1);
 
 use yii\helpers\Html;
 use yii\helpers\Url;
+use app\components\CharacterTraitHelper;
 use app\components\PlayerAttributeHelper;
 use app\components\UiIconHelper;
 
-$this->title = 'Rosa: ' . $team->name;
+$this->title = Yii::t('app', 'Squad') . ': ' . $team->name;
 $this->params['breadcrumbs'][] = $this->title;
 
 ?>
+<style>
+    .team-view .team-table-compact th,
+    .team-view .team-table-compact td {
+        padding: .55rem .5rem;
+    }
+    .team-view .team-table-compact .actions-col {
+        width: 34px;
+        min-width: 34px;
+        max-width: 34px;
+        padding-left: .2rem;
+        padding-right: .2rem;
+    }
+</style>
 
 <div class="team-view">
     <div class="d-flex align-items-center justify-content-between mb-4">
@@ -30,17 +44,17 @@ $this->params['breadcrumbs'][] = $this->title;
             }
             $avgOvr = count($players) > 0 ? ($sumOvr / count($players)) : 0;
             ?>
-            <p class="text-muted-gm"><?= count($players) ?> Giocatori • Media OVR: <?= number_format($avgOvr, 1) ?></p>
+            <p class="text-muted-gm"><?= count($players) ?> <?= Yii::t('app', 'Players') ?> • <?= Yii::t('app', 'Avg OVR') ?>: <?= number_format($avgOvr, 1) ?></p>
         </div>
         <div class="d-flex gap-2">
-            <?= Html::a('<i class="bi bi-grid-3x3"></i> Gestione Tattica', ['/formation/view'], ['class' => 'btn btn-outline-gold']) ?>
-            <?= Html::a('<i class="bi bi-plus-lg"></i> Cerca Giocatori', ['/transfer/market'], ['class' => 'btn btn-gold']) ?>
+            <?= Html::a('<i class="bi bi-grid-3x3"></i> ' . Yii::t('app', 'Tactical Management'), ['/formation/view'], ['class' => 'btn btn-outline-gold']) ?>
+            <?= Html::a('<i class="bi bi-plus-lg"></i> ' . Yii::t('app', 'Search Players'), ['/transfer/market'], ['class' => 'btn btn-gold']) ?>
         </div>
     </div>
 
     <div class="gm-card p-0 overflow-hidden">
         <div class="table-responsive">
-            <table class="table-gm w-100 mb-0">
+            <table class="table-gm team-table-compact w-100 mb-0">
                 <?php
                 // Helper: color skill value
                 $sc = fn(int $v): string => $v >= 70 ? 'var(--accent-green)' : ($v >= 50 ? 'var(--gold)' : 'var(--text-secondary)');
@@ -55,29 +69,29 @@ $this->params['breadcrumbs'][] = $this->title;
                 ?>
                 <thead>
                     <tr>
-                        <th style="width:44px">Pos</th>
-                        <th>Giocatore</th>
-                        <th class="text-center" style="width:32px" title="Età">Età</th>
-                        <th class="text-center" style="width:36px" title="Valore di Ruolo (Overall)">Ovr</th>
-                        <th style="width:170px" title="Talenti giocatore (separati dalle skill)">Talenti</th>
+                        <th style="width:44px"><?= Yii::t('app', 'Pos') ?></th>
+                        <th><?= Yii::t('app', 'Player') ?></th>
+                        <th class="text-center" style="width:32px" title="<?= Yii::t('app', 'Age') ?>"><?= Yii::t('app', 'Age') ?></th>
+                        <th class="text-center" style="width:36px" title="<?= Yii::t('app', 'Role Value (Overall)') ?>"><?= Yii::t('app', 'Ovr') ?></th>
+                        <th style="width:120px" title="<?= Yii::t('app', 'Player talents (separate from skills)') ?>"><?= Yii::t('app', 'Talents') ?></th>
                         <!-- Individual skills -->
-                        <th class="text-center" style="width:32px;color:#ea580c" title="Parate">PO</th>
-                        <th class="text-center" style="width:32px;color:#2563eb" title="Difesa">DF</th>
-                        <th class="text-center" style="width:32px;color:#16a34a" title="Contrasti">CN</th>
-                        <th class="text-center" style="width:32px;color:#16a34a" title="Passaggi">PA</th>
-                        <th class="text-center" style="width:32px;color:#16a34a" title="Regia">RG</th>
-                        <th class="text-center" style="width:32px;color:var(--gold)" title="Cross">CR</th>
-                        <th class="text-center" style="width:32px;color:var(--gold)" title="Tecnica">TC</th>
-                        <th class="text-center" style="width:32px;color:#b91c1c" title="Tiro">TR</th>
+                        <th class="text-center" style="width:32px;color:#ea580c" title="<?= Yii::t('app', 'Saves') ?>"><?= Yii::t('app', 'PO') ?></th>
+                        <th class="text-center" style="width:32px;color:#2563eb" title="<?= Yii::t('app', 'Defence') ?>"><?= Yii::t('app', 'DF') ?></th>
+                        <th class="text-center" style="width:32px;color:#16a34a" title="<?= Yii::t('app', 'Tackles') ?>"><?= Yii::t('app', 'CN') ?></th>
+                        <th class="text-center" style="width:32px;color:#16a34a" title="<?= Yii::t('app', 'Passes') ?>"><?= Yii::t('app', 'PA') ?></th>
+                        <th class="text-center" style="width:32px;color:#16a34a" title="<?= Yii::t('app', 'Playmaker') ?>"><?= Yii::t('app', 'RG') ?></th>
+                        <th class="text-center" style="width:32px;color:var(--gold)" title="<?= Yii::t('app', 'Cross') ?>"><?= Yii::t('app', 'CR') ?></th>
+                        <th class="text-center" style="width:32px;color:var(--gold)" title="<?= Yii::t('app', 'Technique') ?>"><?= Yii::t('app', 'TC') ?></th>
+                        <th class="text-center" style="width:32px;color:#b91c1c" title="<?= Yii::t('app', 'Shot') ?>"><?= Yii::t('app', 'TR') ?></th>
                         <!-- Status -->
-                        <th class="text-center" style="width:44px" title="Forma">F%</th>
-                        <th class="text-center" style="width:44px" title="Freschezza">Fr%</th>
-                        <th class="text-center" style="width:42px" title="Gol stagione">Gol</th>
-                        <th class="text-center" style="width:42px" title="Assist stagione">Ass</th>
-                        <th class="text-center" style="width:42px" title="Gialli stagione">🟨</th>
-                        <th class="text-center" style="width:42px" title="Rossi stagione">🟥</th>
-                        <th class="text-end" style="width:80px">Valore</th>
-                        <th class="text-end" style="width:40px"></th>
+                        <th class="text-center" style="width:44px" title="<?= Yii::t('app', 'Form') ?>"><?= Yii::t('app', 'F%') ?></th>
+                        <th class="text-center" style="width:44px" title="<?= Yii::t('app', 'Freshness') ?>"><?= Yii::t('app', 'Fr%') ?></th>
+                        <th class="text-center" style="width:44px" title="<?= Yii::t('app', 'Condition') ?>"><?= Yii::t('app', 'Cond.') ?></th>
+                        <th class="text-center" style="width:42px" title="<?= Yii::t('app', 'Season goals') ?>"><?= Yii::t('app', 'Goals') ?></th>
+                        <th class="text-center" style="width:42px" title="<?= Yii::t('app', 'Season assists') ?>"><?= Yii::t('app', 'Ast') ?></th>
+                        <th class="text-center" style="width:42px" title="<?= Yii::t('app', 'Season yellows') ?>">🟨</th>
+                        <th class="text-center" style="width:42px" title="<?= Yii::t('app', 'Season reds') ?>">🟥</th>
+                        <th class="text-end actions-col" style="position:sticky;right:0;background:var(--card-bg)"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -94,7 +108,7 @@ $this->params['breadcrumbs'][] = $this->title;
                                 <div class="text-muted-gm" style="font-size:.65rem">
                                     <?= $player->age ?>a · <span style="display:inline-flex;align-items:center;gap:.2rem"><?= UiIconHelper::renderFootIcon((string) $player->foot, 11) ?><?= $player->foot === 'LR' ? 'Amb' : $player->foot ?></span>
                                     <?php if ($player->character): ?>
-                                     · <em><?= Html::encode(ucfirst($player->character)) ?></em>
+                                     · <em><?= Html::encode(CharacterTraitHelper::display((string) $player->character)) ?></em>
                                     <?php endif; ?>
                                 </div>
                             </td>
@@ -122,29 +136,27 @@ $this->params['breadcrumbs'][] = $this->title;
                             ] as $sv): ?>
                             <td class="text-center" style="font-size:.78rem;font-weight:600;color:<?= $sc($sv) ?>"><?= $sv ?></td>
                             <?php endforeach; ?>
-                            <!-- Forma / Freschezza -->
+                            <!-- Forma / Freschezza / Condizione -->
                             <td class="text-center" style="font-size:.78rem;color:<?= $fc($player->form) ?>"><?= $player->form ?>%</td>
                             <td class="text-center" style="font-size:.78rem;color:<?= $fc($player->freshness) ?>"><?= $player->freshness ?>%</td>
+                            <td class="text-center" style="font-size:.78rem;color:<?= $fc($player->condition) ?>"><?= $player->condition ?>%</td>
                             <td class="text-center" style="font-size:.78rem;font-weight:700;color:var(--gold)"><?= (int) $ss['goals'] ?></td>
                             <td class="text-center" style="font-size:.78rem"><?= (int) $ss['assists'] ?></td>
                             <td class="text-center" style="font-size:.78rem"><?= (int) $ss['yellow_cards'] ?></td>
                             <td class="text-center" style="font-size:.78rem"><?= (int) $ss['red_cards'] ?></td>
-                            <td class="text-end" style="font-size:.78rem;color:var(--gold);white-space:nowrap">
-                                €<?= number_format($valuator->marketValue($player), 0, ',', '.') ?>
-                            </td>
-                            <td class="text-end">
+                            <td class="text-end actions-col" style="position:sticky;right:0;background:var(--card-bg)">
                                 <div class="dropdown">
                                     <button class="btn btn-link text-muted-gm p-0" data-bs-toggle="dropdown">
                                         <i class="bi bi-three-dots-vertical"></i>
                                     </button>
                                     <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark gm-card">
-                                        <li><?= Html::a('<i class="bi bi-person-lines-fill"></i> Dettagli', ['player/view', 'id' => $player->id], ['class' => 'dropdown-item']) ?></li>
-                                        <li><?= Html::a('<i class="bi bi-file-earmark-text"></i> Contratto', ['contract/view', 'player_id' => $player->id], ['class' => 'dropdown-item']) ?></li>
+                                        <li><?= Html::a('<i class="bi bi-person-lines-fill"></i> ' . Yii::t('app', 'Details'), ['player/view', 'id' => $player->id], ['class' => 'dropdown-item']) ?></li>
+                                        <li><?= Html::a('<i class="bi bi-file-earmark-text"></i> ' . Yii::t('app', 'Contract'), ['contract/view', 'player_id' => $player->id], ['class' => 'dropdown-item']) ?></li>
                                         <li><hr class="dropdown-divider"></li>
                                         <li>
                                             <a class="dropdown-item text-danger" href="#"
                                                onclick="openSellModal(<?= $player->id ?>, '<?= Html::encode(addslashes($player->name)) ?>', <?= (int)\Yii::$app->playerValuator->marketValue($player) ?>); return false;">
-                                                <i class="bi bi-tag"></i> Vendi
+                                                <i class="bi bi-tag"></i> <?= Yii::t('app', 'Sell') ?>
                                             </a>
                                         </li>
                                     </ul>
@@ -161,26 +173,26 @@ $this->params['breadcrumbs'][] = $this->title;
 <!-- Sell modal -->
 <div id="sell-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center">
     <div class="gm-card" style="width:100%;max-width:400px;margin:1rem">
-        <h5 class="text-white fw-bold mb-3"><i class="bi bi-tag me-2 text-gold"></i>Metti in vendita</h5>
+        <h5 class="text-white fw-bold mb-3"><i class="bi bi-tag me-2 text-gold"></i><?= Yii::t('app', 'List for sale') ?></h5>
         <p class="text-muted-gm small mb-3" id="sell-player-name"></p>
         <form id="sell-form" method="post" action="<?= Url::to(['/transfer/list-player']) ?>">
             <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
             <input type="hidden" name="id" id="sell-player-id">
             <div class="mb-3">
-                <label class="text-muted-gm small mb-1 d-block">Prezzo richiesto (€)</label>
+                <label class="text-muted-gm small mb-1 d-block"><?= Yii::t('app', 'Asking price (€)') ?></label>
                 <input type="number" name="asking_fee" id="sell-price" min="0" step="10000"
                        class="form-control" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;border-radius:.5rem">
             </div>
             <div class="mb-4">
-                <label class="text-muted-gm small mb-1 d-block">Tipo</label>
+                <label class="text-muted-gm small mb-1 d-block"><?= Yii::t('app', 'Type') ?></label>
                 <select name="transfer_type" class="form-select" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;border-radius:.5rem">
-                    <option value="sale">Vendita</option>
-                    <option value="loan">Prestito</option>
+                    <option value="sale"><?= Yii::t('app', 'Sale') ?></option>
+                    <option value="loan"><?= Yii::t('app', 'Loan') ?></option>
                 </select>
             </div>
             <div class="d-flex gap-2">
-                <button type="submit" class="btn btn-gold fw-bold flex-grow-1">Conferma</button>
-                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('sell-modal').style.display='none'">Annulla</button>
+                <button type="submit" class="btn btn-gold fw-bold flex-grow-1"><?= Yii::t('app', 'Confirm') ?></button>
+                <button type="button" class="btn btn-outline-secondary" onclick="document.getElementById('sell-modal').style.display='none'"><?= Yii::t('app', 'Cancel') ?></button>
             </div>
         </form>
     </div>

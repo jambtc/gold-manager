@@ -18,6 +18,7 @@ declare(strict_types=1);
 /** @var array<int, array{official_credits:int, friendly_credits:int, bonus:float}> $cellHeatmap */
 
 use yii\helpers\Html;
+use app\components\CharacterTraitHelper;
 use app\components\PhysicalHelper;
 use app\components\PlayerAttributeHelper;
 use app\components\UiIconHelper;
@@ -25,7 +26,7 @@ use app\components\QuadrantHelper;
 use app\components\PitchZoneHelper;
 
 $this->title = $player->name;
-$this->params['breadcrumbs'][] = ['label' => 'Squadra', 'url' => ['/team/view']];
+$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Team'), 'url' => ['/team/view']];
 $this->params['breadcrumbs'][] = $this->title;
 
 $skillColor = fn(int $v): string => $v >= 75 ? 'var(--accent-green)' : ($v >= 50 ? 'var(--gold)' : 'var(--accent-red)');
@@ -34,9 +35,9 @@ $posColors = ['GK' => '#ea580c', 'DF' => '#2563eb', 'MF' => '#15803d', 'FW' => '
 $posColor  = $posColors[$player->position] ?? '#f59e0b';
 
 $footLabel = match ($player->foot) {
-    'R'  => 'Destro',
-    'L'  => 'Sinistro',
-    'LR' => 'Ambidestro',
+    'R'  => Yii::t('app', 'Right foot'),
+    'L'  => Yii::t('app', 'Left foot'),
+    'LR' => Yii::t('app', 'Both feet'),
     default => $player->foot,
 };
 
@@ -77,14 +78,14 @@ $trainingLogs = Yii::$app->db->createCommand(
         <div>
             <?php if (!empty($backUrl)): ?>
                 <a href="<?= Html::encode($backUrl) ?>" class="btn btn-outline-secondary btn-sm">
-                    <i class="bi bi-arrow-left me-1"></i>Indietro
+                    <i class="bi bi-arrow-left me-1"></i><?= Yii::t('app', 'Back') ?>
                 </a>
             <?php endif; ?>
         </div>
         <div class="d-flex gap-2">
             <?php if ($prevPlayerId): ?>
                 <a href="<?= Html::encode(\yii\helpers\Url::to(['/player/view', 'id' => $prevPlayerId, 'back' => $backUrl])) ?>"
-                   class="btn btn-outline-secondary btn-sm" title="Giocatore precedente">
+                   class="btn btn-outline-secondary btn-sm" title="<?= Yii::t('app', 'Previous player') ?>">
                     <i class="bi bi-chevron-left"></i>
                 </a>
             <?php else: ?>
@@ -92,7 +93,7 @@ $trainingLogs = Yii::$app->db->createCommand(
             <?php endif; ?>
             <?php if ($nextPlayerId): ?>
                 <a href="<?= Html::encode(\yii\helpers\Url::to(['/player/view', 'id' => $nextPlayerId, 'back' => $backUrl])) ?>"
-                   class="btn btn-outline-secondary btn-sm" title="Giocatore successivo">
+                   class="btn btn-outline-secondary btn-sm" title="<?= Yii::t('app', 'Next player') ?>">
                     <i class="bi bi-chevron-right"></i>
                 </a>
             <?php else: ?>
@@ -133,7 +134,7 @@ $trainingLogs = Yii::$app->db->createCommand(
             <!-- Name + badges -->
             <div class="col-md">
                 <div class="text-muted-gm small mb-1" style="letter-spacing:.05em;text-transform:uppercase">
-                    <?= Html::encode($player->team->name ?? 'Svincolato') ?>
+                    <?= Html::encode($player->team->name ?? Yii::t('app', 'Free agent')) ?>
                 </div>
                 <h1 class="fw-black mb-2" style="font-size:2rem;letter-spacing:-.03em"><?= Html::encode($player->name) ?></h1>
                 <div class="d-flex flex-wrap gap-2 align-items-center">
@@ -144,7 +145,7 @@ $trainingLogs = Yii::$app->db->createCommand(
                     <?php if (!empty($player->nationality)): ?>
                     <span style="display:inline-flex;align-items:center;gap:.35rem"><?= UiIconHelper::flagImg((string)$player->nationality, 22) ?> <span class="text-muted-gm" style="font-size:.72rem"><?= Html::encode($player->nationality) ?></span></span>
                     <?php endif; ?>
-                    <span class="text-muted-gm small"><i class="bi bi-calendar3"></i> <?= $player->age ?> anni</span>
+                    <span class="text-muted-gm small"><i class="bi bi-calendar3"></i> <?= $player->age ?> <?= Yii::t('app', 'years') ?></span>
                     <span class="text-muted-gm small" style="display:inline-flex;align-items:center;gap:.3rem">
                         <?= $playerFootIcon ?> <?= Html::encode($footLabel) ?>
                     </span>
@@ -159,7 +160,7 @@ $trainingLogs = Yii::$app->db->createCommand(
                         <span class="ms-1" style="color:<?= $pfiColor ?>;font-weight:700">BMI <?= $bmi ?></span>
                     </span>
                     <?php endif; ?>
-                    <span class="text-muted-gm small" style="font-style:italic"><?= Html::encode(ucfirst($player->character ?? '')) ?></span>
+                    <span class="text-muted-gm small" style="font-style:italic"><?= Html::encode($player->character ? CharacterTraitHelper::display((string) $player->character) : '') ?></span>
                 </div>
             </div>
 
@@ -168,7 +169,7 @@ $trainingLogs = Yii::$app->db->createCommand(
                 <div class="text-gold fw-black" style="font-size:1.6rem">
                     €<?= number_format($valuator->marketValue($player), 0, ',', '.') ?>
                 </div>
-                <div class="text-muted-gm" style="font-size:.72rem">Valore di mercato</div>
+                <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Market value') ?></div>
             </div>
         </div>
     </div>
@@ -209,7 +210,7 @@ $trainingLogs = Yii::$app->db->createCommand(
         <div class="col-lg-3">
 
             <div class="gm-card">
-                <h3 class="h5 mb-3 text-white"><i class="bi bi-bar-chart text-gold me-2"></i>Attributi</h3>
+                <h3 class="h5 mb-3 text-white"><i class="bi bi-bar-chart text-gold me-2"></i><?= Yii::t('app', 'Attributes') ?></h3>
 
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.8rem">
                     <?php foreach ($technicalAttrs as $attr):
@@ -228,16 +229,16 @@ $trainingLogs = Yii::$app->db->createCommand(
 
                 <!-- Forma / Freschezza / Condizione / XP -->
                 <div style="display:grid;grid-template-columns:1fr 1fr;gap:.5rem;margin-bottom:.8rem">
-                    <?= $pctCard('Forma',      (int) $player->form,      $formColor)  ?>
-                    <?= $pctCard('Freschezza', (int) $player->freshness, $freshColor) ?>
-                    <?= $pctCard('Condizione', (int) $player->condition, $condColor)  ?>
-                    <?= $pctCard('XP',         min(100, (int) $player->experience),  'var(--text-secondary)') ?>
+                    <?= $pctCard(Yii::t('app', 'Form'),      (int) $player->form,      $formColor)  ?>
+                    <?= $pctCard(Yii::t('app', 'Freshness'), (int) $player->freshness, $freshColor) ?>
+                    <?= $pctCard(Yii::t('app', 'Condition'), (int) $player->condition, $condColor)  ?>
+                    <?= $pctCard(Yii::t('app', 'XP'),         min(100, (int) $player->experience),  'var(--text-secondary)') ?>
                 </div>
 
                 <!-- Talenti -->
                 <?php if (!empty($playerTalents)): ?>
                     <div style="border-top:1px solid var(--border);padding-top:.7rem">
-                        <div style="font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.5rem">Talenti</div>
+                        <div style="font-size:.7rem;font-weight:800;letter-spacing:.05em;text-transform:uppercase;color:var(--text-secondary);margin-bottom:.5rem"><?= Yii::t('app', 'Talents') ?></div>
                         <div style="display:flex;flex-direction:column;gap:.4rem">
                             <?php foreach ($playerTalents as $talent):
                                 $tc = (string) $talent['code'];
@@ -266,13 +267,13 @@ $trainingLogs = Yii::$app->db->createCommand(
         <!-- ── COL 6: Esperienza in campo ──────────────────────────────── -->
         <div class="col-lg-6">
             <div class="gm-card h-100">
-                <h3 class="h5 mb-3 text-white"><i class="bi bi-map text-gold me-2"></i>Esperienza in campo</h3>
+                <h3 class="h5 mb-3 text-white"><i class="bi bi-map text-gold me-2"></i><?= Yii::t('app', 'Field experience') ?></h3>
 
                 <div class="d-flex align-items-center justify-content-center gap-2 mb-1"
                     style="font-size:.7rem;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase">
                     <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                     <i class="bi bi-arrow-up-circle" style="color:var(--accent-red)"></i>
-                    <span style="color:var(--accent-red)">ATTACCO</span>
+                    <span style="color:var(--accent-red)"><?= Yii::t('app', 'ATTACK') ?></span>
                     <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                 </div>
 
@@ -344,12 +345,12 @@ $trainingLogs = Yii::$app->db->createCommand(
                     style="font-size:.7rem;color:rgba(255,255,255,.45);letter-spacing:.08em;text-transform:uppercase">
                     <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                     <i class="bi bi-shield-fill" style="color:var(--accent-blue)"></i>
-                    <span style="color:var(--accent-blue)">DIFESA</span>
+                    <span style="color:var(--accent-blue)"><?= Yii::t('app', 'DEFENCE') ?></span>
                     <span style="flex:1;height:1px;background:rgba(255,255,255,.1)"></span>
                 </div>
 
                 <p class="text-center text-muted-gm mt-2 mb-0" style="font-size:.65rem">
-                    Valore = base overall + exp quadrante (max +10) + exp cella (max +3) · hover per dettaglio
+                    <?= Yii::t('app', 'Value = base overall + quadrant exp (max +10) + cell exp (max +3) · hover for detail') ?>
                 </p>
             </div>
         </div>
@@ -358,33 +359,33 @@ $trainingLogs = Yii::$app->db->createCommand(
         <div class="col-lg-3 d-flex flex-column gap-4">
 
             <div class="gm-card">
-                <h3 class="h5 mb-3 text-white"><i class="bi bi-person-badge text-gold me-2"></i>Info</h3>
+                <h3 class="h5 mb-3 text-white"><i class="bi bi-person-badge text-gold me-2"></i><?= Yii::t('app', 'Info') ?></h3>
                 <ul class="attribute-list">
-                    <li><span class="text-muted-gm">Maglia</span> <span class="fw-bold">#<?= $player->number ?></span></li>
-                    <li><span class="text-muted-gm">Piede</span> <span class="fw-bold" style="display:inline-flex;align-items:center;gap:.3rem"><?= $playerFootIcon ?> <?= Html::encode($footLabel) ?></span></li>
-                    <li><span class="text-muted-gm">Età</span> <span class="fw-bold"><?= $player->age ?> anni</span></li>
-                    <li><span class="text-muted-gm">Carattere</span> <span class="fw-bold" style="font-style:italic"><?= Html::encode(ucfirst($player->character ?? '—')) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Kit') ?></span> <span class="fw-bold">#<?= $player->number ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Foot') ?></span> <span class="fw-bold" style="display:inline-flex;align-items:center;gap:.3rem"><?= $playerFootIcon ?> <?= Html::encode($footLabel) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Age') ?></span> <span class="fw-bold"><?= $player->age ?> <?= Yii::t('app', 'years') ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Character') ?></span> <span class="fw-bold" style="font-style:italic"><?= Html::encode($player->character ? CharacterTraitHelper::display((string) $player->character) : '—') ?></span></li>
                     <?php if (($player->injury_weeks ?? 0) > 0): ?>
                         <li>
-                            <span class="text-muted-gm">Infortunio</span>
+                            <span class="text-muted-gm"><?= Yii::t('app', 'Injury') ?></span>
                             <span class="fw-bold" style="color:#fca5a5">
                                 <?= match ($player->injury_type) {
-                                    'lieve' => '🏥 Lieve',
-                                    'medio' => '🩹 Medio',
-                                    'grave' => '🚑 Grave',
+                                    'lieve' => '🏥 ' . Yii::t('app', 'Minor'),
+                                    'medio' => '🩹 ' . Yii::t('app', 'Medium'),
+                                    'grave' => '🚑 ' . Yii::t('app', 'Serious'),
                                     default => '🏥'
                                 } ?>
-                                — <?= $player->injury_weeks ?> sett.
+                                — <?= $player->injury_weeks ?> <?= Yii::t('app', 'wk.') ?>
                             </span>
                         </li>
                     <?php endif; ?>
                     <li>
-                        <span class="text-muted-gm">Cartellini</span>
+                        <span class="text-muted-gm"><?= Yii::t('app', 'Cards') ?></span>
                         <span class="fw-bold">
                             🟨 <?= (int)($player->yellow_cards ?? 0) ?>
                             &nbsp;🟥 <?= (int)($player->red_cards ?? 0) ?>
                             <?php if (($player->suspended_matches ?? 0) > 0): ?>
-                                &nbsp;<span style="color:#f87171;font-size:.78rem">🚫 <?= $player->suspended_matches ?>g</span>
+                                &nbsp;<span style="color:#f87171;font-size:.78rem">🚫 <?= $player->suspended_matches ?><?= Yii::t('app', 'd') ?></span>
                             <?php endif; ?>
                         </span>
                     </li>
@@ -392,22 +393,22 @@ $trainingLogs = Yii::$app->db->createCommand(
             </div>
 
             <div class="gm-card">
-                <h3 class="h5 mb-3 text-white"><i class="bi bi-graph-up text-gold me-2"></i>Stagione <?= $season ?></h3>
+                <h3 class="h5 mb-3 text-white"><i class="bi bi-graph-up text-gold me-2"></i><?= Yii::t('app', 'Season') ?> <?= $season ?></h3>
                 <ul class="attribute-list">
-                    <li><span class="text-muted-gm">Partite</span> <span class="fw-bold"><?= (int)($seasonStats['matches'] ?? 0) ?></span></li>
-                    <li><span class="text-muted-gm">Minuti</span> <span class="fw-bold"><?= (int)($seasonStats['minutes_played'] ?? 0) ?></span></li>
-                    <li><span class="text-muted-gm">Gol / Assist</span> <span class="fw-bold text-gold"><?= (int)($seasonStats['goals'] ?? 0) ?> / <?= (int)($seasonStats['assists'] ?? 0) ?></span></li>
-                    <li><span class="text-muted-gm">Cartellini</span> <span class="fw-bold">🟨 <?= (int)($seasonStats['yellow_cards'] ?? 0) ?> · 🟥 <?= (int)($seasonStats['red_cards'] ?? 0) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Matches') ?></span> <span class="fw-bold"><?= (int)($seasonStats['matches'] ?? 0) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Minutes') ?></span> <span class="fw-bold"><?= (int)($seasonStats['minutes_played'] ?? 0) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Goals / Assists') ?></span> <span class="fw-bold text-gold"><?= (int)($seasonStats['goals'] ?? 0) ?> / <?= (int)($seasonStats['assists'] ?? 0) ?></span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Cards') ?></span> <span class="fw-bold">🟨 <?= (int)($seasonStats['yellow_cards'] ?? 0) ?> · 🟥 <?= (int)($seasonStats['red_cards'] ?? 0) ?></span></li>
                     <?php if ($player->position === 'GK'): ?>
-                        <li><span class="text-muted-gm">Parate / CS</span> <span class="fw-bold"><?= (int)($seasonStats['saves'] ?? 0) ?> / <?= (int)($seasonStats['clean_sheets'] ?? 0) ?></span></li>
+                        <li><span class="text-muted-gm"><?= Yii::t('app', 'Saves / CS') ?></span> <span class="fw-bold"><?= (int)($seasonStats['saves'] ?? 0) ?> / <?= (int)($seasonStats['clean_sheets'] ?? 0) ?></span></li>
                     <?php endif; ?>
                 </ul>
             </div>
 
             <div class="gm-card">
-                <h3 class="h5 mb-3 text-white"><i class="bi bi-activity text-gold me-2"></i>Allenamento</h3>
+                <h3 class="h5 mb-3 text-white"><i class="bi bi-activity text-gold me-2"></i><?= Yii::t('app', 'Training') ?></h3>
                 <?php if (empty($trainingLogs)): ?>
-                    <p class="text-muted-gm small mb-0">Nessun log disponibile.</p>
+                    <p class="text-muted-gm small mb-0"><?= Yii::t('app', 'No logs available.') ?></p>
                 <?php else: ?>
                     <?php
                     // Build chart data: group by stat, oldest→newest
@@ -523,38 +524,38 @@ $trainingLogs = Yii::$app->db->createCommand(
             </div>
 
             <div class="gm-card">
-                <h3 class="h5 mb-3 text-white"><i class="bi bi-file-earmark-text text-gold me-2"></i>Contratto</h3>
+                <h3 class="h5 mb-3 text-white"><i class="bi bi-file-earmark-text text-gold me-2"></i><?= Yii::t('app', 'Contract') ?></h3>
                 <?php if ($contract): ?>
                     <ul class="attribute-list mb-3">
-                        <li><span class="text-muted-gm">Stipendio</span> <span class="fw-bold">€<?= number_format($contract->salary, 0, ',', '.') ?>/st.</span></li>
-                        <li><span class="text-muted-gm">Scadenza</span> <span class="fw-bold">St. <?= $contract->season_end ?></span></li>
+                        <li><span class="text-muted-gm"><?= Yii::t('app', 'Wage') ?></span> <span class="fw-bold">€<?= number_format($contract->salary, 0, ',', '.') ?>/<?= Yii::t('app', 'wk.') ?></span></li>
+                        <li><span class="text-muted-gm"><?= Yii::t('app', 'Expiry') ?></span> <span class="fw-bold"><?= Yii::t('app', 'Wk.') ?> <?= $contract->season_end ?></span></li>
                         <li>
-                            <span class="text-muted-gm">Clausola</span>
-                            <span class="text-gold fw-bold"><?= $contract->release_clause ? '€' . number_format($contract->release_clause, 0, ',', '.') : 'Nessuna' ?></span>
+                            <span class="text-muted-gm"><?= Yii::t('app', 'Release clause') ?></span>
+                            <span class="text-gold fw-bold"><?= $contract->release_clause ? '€' . number_format($contract->release_clause, 0, ',', '.') : Yii::t('app', 'None') ?></span>
                         </li>
                     </ul>
                     <?php if ($isMyPlayer): ?>
-                        <?= Html::a('Rinnova contratto', ['#'], ['class' => 'btn btn-outline-gold w-100 btn-sm']) ?>
+                        <?= Html::a(Yii::t('app', 'Renew contract'), ['#'], ['class' => 'btn btn-outline-gold w-100 btn-sm']) ?>
                     <?php endif; ?>
                 <?php else: ?>
-                    <p class="text-muted-gm small">Nessun contratto attivo.</p>
+                    <p class="text-muted-gm small"><?= Yii::t('app', 'No active contract.') ?></p>
                     <?php if ($isMyPlayer): ?>
-                        <?= Html::a('Offri contratto', ['#'], ['class' => 'btn btn-gold w-100 btn-sm']) ?>
+                        <?= Html::a(Yii::t('app', 'Offer contract'), ['#'], ['class' => 'btn btn-gold w-100 btn-sm']) ?>
                     <?php endif; ?>
                 <?php endif; ?>
             </div>
 
             <?php if (!$isMyPlayer): ?>
                 <div class="gm-card">
-                    <h3 class="h5 mb-3 text-white"><i class="bi bi-shop text-gold me-2"></i>Acquisto</h3>
+                    <h3 class="h5 mb-3 text-white"><i class="bi bi-shop text-gold me-2"></i><?= Yii::t('app', 'Purchase') ?></h3>
                     <ul class="attribute-list mb-3">
                         <li>
-                            <span class="text-muted-gm">Valore</span>
+                            <span class="text-muted-gm"><?= Yii::t('app', 'Value') ?></span>
                             <span class="text-gold fw-bold">€<?= number_format($valuator->marketValue($player), 0, ',', '.') ?></span>
                         </li>
                         <?php if ($activeTransfer): ?>
-                            <li><span class="text-muted-gm">Prezzo</span> <span class="fw-bold text-white">€<?= number_format((int)($activeTransfer->asking_fee ?: $activeTransfer->fee), 0, ',', '.') ?></span></li>
-                            <li><span class="text-muted-gm">Tipo</span> <span class="fw-bold"><?= $activeTransfer->transfer_type === 'loan' ? 'Prestito' : 'Vendita' ?></span></li>
+                            <li><span class="text-muted-gm"><?= Yii::t('app', 'Price') ?></span> <span class="fw-bold text-white">€<?= number_format((int)($activeTransfer->asking_fee ?: $activeTransfer->fee), 0, ',', '.') ?></span></li>
+                            <li><span class="text-muted-gm"><?= Yii::t('app', 'Type') ?></span> <span class="fw-bold"><?= $activeTransfer->transfer_type === 'loan' ? Yii::t('app', 'Loan') : Yii::t('app', 'Sale') ?></span></li>
                         <?php endif; ?>
                     </ul>
                     <?php if ($activeTransfer): ?>
@@ -564,12 +565,12 @@ $trainingLogs = Yii::$app->db->createCommand(
                             min="1" step="10000"
                             style="flex:1;background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;border-radius:.5rem;padding:.4rem .6rem;font-size:.85rem">
                         <button type="submit" class="btn btn-gold btn-sm px-3">
-                            <i class="bi bi-cart-plus me-1"></i>Offerta
+                            <i class="bi bi-cart-plus me-1"></i><?= Yii::t('app', 'Offer') ?>
                         </button>
                         <?= Html::endForm() ?>
                     <?php else: ?>
-                        <p class="text-muted-gm small mb-3">Non in vendita.</p>
-                        <?= Html::a('<i class="bi bi-shop"></i> Mercato', ['/transfer/market'], ['class' => 'btn btn-outline-secondary w-100 btn-sm', 'encode' => false]) ?>
+                        <p class="text-muted-gm small mb-3"><?= Yii::t('app', 'Not for sale.') ?></p>
+                        <?= Html::a('<i class="bi bi-shop"></i> ' . Yii::t('app', 'Market'), ['/transfer/market'], ['class' => 'btn btn-outline-secondary w-100 btn-sm', 'encode' => false]) ?>
                     <?php endif; ?>
                 </div>
             <?php endif; ?>

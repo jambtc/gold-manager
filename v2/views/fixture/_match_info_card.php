@@ -18,19 +18,19 @@ $showLiveDebugControls = isset($showLiveDebugControls) ? (bool) $showLiveDebugCo
     </h6>
     <ul class="attribute-list" style="font-size:.75rem">
         <li>
-            <span class="text-muted-gm">Stadio</span>
-            <span class="text-white" style="font-size:.72rem"><?= \yii\helpers\Html::encode($fixture->homeTeam->stadium?->name ?? 'Stadio Comunale') ?></span>
+            <span class="text-muted-gm"><?= Yii::t('app', 'Stadium') ?></span>
+            <span class="text-white" style="font-size:.72rem"><?= \yii\helpers\Html::encode($fixture->homeTeam->stadium?->name ?? Yii::t('app', 'Municipal Stadium')) ?></span>
         </li>
         <li>
-            <span class="text-muted-gm">Competizione</span>
+            <span class="text-muted-gm"><?= Yii::t('app', 'Competition') ?></span>
             <span class="text-gold" style="font-size:.72rem"><?= \yii\helpers\Html::encode($fixture->competition->name) ?></span>
         </li>
         <li>
-            <span class="text-muted-gm">Meteo</span>
+            <span class="text-muted-gm"><?= Yii::t('app', 'Weather') ?></span>
             <span id="info-weather" class="text-white" style="font-size:.72rem"><?= \yii\helpers\Html::encode($weatherLabel) ?></span>
         </li>
         <li>
-            <span class="text-muted-gm">Spettatori</span>
+            <span class="text-muted-gm"><?= Yii::t('app', 'Spectators') ?></span>
             <span id="info-spectators" class="text-white" style="font-size:.72rem"><?= \yii\helpers\Html::encode($spectatorsLabel) ?></span>
         </li>
     </ul>

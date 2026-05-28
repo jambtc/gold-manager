@@ -24,11 +24,11 @@ $decode = function (array $job): string {
         <thead>
             <tr>
                 <th style="width:4rem">ID</th>
-                <th>Tipo job</th>
-                <th class="text-center">Tentativo</th>
-                <th>Aggiunto</th>
+                <th><?= Yii::t('app', 'Job type') ?></th>
+                <th class="text-center"><?= Yii::t('app', 'Attempt') ?></th>
+                <th><?= Yii::t('app', 'Added') ?></th>
                 <th>TTR</th>
-                <th>Ritardo</th>
+                <th><?= Yii::t('app', 'Delay') ?></th>
             </tr>
         </thead>
         <tbody>

@@ -19,8 +19,8 @@ use app\components\FixtureViewHelper;
 use app\components\PitchZoneHelper;
 
 $this->title = $fixture->homeTeam->name . ' vs ' . $fixture->awayTeam->name . ' — Replay';
-$this->params['breadcrumbs'][] = ['label' => 'Calendario', 'url' => ['index']];
-$this->params['breadcrumbs'][] = 'Replay';
+$this->params['breadcrumbs'][] = ['label' => Yii::t('app', 'Calendar'), 'url' => ['index']];
+$this->params['breadcrumbs'][] = Yii::t('app', 'Replay');
 FixtureReplayAsset::register($this);
 
 $this->registerJsFile('https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js');
@@ -106,8 +106,8 @@ foreach ($existingEvents as $seedEvent) {
     $initialSpectators = isset($seedDetail['spectators']) ? (int) $seedDetail['spectators'] : null;
     break;
 }
-$weatherLabel = $initialWeather ?: 'In aggiornamento…';
-$fieldLabel = $initialFieldCondition ?: 'In aggiornamento…';
+$weatherLabel = $initialWeather ?: Yii::t('app', 'Updating…');
+$fieldLabel = $initialFieldCondition ?: Yii::t('app', 'Updating…');
 $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectators, 0, ',', '.') : '—';
 
 
@@ -119,7 +119,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
     <div class="gm-card py-3 px-4 mb-4 d-flex align-items-center justify-content-between flex-wrap gap-3">
         <div class="d-flex align-items-center gap-3">
             <button id="btn-play" class="btn btn-gold fw-bold px-4">
-                <i class="bi bi-play-fill me-1"></i>Avvia
+                <i class="bi bi-play-fill me-1"></i><?= Yii::t('app', 'Start') ?>
             </button>
             <button id="btn-pause" class="btn btn-outline-secondary px-3" disabled>
                 <i class="bi bi-pause-fill"></i>
@@ -130,7 +130,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
         </div>
 
         <div class="d-flex align-items-center gap-2">
-            <span class="text-muted-gm small">Velocità:</span>
+            <span class="text-muted-gm small"><?= Yii::t('app', 'Speed:') ?></span>
             <?php foreach ([['1×', 1000], ['2×', 500], ['5×', 200], ['10×', 100]] as [$lbl, $ms]): ?>
                 <button
                     class="btn btn-sm speed-btn <?= $ms === 1000 ? 'btn-gold' : 'btn-outline-secondary' ?>"
@@ -140,7 +140,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
         </div>
 
         <div class="text-muted-gm small">
-            Risultato finale:
+            <?= Yii::t('app', 'Final result:') ?>
             <strong class="text-gold"><?= $homeScore ?>–<?= $awayScore ?></strong>
         </div>
     </div>
@@ -163,7 +163,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                             <div class="col-5">
                                 <div class="text-end">
                                     <div class="team-name-live text-white mb-1"><?= Html::encode($fixture->homeTeam->name) ?></div>
-                                    <div class="text-muted-gm" style="font-size:.68rem;letter-spacing:.04em">CASA</div>
+                                    <div class="text-muted-gm" style="font-size:.68rem;letter-spacing:.04em"><?= Yii::t('app', 'HOME') ?></div>
                                     <div class="mt-1 team-dept-stats" style="margin-left:auto">
                                         <?= FixtureViewHelper::renderStrengthBar('DIF', (int)$homeStrength['def']) ?>
                                         <?= FixtureViewHelper::renderStrengthBar('CEN', (int)$homeStrength['mid']) ?>
@@ -185,7 +185,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                             <div class="col-5">
                                 <div class="text-start">
                                     <div class="team-name-live text-white mb-1" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"><?= Html::encode($fixture->awayTeam->name) ?></div>
-                                    <div class=" text-muted-gm" style="font-size:.68rem;letter-spacing:.04em">TRASFERTA</div>
+                                    <div class=" text-muted-gm" style="font-size:.68rem;letter-spacing:.04em"><?= Yii::t('app', 'AWAY') ?></div>
                                     <div class="mt-1 team-dept-stats">
                                         <?= FixtureViewHelper::renderStrengthBar('DIF', (int)$awayStrength['def']) ?>
                                         <?= FixtureViewHelper::renderStrengthBar('CEN', (int)$awayStrength['mid']) ?>
@@ -209,7 +209,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                             <div style="text-align:center;font-size:.7rem;color:var(--text-secondary);margin-top:.3rem;letter-spacing:.04em">
                                 <i class="bi bi-clock me-1"></i><?= date('H:i', $fixture->match_date) ?>
                                 <?php if ($fixture->match_date > time()): ?>
-                                    — tra <?= max(0, (int)(($fixture->match_date - time()) / 60)) ?> min
+                                    — <?= Yii::t('app', 'in') ?> <?= max(0, (int)(($fixture->match_date - time()) / 60)) ?> <?= Yii::t('app', 'min') ?>
                                 <?php endif; ?>
                             </div>
                         <?php endif; ?>
@@ -236,12 +236,12 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
         <div class="col-lg-4">
             <div class="gm-card h-100">
                 <h3 class="h5 mb-3 text-white">
-                    <i class="bi bi-chat-left-text text-gold me-2"></i>Cronaca
+                    <i class="bi bi-chat-left-text text-gold me-2"></i><?= Yii::t('app', 'Commentary') ?>
                 </h3>
                 <div class="event-log" id="event-log" style="min-height:300px">
                     <div id="no-events-msg" class="text-center py-5 text-muted-gm">
                         <i class="bi bi-play-circle d-block fs-1 mb-2 opacity-25"></i>
-                        Premi Avvia per iniziare il replay
+                        <?= Yii::t('app', 'Press Start to begin the replay') ?>
                     </div>
                 </div>
             </div>
@@ -254,17 +254,17 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
 
         <div class="col-lg-3 d-flex flex-column gap-3">
             <div class="gm-card">
-                <h3 class="h5 mb-3 text-white"><i class="bi bi-pie-chart text-gold me-2"></i>Statistiche</h3>
+                <h3 class="h5 mb-3 text-white"><i class="bi bi-pie-chart text-gold me-2"></i><?= Yii::t('app', 'Statistics') ?></h3>
                 <ul class="attribute-list">
-                    <li><span class="text-muted-gm">Gol casa</span> <span id="stat-home-goals" class="text-white fw-bold">0</span></li>
-                    <li><span class="text-muted-gm">Gol trasferta</span> <span id="stat-away-goals" class="text-white fw-bold">0</span></li>
-                    <li><span class="text-muted-gm">Parate</span> <span id="stat-saves" class="text-white">0</span></li>
-                    <li><span class="text-muted-gm">Tiri fuori</span> <span id="stat-near" class="text-white">0</span></li>
-                    <li><span class="text-muted-gm">Minuto</span> <span id="stat-minute" class="text-muted-gm">—</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Home goals') ?></span> <span id="stat-home-goals" class="text-white fw-bold">0</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Away goals') ?></span> <span id="stat-away-goals" class="text-white fw-bold">0</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Saves') ?></span> <span id="stat-saves" class="text-white">0</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Shots off target') ?></span> <span id="stat-near" class="text-white">0</span></li>
+                    <li><span class="text-muted-gm"><?= Yii::t('app', 'Minute') ?></span> <span id="stat-minute" class="text-muted-gm">—</span></li>
                 </ul>
             </div>
             <div>
-                <?= Html::a('<i class="bi bi-file-earmark-text me-1"></i>Vai al report', ['/fixture/view', 'id' => $fixture->id], ['class' => 'btn btn-outline-gold w-100', 'encode' => false]) ?>
+                <?= Html::a('<i class="bi bi-file-earmark-text me-1"></i>' . Yii::t('app', 'Go to report'), ['/fixture/view', 'id' => $fixture->id], ['class' => 'btn btn-outline-gold w-100', 'encode' => false]) ?>
             </div>
         </div>
     </div>

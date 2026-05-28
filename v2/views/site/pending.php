@@ -4,7 +4,7 @@
 
 use yii\helpers\Url;
 
-$this->title = 'Preparazione squadra in corso…';
+$this->title = Yii::t('app', 'Preparing team…');
 $statusUrl   = Url::to(['/api/v1/user/status']);
 $homeUrl     = Url::to(['/site/index']);
 ?>
@@ -27,10 +27,10 @@ $homeUrl     = Url::to(['/site/index']);
             </div>
         </div>
 
-        <h2 class="fw-black text-white mb-2">La tua squadra sta nascendo</h2>
+        <h2 class="fw-black text-white mb-2"><?= Yii::t('app', 'Your team is being created') ?></h2>
         <p class="text-muted-gm mb-4" style="font-size:.92rem">
-            Stiamo generando il mondo di gioco, le squadre, i giocatori e il calendario.<br>
-            Ci vorrà solo qualche secondo.
+            <?= Yii::t('app', 'We are generating the game world, teams, players and calendar.') ?><br>
+            <?= Yii::t('app', 'It will only take a few seconds.') ?>
         </p>
 
         <!-- Progress bar -->
@@ -45,13 +45,13 @@ $homeUrl     = Url::to(['/site/index']);
             "></div>
         </div>
 
-        <p class="text-muted-gm small" id="status-text">Inizializzazione…</p>
+        <p class="text-muted-gm small" id="status-text"><?= Yii::t('app', 'Initialising…') ?></p>
 
         <!-- Error state (hidden by default) -->
         <div id="error-box" style="display:none" class="mt-3">
             <div class="gm-card p-3" style="border-color:rgba(239,68,68,.4);background:rgba(239,68,68,.08)">
-                <p class="text-danger small mb-2">Si è verificato un errore durante la generazione.</p>
-                <a href="<?= Url::to(['/site/login']) ?>" class="btn btn-outline-danger btn-sm">Torna al login</a>
+                <p class="text-danger small mb-2"><?= Yii::t('app', 'An error occurred during generation.') ?></p>
+                <a href="<?= Url::to(['/site/login']) ?>" class="btn btn-outline-danger btn-sm"><?= Yii::t('app', 'Back to login') ?></a>
             </div>
         </div>
 

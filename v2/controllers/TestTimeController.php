@@ -49,7 +49,7 @@ class TestTimeController extends Controller
         $cache = Yii::$app->cache;
         $lockAcquired = $cache->add(self::LOCK_KEY, (string) time(), 60);
         if (!$lockAcquired) {
-            Yii::$app->session->setFlash('warning', 'Operazione già in corso. Riprova tra pochi secondi.');
+            Yii::$app->session->setFlash('warning', Yii::t('app', 'Operation already in progress. Retry in a few seconds.'));
             return $this->redirectBack();
         }
 
@@ -59,7 +59,7 @@ class TestTimeController extends Controller
                 ->count();
 
             if ($liveFixtures > 0) {
-                Yii::$app->session->setFlash('error', "Bloccato: {$liveFixtures} partita/e live in corso.");
+                Yii::$app->session->setFlash('error', Yii::t('app', 'Locked: {count} live match(es) in progress.', ['{count}' => $liveFixtures]));
                 return $this->redirectBack();
             }
 
@@ -114,10 +114,14 @@ class TestTimeController extends Controller
 
             Yii::$app->session->setFlash(
                 'success',
-                "Test time +1 giorno completato. Fixture spostate: {$shifted}. Due prima: {$dueBefore}, due ora: {$dueAfter}."
+                Yii::t('app', 'Test time +1 day completed. Fixtures moved: {shifted}. Two before: {before}, two now: {after}.', [
+                    '{shifted}' => $shifted,
+                    '{before}'  => $dueBefore,
+                    '{after}'   => $dueAfter,
+                ])
             );
         } catch (\Throwable $e) {
-            Yii::$app->session->setFlash('error', 'Advance day fallito: ' . $e->getMessage());
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Advance day failed: {message}', ['{message}' => $e->getMessage()]));
         } finally {
             $cache->delete(self::LOCK_KEY);
         }

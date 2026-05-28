@@ -10,14 +10,14 @@
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Generazione swagger.json';
+$this->title = Yii::t('app', 'Generating swagger.json');
 ?>
 <div style="max-width:980px;margin:24px auto;padding:0 12px;">
     <h2 style="margin-bottom:14px;"><?= Html::encode($this->title) ?></h2>
 
     <?php if ($ok): ?>
         <div style="padding:10px 12px;border:1px solid #166534;background:#052e16;color:#bbf7d0;border-radius:8px;margin-bottom:12px;">
-            File creato con successo.
+            <?= Yii::t('app', 'File created successfully.') ?>
         </div>
     <?php endif; ?>
 
@@ -35,7 +35,7 @@ $this->title = 'Generazione swagger.json';
 
     <div style="margin-top:16px;">
         <a href="<?= Url::to(['/swagger/index']) ?>" style="display:inline-block;padding:8px 12px;border:1px solid #334155;border-radius:8px;text-decoration:none;color:#e2e8f0;">
-            Apri Swagger UI
+            <?= Yii::t('app', 'Open Swagger UI') ?>
         </a>
     </div>
 </div>

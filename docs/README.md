@@ -38,6 +38,17 @@ chmod +x .githooks/pre-push v2/scripts/check-engine-parity-pre-push.sh
 git config core.hooksPath .githooks
 ```
 
+## i18n source-string rule (mandatory)
+
+All user-facing text must be written using `Yii::t('app', 'English source text')`.
+
+Required conventions:
+
+- Source text inside `Yii::t` must be **English**.
+- Do not hardcode Italian (or other locale) strings directly in controllers/views/js templates.
+- Translations must be stored in locale catalogues (e.g. `v2/messages/it-IT/app.php`).
+- New/edited UI messages must keep placeholders named (e.g. `{name}`, `{amount}`) and consistent across locales.
+
 ## SIP index
 
 | SIP | Title | Status |

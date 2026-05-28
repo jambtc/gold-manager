@@ -13,17 +13,17 @@ use app\models\Staff;
 use app\components\UiIconHelper;
 use yii\helpers\Html;
 
-$this->title = 'Gestione Staff';
+$this->title = Yii::t('app', 'Staff Management');
 $this->params['breadcrumbs'][] = $this->title;
 
 $roleLabel = static function (string $role): string {
     return match ($role) {
-        Staff::ROLE_HEAD_COACH => 'Allenatore',
-        Staff::ROLE_ASSISTANT_COACH => 'Vice',
-        Staff::ROLE_GOALKEEPING_COACH => 'All. Portieri',
-        Staff::ROLE_DOCTOR => 'Medico',
-        Staff::ROLE_FITNESS_COACH => 'Fisioterapista',
-        Staff::ROLE_SCOUT => 'Scout',
+        Staff::ROLE_HEAD_COACH => Yii::t('app', 'Coach'),
+        Staff::ROLE_ASSISTANT_COACH => Yii::t('app', 'Deputy'),
+        Staff::ROLE_GOALKEEPING_COACH => Yii::t('app', 'GK Coach'),
+        Staff::ROLE_DOCTOR => Yii::t('app', 'Doctor'),
+        Staff::ROLE_FITNESS_COACH => Yii::t('app', 'Physiotherapist'),
+        Staff::ROLE_SCOUT => Yii::t('app', 'Scout'),
         default => $role,
     };
 };
@@ -52,10 +52,10 @@ $orderedRoles = [
     <div class="d-flex align-items-center justify-content-between mb-4">
         <div>
             <h1 class="mb-0"><?= Html::encode($this->title) ?></h1>
-            <p class="text-muted-gm mb-0">Contratta, assumi, rinnova e gestisci il tuo staff.</p>
+            <p class="text-muted-gm mb-0"><?= Yii::t('app', 'Negotiate, hire, renew and manage your staff.') ?></p>
         </div>
         <div class="text-end">
-            <small class="d-block text-muted-gm">Stipendi staff / stagione</small>
+            <small class="d-block text-muted-gm"><?= Yii::t('app', 'Staff wages / season') ?></small>
             <span class="h4 text-gold">€<?= number_format($staffWages, 0, ',', '.') ?></span>
         </div>
     </div>
@@ -63,17 +63,17 @@ $orderedRoles = [
     <ul class="nav nav-tabs mb-4" id="staffTabs" role="tablist">
         <li class="nav-item" role="presentation">
             <button class="nav-link active" id="current-tab" data-bs-toggle="tab" data-bs-target="#current" type="button" role="tab">
-                Staff Corrente
+                <?= Yii::t('app', 'Current Staff') ?>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="market-tab" data-bs-toggle="tab" data-bs-target="#market" type="button" role="tab">
-                Mercato Staff
+                <?= Yii::t('app', 'Staff Market') ?>
             </button>
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link" id="history-tab" data-bs-toggle="tab" data-bs-target="#history" type="button" role="tab">
-                Storico
+                <?= Yii::t('app', 'History') ?>
             </button>
         </li>
     </ul>
@@ -95,38 +95,38 @@ $orderedRoles = [
                                     <div class="text-muted-gm small">
                                         <?php if ($member): ?>
                                             <?php if (!empty($member->nationality)): ?><?= UiIconHelper::flagImg((string)$member->nationality, 14) ?> <?php endif; ?><?= Html::encode((string) $member->name) ?>
-                                        <?php else: ?>Nessuno<?php endif; ?>
+                                        <?php else: ?><?= Yii::t('app', 'None') ?><?php endif; ?>
                                     </div>
                                 </div>
                                 <div class="text-end">
                                     <?php if ($member): ?>
-                                        <div class="text-gold fw-bold">Eff. <?= (int) $member->efficiency ?></div>
-                                        <div class="text-muted-gm" style="font-size:.72rem">Fine: S<?= (int) $member->contract_ends ?></div>
+                                        <div class="text-gold fw-bold"><?= Yii::t('app', 'Eff.') ?> <?= (int) $member->efficiency ?></div>
+                                        <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'End') ?>: S<?= (int) $member->contract_ends ?></div>
                                     <?php else: ?>
-                                        <div class="text-muted-gm small">Nessun contratto</div>
+                                        <div class="text-muted-gm small"><?= Yii::t('app', 'No contract') ?></div>
                                     <?php endif; ?>
                                 </div>
                             </div>
                             <?php if ($member): ?>
                                 <div class="small text-muted-gm mb-3">
-                                    Abilità <?= (int) $member->ability ?> · Motivazione <?= (int) $member->motivation ?> · Esperienza <?= (int) $member->experience ?>
+                                    <?= Yii::t('app', 'Skills') ?> <?= (int) $member->ability ?> · <?= Yii::t('app', 'Motivation') ?> <?= (int) $member->motivation ?> · <?= Yii::t('app', 'Experience') ?> <?= (int) $member->experience ?>
                                 </div>
                                 <div class="d-flex justify-content-between align-items-center">
                                     <div class="small">
-                                        <span class="text-muted-gm">Stipendio:</span>
+                                        <span class="text-muted-gm"><?= Yii::t('app', 'Wage') ?>:</span>
                                         <span class="text-white fw-bold">€<?= number_format((int) $member->salary, 0, ',', '.') ?></span>
                                     </div>
                                     <?= Html::beginForm(['/staff/fire', 'id' => $member->id], 'post', ['class' => 'd-inline']) ?>
                                         <button type="submit"
                                                 class="btn btn-outline-danger btn-sm"
-                                                data-confirm="Licenziare <?= Html::encode((string) $member->name) ?>? (Indennizzo: 1 settimana)">
-                                            Licenzia
+                                                data-confirm="<?= Yii::t('app', 'Dismiss') ?> <?= Html::encode((string) $member->name) ?>? (<?= Yii::t('app', 'Severance: 1 week') ?>)">
+                                            <?= Yii::t('app', 'Fire') ?>
                                         </button>
                                     <?= Html::endForm() ?>
                                 </div>
                             <?php else: ?>
-                                <div class="text-muted-gm small mb-3">Assegna un <?= strtolower($roleLabel($role)) ?> dal mercato.</div>
-                                <a class="btn btn-outline-gold btn-sm" data-bs-toggle="tab" href="#market" role="tab">Vai al mercato</a>
+                                <div class="text-muted-gm small mb-3"><?= Yii::t('app', 'Assign a') ?> <?= strtolower($roleLabel($role)) ?> <?= Yii::t('app', 'from the market') ?>.</div>
+                                <a class="btn btn-outline-gold btn-sm" href="#" onclick="document.getElementById('market-tab').click();return false;"><?= Yii::t('app', 'Go to market') ?></a>
                             <?php endif; ?>
                         </div>
                     </div>
@@ -136,23 +136,23 @@ $orderedRoles = [
 
         <div class="tab-pane fade" id="market" role="tabpanel" aria-labelledby="market-tab">
             <?php if (empty($market)): ?>
-                <div class="gm-card text-muted-gm">Nessun candidato disponibile.</div>
+                <div class="gm-card text-muted-gm"><?= Yii::t('app', 'No candidates available.') ?></div>
             <?php else: ?>
                 <div class="gm-card p-0 overflow-hidden">
                     <div class="table-responsive">
                         <table class="table-gm w-100 mb-0">
                             <thead>
                                 <tr data-expire-lock="order">
-                                    <th>Candidato</th>
-                                    <th>Ruolo</th>
-                                    <th class="text-center">Ab</th>
-                                    <th class="text-center">Exp</th>
-                                    <th class="text-center">Mot</th>
-                                    <th class="text-center">Eff.</th>
-                                    <th class="text-center">Stag.</th>
-                                    <th>Scadenza</th>
-                                    <th class="text-end">Richiesta</th>
-                                    <th class="text-end">Azioni</th>
+                                    <th><?= Yii::t('app', 'Candidate') ?></th>
+                                    <th><?= Yii::t('app', 'Role') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Ab') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Exp') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Mot') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Eff.') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Sea.') ?></th>
+                                    <th><?= Yii::t('app', 'Expiry') ?></th>
+                                    <th class="text-end"><?= Yii::t('app', 'Request') ?></th>
+                                    <th class="text-end"><?= Yii::t('app', 'Actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -161,7 +161,7 @@ $orderedRoles = [
                                 <tr>
                                     <td>
                                         <div class="fw-bold text-white"><?php if (!empty($cand->nationality)): ?><?= UiIconHelper::flagImg((string)$cand->nationality, 14) ?> <?php endif; ?><?= Html::encode((string) $cand->name) ?></div>
-                                        <div class="text-muted-gm small">Tentativi: <span class="text-gold fw-bold"><?= $dotAttempts((int) $cand->negotiations) ?></span></div>
+                                        <div class="text-muted-gm small"><?= Yii::t('app', 'Attempts') ?>: <span class="text-gold fw-bold"><?= $dotAttempts((int) $cand->negotiations) ?></span></div>
                                     </td>
                                     <td>
                                         <span class="me-1 text-gold"><?= $roleIcon((string) $cand->role) ?></span>
@@ -173,12 +173,12 @@ $orderedRoles = [
                                     <td class="text-center text-gold fw-bold"><?= number_format($cand->getEfficiencyPreview(), 1) ?></td>
                                     <td class="text-center"><?= (int) $cand->contract_length ?></td>
                                     <td>
-                                        <div class="text-muted-gm" style="font-size:.72rem">scade <?= date('d/m/Y H:i', (int) $cand->expires_at) ?></div>
-                                        <div class="auction-countdown text-warning" data-expires="<?= (int) $cand->expires_at ?>" data-prefix="tra " data-expire-lock="order">--</div>
+                                        <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'expires') ?> <?= date('d/m/Y H:i', (int) $cand->expires_at) ?></div>
+                                        <div class="auction-countdown text-warning" data-expires="<?= (int) $cand->expires_at ?>" data-prefix="<?= Yii::t('app', 'tra ') ?>" data-expire-lock="order">--</div>
                                         <?php if ($pendingBid): ?>
                                             <div class="text-warning" style="font-size:.72rem">
-                                                Tua: €<?= number_format((int) $pendingBid->bid_amount, 0, ',', '.') ?>
-                                                · <span class="auction-countdown" data-expires="<?= (int) $pendingBid->expires_at ?>" data-prefix="scade tra ">--</span>
+                                                <?= Yii::t('app', 'Your') ?>: €<?= number_format((int) $pendingBid->bid_amount, 0, ',', '.') ?>
+                                                · <span class="auction-countdown" data-expires="<?= (int) $pendingBid->expires_at ?>" data-prefix="<?= Yii::t('app', 'scade tra ') ?>">--</span>
                                             </div>
                                         <?php endif; ?>
                                     </td>
@@ -193,12 +193,12 @@ $orderedRoles = [
                                                    value="<?= (int) ($pendingBid ? $pendingBid->bid_amount : max(1000, (int) $cand->salary)) ?>"
                                                    class="form-control form-control-sm bg-dark text-white border-secondary"
                                                    style="max-width:120px">
-                                            <button class="btn btn-gold btn-sm" type="submit">Offerta</button>
+                                            <button class="btn btn-gold btn-sm" type="submit"><?= Yii::t('app', 'Offer') ?></button>
                                             <?= Html::endForm() ?>
                                             <?= Html::beginForm(['/staff/raise-offer', 'id' => $cand->id], 'post', ['class' => 'd-inline']) ?>
                                             <button class="btn btn-outline-gold btn-sm"
                                                     type="submit"
-                                                    data-confirm="Alzare l'offerta del 15%?">
+                                                    data-confirm="<?= Yii::t('app', "Alzare l'offerta del 15%?") ?>">
                                                 +15%
                                             </button>
                                             <?= Html::endForm() ?>
@@ -215,18 +215,18 @@ $orderedRoles = [
 
         <div class="tab-pane fade" id="history" role="tabpanel" aria-labelledby="history-tab">
             <?php if (empty($history)): ?>
-                <div class="gm-card text-muted-gm">Storico staff vuoto.</div>
+                <div class="gm-card text-muted-gm"><?= Yii::t('app', 'Staff history empty.') ?></div>
             <?php else: ?>
                 <div class="gm-card">
                     <div class="table-responsive">
                         <table class="table-gm w-100 mb-0">
                             <thead>
                                 <tr>
-                                    <th>Nome</th>
-                                    <th>Ruolo</th>
-                                    <th class="text-center">Eff.</th>
-                                    <th class="text-center">Stagione uscita</th>
-                                    <th class="text-end">Motivo</th>
+                                    <th><?= Yii::t('app', 'Name') ?></th>
+                                    <th><?= Yii::t('app', 'Role') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Eff.') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Exit season') ?></th>
+                                    <th class="text-end"><?= Yii::t('app', 'Reason') ?></th>
                                 </tr>
                             </thead>
                             <tbody>

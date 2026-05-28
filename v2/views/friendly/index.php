@@ -17,7 +17,7 @@ use app\models\Fixture;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Amichevoli';
+$this->title = Yii::t('app', 'Friendlies');
 $this->params['breadcrumbs'][] = $this->title;
 
 $bar = static function (int $val, string $color, int $max = 99): string {
@@ -38,38 +38,38 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
 <div class="row g-4">
     <div class="col-lg-4">
         <div class="gm-card p-4" style="position:sticky;top:80px">
-            <div class="text-muted-gm small text-uppercase mb-3" style="letter-spacing:.06em">La tua squadra</div>
+            <div class="text-muted-gm small text-uppercase mb-3" style="letter-spacing:.06em"><?= Yii::t('app', 'Your team') ?></div>
             <div class="d-flex align-items-center gap-3 mb-4">
                 <div style="width:48px;height:48px;background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
                     <i class="bi bi-shield-shaded text-gold fs-4"></i>
                 </div>
                 <div>
                     <div class="fw-black text-white" style="font-size:1rem"><?= Html::encode($myTeam->name) ?></div>
-                    <div class="text-muted-gm" style="font-size:.72rem">Casa · Sfida settimanale</div>
+                    <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Home · Weekly challenge') ?></div>
                 </div>
             </div>
 
             <div class="text-center mb-3 p-3 rounded-3" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)">
-                <div class="text-muted-gm" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.06em">Forza media</div>
+                <div class="text-muted-gm" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Average strength') ?></div>
                 <div class="fw-black text-gold" style="font-size:2rem"><?= $myOverall ?: '—' ?></div>
             </div>
 
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span style="font-size:.75rem;color:var(--text-secondary)"><i class="bi bi-calendar-week me-1"></i>Prossimo slot</span>
+                <span style="font-size:.75rem;color:var(--text-secondary)"><i class="bi bi-calendar-week me-1"></i><?= Yii::t('app', 'Next slot') ?></span>
                 <span style="font-weight:900;color:var(--gold)"><?= date('D d/m H:i', $proposedAt) ?></span>
             </div>
 
             <?php $friendlyPrice = $myStadium?->friendly_ticket_price ?? 10; ?>
             <div class="d-flex justify-content-between align-items-center mb-2">
-                <span style="font-size:.75rem;color:var(--text-secondary)"><i class="bi bi-ticket-perforated me-1"></i>Biglietto amichevole</span>
+                <span style="font-size:.75rem;color:var(--text-secondary)"><i class="bi bi-ticket-perforated me-1"></i><?= Yii::t('app', 'Friendly ticket') ?></span>
                 <span style="font-weight:900;color:var(--gold)">€<?= (int) $friendlyPrice ?></span>
             </div>
 
             <div class="mt-3 pt-3" style="border-top:1px solid var(--border)">
                 <?php if ($myBusyThisWeek): ?>
-                    <div class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i>Hai già una sfida/partita amichevole questa settimana.</div>
+                    <div class="text-warning small"><i class="bi bi-exclamation-triangle me-1"></i><?= Yii::t('app', 'You already have a challenge/friendly this week.') ?></div>
                 <?php else: ?>
-                    <div class="text-success small"><i class="bi bi-check-circle me-1"></i>Slot settimanale disponibile.</div>
+                    <div class="text-success small"><i class="bi bi-check-circle me-1"></i><?= Yii::t('app', 'Weekly slot available.') ?></div>
                 <?php endif; ?>
             </div>
         </div>
@@ -85,10 +85,10 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
         <?php endforeach; ?>
 
         <ul class="nav nav-tabs mb-4">
-            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-challenge" type="button">Sfida</button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-incoming" type="button">Inviti ricevuti<?= count($incomingChallenges) ? ' (' . count($incomingChallenges) . ')' : '' ?></button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-outgoing" type="button">Le mie sfide<?= count($outgoingChallenges) ? ' (' . count($outgoingChallenges) . ')' : '' ?></button></li>
-            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history" type="button">Storico</button></li>
+            <li class="nav-item"><button class="nav-link active" data-bs-toggle="tab" data-bs-target="#tab-challenge" type="button"><?= Yii::t('app', 'Challenge') ?></button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-incoming" type="button"><?= Yii::t('app', 'Received invites') ?><?= count($incomingChallenges) ? ' (' . count($incomingChallenges) . ')' : '' ?></button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-outgoing" type="button"><?= Yii::t('app', 'My challenges') ?><?= count($outgoingChallenges) ? ' (' . count($outgoingChallenges) . ')' : '' ?></button></li>
+            <li class="nav-item"><button class="nav-link" data-bs-toggle="tab" data-bs-target="#tab-history" type="button"><?= Yii::t('app', 'History') ?></button></li>
         </ul>
 
         <div class="tab-content">
@@ -111,7 +111,7 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
                                 </div>
                                 <div style="flex:1;min-width:0">
                                     <div class="fw-bold text-white"><?= Html::encode($team->name) ?> <?= $team->is_cpu ? '<span class="badge bg-secondary ms-1">CPU</span>' : '<span class="badge bg-primary ms-1">MANAGER</span>' ?></div>
-                                    <div class="text-muted-gm" style="font-size:.72rem"><?= Html::encode($data['league']) ?> · Freschezza media <?= Html::encode((string) $data['avgFreshness']) ?>%</div>
+                                    <div class="text-muted-gm" style="font-size:.72rem"><?= Html::encode($data['league']) ?> · <?= Yii::t('app', 'Average freshness') ?> <?= Html::encode((string) $data['avgFreshness']) ?>%</div>
                                     <div class="row g-2 mt-2" style="font-size:.65rem">
                                         <?php foreach ([['PO', $data['gk'], 'var(--accent-red)'], ['DF', $data['def'], 'var(--accent-blue)'], ['MF', $data['mid'], 'var(--accent-green)'], ['AT', $data['att'], '#f97316']] as [$lbl, $val, $col]): ?>
                                             <div class="col-3">
@@ -131,10 +131,10 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
                                         <form method="post" action="<?= Url::to(['/friendly/challenge']) ?>">
                                             <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
                                             <input type="hidden" name="challenged_id" value="<?= (int) $team->id ?>">
-                                            <button class="btn btn-sm btn-gold">Sfida</button>
+                                            <button class="btn btn-sm btn-gold"><?= Yii::t('app', 'Challenge') ?></button>
                                         </form>
                                     <?php else: ?>
-                                        <button class="btn btn-sm btn-outline-secondary" disabled>Bloccata</button>
+                                        <button class="btn btn-sm btn-outline-secondary" disabled><?= Yii::t('app', 'Locked') ?></button>
                                     <?php endif; ?>
                                 </div>
                             </div>
@@ -146,23 +146,23 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
             <div class="tab-pane fade" id="tab-incoming">
                 <div class="gm-card">
                     <?php if (empty($incomingChallenges)): ?>
-                        <div class="text-muted-gm">Nessun invito in attesa.</div>
+                        <div class="text-muted-gm"><?= Yii::t('app', 'No pending invites.') ?></div>
                     <?php else: ?>
                         <div class="d-flex flex-column gap-2">
                             <?php foreach ($incomingChallenges as $row): ?>
                                 <div class="d-flex align-items-center justify-content-between p-2 rounded" style="border:1px solid var(--border);background:rgba(255,255,255,.03)">
                                     <div>
                                         <div class="text-white fw-bold"><?= Html::encode($row->challenger?->name ?? 'N/D') ?></div>
-                                        <div class="text-muted-gm" style="font-size:.72rem">Proposta: <?= date('d/m H:i', (int) $row->proposed_at) ?></div>
+                                        <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Proposal') ?>: <?= date('d/m H:i', (int) $row->proposed_at) ?></div>
                                     </div>
                                     <div class="d-flex gap-2">
                                         <form method="post" action="<?= Url::to(['/friendly/respond', 'id' => $row->id, 'decision' => 'accept']) ?>">
                                             <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
-                                            <button class="btn btn-sm btn-success">Accetta</button>
+                                            <button class="btn btn-sm btn-success"><?= Yii::t('app', 'Accept') ?></button>
                                         </form>
                                         <form method="post" action="<?= Url::to(['/friendly/respond', 'id' => $row->id, 'decision' => 'decline']) ?>">
                                             <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
-                                            <button class="btn btn-sm btn-outline-danger">Rifiuta</button>
+                                            <button class="btn btn-sm btn-outline-danger"><?= Yii::t('app', 'Reject') ?></button>
                                         </form>
                                     </div>
                                 </div>
@@ -175,16 +175,16 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
             <div class="tab-pane fade" id="tab-outgoing">
                 <div class="gm-card">
                     <?php if (empty($outgoingChallenges)): ?>
-                        <div class="text-muted-gm">Nessuna sfida inviata in attesa.</div>
+                        <div class="text-muted-gm"><?= Yii::t('app', 'No pending sent challenges.') ?></div>
                     <?php else: ?>
                         <div class="d-flex flex-column gap-2">
                             <?php foreach ($outgoingChallenges as $row): ?>
                                 <div class="d-flex align-items-center justify-content-between p-2 rounded" style="border:1px solid var(--border);background:rgba(255,255,255,.03)">
                                     <div>
                                         <div class="text-white fw-bold"><?= Html::encode($row->challenged?->name ?? 'N/D') ?></div>
-                                        <div class="text-muted-gm" style="font-size:.72rem">Proposta: <?= date('d/m H:i', (int) $row->proposed_at) ?></div>
+                                        <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Proposal') ?>: <?= date('d/m H:i', (int) $row->proposed_at) ?></div>
                                     </div>
-                                    <div class="text-warning" style="font-size:.8rem"><i class="bi bi-hourglass-split me-1"></i>In attesa</div>
+                                    <div class="text-warning" style="font-size:.8rem"><i class="bi bi-hourglass-split me-1"></i><?= Yii::t('app', 'Pending') ?></div>
                                 </div>
                             <?php endforeach; ?>
                         </div>
@@ -195,15 +195,15 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
             <div class="tab-pane fade" id="tab-history">
                 <div class="gm-card">
                     <?php if (empty($historyChallenges)): ?>
-                        <div class="text-muted-gm">Storico vuoto.</div>
+                        <div class="text-muted-gm"><?= Yii::t('app', 'History empty.') ?></div>
                     <?php else: ?>
                         <div class="table-responsive">
                             <table class="table table-dark table-hover align-middle mb-0">
                                 <thead>
                                 <tr>
-                                    <th>Contro</th>
-                                    <th>Data</th>
-                                    <th>Stato</th>
+                                    <th><?= Yii::t('app', 'vs') ?></th>
+                                    <th><?= Yii::t('app', 'Date') ?></th>
+                                    <th><?= Yii::t('app', 'Status') ?></th>
                                     <th>Fixture</th>
                                 </tr>
                                 </thead>
@@ -232,7 +232,7 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
                                         <td>
                                             <?php if ($row->fixture_id): ?>
                                                 <?php if ($row->fixture && (int) $row->fixture->status === Fixture::STATUS_FINISHED): ?>
-                                                    <?= Html::a('Replay', ['/fixture/replay', 'id' => $row->fixture_id], ['class' => 'btn btn-sm btn-outline-gold']) ?>
+                                                    <?= Html::a(Yii::t('app', 'Replay'), ['/fixture/replay', 'id' => $row->fixture_id], ['class' => 'btn btn-sm btn-outline-gold']) ?>
                                                 <?php else: ?>
                                                     <div class="d-flex gap-2 justify-content-end">
                                                         <?= Html::a('Live', ['/fixture/live', 'id' => $row->fixture_id], ['class' => 'btn btn-sm btn-outline-secondary']) ?>
@@ -244,7 +244,7 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
                                                         ): ?>
                                                             <form method="post" action="<?= Url::to(['/friendly/start-now', 'id' => $row->id]) ?>">
                                                                 <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->getCsrfToken() ?>">
-                                                                <button class="btn btn-sm btn-warning">Inizia ora</button>
+                                                                <button class="btn btn-sm btn-warning"><?= Yii::t('app', 'Start now') ?></button>
                                                             </form>
                                                         <?php endif; ?>
                                                     </div>

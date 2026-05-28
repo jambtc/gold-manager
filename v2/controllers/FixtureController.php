@@ -110,7 +110,7 @@ class FixtureController extends Controller
     {
         $fixture = Fixture::findOne($id);
         if (!$fixture) {
-            throw new NotFoundHttpException('Partita non trovata.');
+            throw new NotFoundHttpException(Yii::t('app', 'Match not found.'));
         }
 
         $state = MatchState::findOne(['fixture_id' => $id]);
@@ -132,7 +132,7 @@ class FixtureController extends Controller
     {
         $fixture = Fixture::findOne($id);
         if (!$fixture) {
-            throw new NotFoundHttpException('Partita non trovata.');
+            throw new NotFoundHttpException(Yii::t('app', 'Match not found.'));
         }
         FixtureViewHelper::ensureUiColors($fixture);
 
@@ -185,7 +185,7 @@ class FixtureController extends Controller
     {
         $fixture = Fixture::findOne($id);
         if (!$fixture) {
-            throw new NotFoundHttpException('Partita non trovata.');
+            throw new NotFoundHttpException(Yii::t('app', 'Match not found.'));
         }
         FixtureViewHelper::ensureUiColors($fixture);
 

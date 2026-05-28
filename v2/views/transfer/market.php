@@ -33,7 +33,7 @@ use app\components\UiIconHelper;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
-$this->title = 'Mercato Trasferimenti';
+$this->title = Yii::t('app', 'Transfer Market');
 $this->params['breadcrumbs'][] = $this->title;
 
 // URL corrente con tutti i filtri — passato come `back` al player/view
@@ -47,9 +47,9 @@ $backUrl = Url::to([
     'tab' => $activeTab,
 ]);
 $footLbl = static fn(string $f): string => match ($f) {
-    'R' => 'Destro',
-    'L' => 'Sinistro',
-    'LR' => 'Amb.',
+    'R' => Yii::t('app', 'Right foot'),
+    'L' => Yii::t('app', 'Left foot'),
+    'LR' => Yii::t('app', 'Amb.'),
     default => $f,
 };
 $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFee, $maxAge, $activeTab): string {
@@ -68,26 +68,26 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
 <div class="transfer-market">
     <div class="d-flex align-items-center justify-content-between mb-4 flex-wrap gap-3">
         <div>
-            <h1 class="mb-0 fw-black">Mercato Trasferimenti</h1>
+            <h1 class="mb-0 fw-black"><?= Yii::t('app', 'Transfer Market') ?></h1>
             <p class="text-muted-gm mb-0">
-                <?= (int) $marketTotal ?> giocatori in lista unica
+                <?= (int) $marketTotal ?> <?= Yii::t('app', 'players in single list') ?>
             </p>
         </div>
         <div class="d-flex align-items-center gap-2">
             <?php if ($team): ?>
                 <div class="gm-card py-2 px-3 text-end" style="min-width:170px">
                     <div class="text-gold fw-black fs-5">€<?= number_format((int) $team->budget, 0, ',', '.') ?></div>
-                    <div class="text-muted-gm" style="font-size:.7rem">Budget disponibile</div>
+                    <div class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'Available budget') ?></div>
                 </div>
             <?php endif; ?>
             <div class="gm-card py-2 px-3 text-end" style="min-width:185px">
                 <?php if ($windowOpen): ?>
-                    <div class="text-success fw-bold">Finestra aperta</div>
-                    <div class="text-muted-gm" style="font-size:.7rem">Offerte abilitate</div>
+                    <div class="text-success fw-bold"><?= Yii::t('app', 'Window open') ?></div>
+                    <div class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'Offers enabled') ?></div>
                 <?php else: ?>
-                    <div class="text-danger fw-bold">Finestra chiusa</div>
+                    <div class="text-danger fw-bold"><?= Yii::t('app', 'Window closed') ?></div>
                     <div class="text-muted-gm" style="font-size:.7rem">
-                        riapre <?= date('d/m/Y', $nextOpenAt) ?>
+                        <?= Yii::t('app', 'reopens') ?> <?= date('d/m/Y', $nextOpenAt) ?>
                     </div>
                 <?php endif; ?>
             </div>
@@ -96,7 +96,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
 
     <?php
     $bannerType  = $windowBounds['type'] ?? null;
-    $bannerLabel = $bannerType === 'pre-season' ? 'Estiva / Pre-Season' : 'Invernale';
+    $bannerLabel = $bannerType === 'pre-season' ? Yii::t('app', 'Summer / Pre-Season') : Yii::t('app', 'Winter');
     $openAt      = $windowBounds['open_at']  ?? $nextOpenAt;
     $closeAt     = $windowBounds['close_at'] ?? 0;
     ?>
@@ -107,7 +107,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
         <div class="flex-grow-1">
             <div class="d-flex align-items-center gap-2">
                 <h5 class="mb-1 fw-bold text-white">
-                    <?= $windowOpen ? 'Sessione di Mercato Aperta' : 'Sessione di Mercato Chiusa' ?>
+                    <?= $windowOpen ? Yii::t('app', 'Transfer Window Open') : Yii::t('app', 'Transfer Window Closed') ?>
                 </h5>
                 <?php if ($bannerType): ?>
                     <span class="badge <?= $windowOpen ? 'bg-success' : 'bg-danger' ?> text-uppercase small" style="font-size:0.65rem">
@@ -117,13 +117,13 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
             </div>
             <p class="text-muted-gm mb-0" style="font-size:0.85rem">
                 <?php if ($windowOpen): ?>
-                    Il mercato è attualmente attivo. Puoi acquistare svincolati all'asta e negoziare trasferimenti con altri club.
+                    <?= Yii::t('app', "Il mercato è attualmente attivo. Puoi acquistare svincolati all'asta e negoziare trasferimenti con altri club.") ?>
                     <?php if ($closeAt > 0): ?>
-                        La finestra chiuderà il <strong><?= date('d/m/Y \a\l\l\e H:i', $closeAt) ?></strong>.
+                        <?= Yii::t('app', 'The window will close on') ?> <strong><?= date('d/m/Y \a\l\l\e H:i', $closeAt) ?></strong>.
                     <?php endif; ?>
                 <?php else: ?>
-                    Le trattative di mercato sono temporaneamente sospese.
-                    La prossima finestra riaprirà il <strong><?= date('d/m/Y', $openAt) ?></strong><?= $closeAt > 0 ? ' e rimarrà attiva fino al <strong>' . date('d/m/Y', $closeAt) . '</strong>' : '' ?>.
+                    <?= Yii::t('app', 'Transfer negotiations are temporarily suspended.') ?>
+                    <?= Yii::t('app', 'The next window will reopen on') ?> <strong><?= date('d/m/Y', $openAt) ?></strong><?= $closeAt > 0 ? ' ' . Yii::t('app', 'and will remain active until') . ' <strong>' . date('d/m/Y', $closeAt) . '</strong>' : '' ?>.
                 <?php endif; ?>
             </p>
         </div>
@@ -134,32 +134,32 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
         <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width:220px;background:rgba(255,255,255,.04);border:1px solid var(--border);border-radius:.6rem;padding:.5rem 1rem">
             <i class="bi bi-search text-muted-gm"></i>
             <input type="text" name="q" value="<?= Html::encode($q) ?>"
-                   placeholder="Cerca per nome…"
+                   placeholder="<?= Yii::t('app', 'Search by name…') ?>"
                    class="bg-transparent border-0 text-white w-100"
                    style="outline:none;font-size:.9rem">
         </div>
         <?php $selStyle = 'background:#0f172a;border:1px solid var(--border);color:#fff;border-radius:.6rem;padding:.5rem .75rem;font-size:.85rem'; ?>
         <select name="pos" style="<?= $selStyle ?>">
-            <option value="" <?= $pos === '' ? 'selected' : '' ?> style="background:#0f172a">Ruolo</option>
+            <option value="" <?= $pos === '' ? 'selected' : '' ?> style="background:#0f172a"><?= Yii::t('app', 'Role') ?></option>
             <option value="GK" <?= $pos === 'GK' ? 'selected' : '' ?> style="background:#0f172a">GK</option>
             <option value="DF" <?= $pos === 'DF' ? 'selected' : '' ?> style="background:#0f172a">DF</option>
             <option value="MF" <?= $pos === 'MF' ? 'selected' : '' ?> style="background:#0f172a">MF</option>
             <option value="FW" <?= $pos === 'FW' ? 'selected' : '' ?> style="background:#0f172a">FW</option>
         </select>
-        <input type="number" name="min_skill" value="<?= (int) $minSkill ?>" min="0" max="99" placeholder="OVR min"
+        <input type="number" name="min_skill" value="<?= (int) $minSkill ?>" min="0" max="99" placeholder="<?= Yii::t('app', 'Min OVR') ?>"
                style="width:100px;<?= $selStyle ?>">
-        <input type="number" name="max_fee" value="<?= (int) $maxFee ?>" min="0" placeholder="Prezzo max"
+        <input type="number" name="max_fee" value="<?= (int) $maxFee ?>" min="0" placeholder="<?= Yii::t('app', 'Max price') ?>"
                style="width:130px;<?= $selStyle ?>">
-        <input type="number" name="max_age" value="<?= (int) $maxAge ?>" min="0" max="45" placeholder="Età max"
+        <input type="number" name="max_age" value="<?= (int) $maxAge ?>" min="0" max="45" placeholder="<?= Yii::t('app', 'Max age') ?>"
                style="width:100px;<?= $selStyle ?>">
-        <button type="submit" class="btn btn-gold btn-sm px-4">Filtra</button>
-        <a href="<?= Html::encode(Url::to(['/transfer/market', 'tab' => $activeTab])) ?>" class="btn btn-outline-secondary btn-sm">Reset</a>
+        <button type="submit" class="btn btn-gold btn-sm px-4"><?= Yii::t('app', 'Filter') ?></button>
+        <a href="<?= Html::encode(Url::to(['/transfer/market', 'tab' => $activeTab])) ?>" class="btn btn-outline-secondary btn-sm"><?= Yii::t('app', 'Reset') ?></a>
     </form>
 
     <?php
     $tabs = [
-        'listed' => 'Lista mercato',
-        'offers' => 'Le mie offerte',
+        'listed' => Yii::t('app', 'Transfer list'),
+        'offers' => Yii::t('app', 'My bids'),
     ];
     ?>
     <ul class="nav nav-tabs mb-4" role="tablist">
@@ -188,8 +188,8 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
             <?php if (empty($marketRows)): ?>
                 <div class="gm-card p-5 text-center">
                     <i class="bi bi-shop-window d-block mb-3 text-muted-gm" style="font-size:3rem;opacity:.4"></i>
-                    <h3 class="text-white mb-2">Nessun giocatore in lista</h3>
-                    <p class="text-muted-gm mb-0">Nessun elemento disponibile nel mercato al momento.</p>
+                    <h3 class="text-white mb-2"><?= Yii::t('app', 'No players on the list') ?></h3>
+                    <p class="text-muted-gm mb-0"><?= Yii::t('app', 'No items available on the market at the moment.') ?></p>
                 </div>
             <?php else: ?>
                 <div class="gm-card p-0 overflow-hidden">
@@ -197,17 +197,17 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                         <table class="table-gm w-100 mb-0">
                             <thead>
                                 <tr>
-                                    <th>Pos</th>
-                                    <th>Giocatore</th>
+                                    <th><?= Yii::t('app', 'Pos') ?></th>
+                                    <th><?= Yii::t('app', 'Player') ?></th>
                                     <th class="text-center">OVR</th>
-                                    <th class="text-center">Forma</th>
-                                    <th class="text-center">Fr.</th>
-                                    <th class="text-center">Cond.</th>
-                                    <th>Squadra</th>
-                                    <th>Talenti</th>
-                                    <th>Tipo</th>
-                                    <th>Scadenza</th>
-                                    <th class="text-end">Azioni</th>
+                                    <th class="text-center"><?= Yii::t('app', 'Form') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Fr.') ?></th>
+                                    <th class="text-center"><?= Yii::t('app', 'Cond.') ?></th>
+                                    <th><?= Yii::t('app', 'Team') ?></th>
+                                    <th><?= Yii::t('app', 'Talents') ?></th>
+                                    <th><?= Yii::t('app', 'Type') ?></th>
+                                    <th><?= Yii::t('app', 'Expiry') ?></th>
+                                    <th class="text-end"><?= Yii::t('app', 'Actions') ?></th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -254,7 +254,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                                                     <span><?= Html::encode($sourceTeam->name) ?></span>
                                                 </div>
                                             <?php else: ?>
-                                                <span class="text-muted-gm">Svincolato</span>
+                                                <span class="text-muted-gm"><?= Yii::t('app', 'Free agent') ?></span>
                                             <?php endif; ?>
                                         </td>
                                         <td>
@@ -268,10 +268,10 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                                                 <span class="text-muted-gm">—</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= $kind === 'market' ? 'Asta svincolato' : ($transfer && $transfer->transfer_type === Transfer::TYPE_LOAN ? 'Prestito' : 'Vendita') ?></td>
+                                        <td><?= $kind === 'market' ? Yii::t('app', 'Free agent auction') : ($transfer && $transfer->transfer_type === Transfer::TYPE_LOAN ? Yii::t('app', 'Loan') : Yii::t('app', 'Sale')) ?></td>
                                         <td>
                                             <?php if ($expiresAt > 0): ?>
-                                                <div class="text-muted-gm" style="font-size:.7rem">scade <?= date('d/m/Y H:i', $expiresAt) ?></div>
+                                                <div class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'expires') ?> <?= date('d/m/Y H:i', $expiresAt) ?></div>
                                                 <div class="auction-countdown text-warning" style="font-size:.72rem" data-expires="<?= $expiresAt ?>" data-prefix="tra " data-expire-lock="order">--</div>
                                             <?php else: ?>
                                                 <span class="text-muted-gm">—</span>
@@ -279,36 +279,36 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                                         </td>
                                         <td class="text-end">
                                             <div class="d-inline-flex gap-1 align-items-center">
-                                                <?= Html::a('<i class="bi bi-person"></i>', ['/player/view', 'id' => $p->id, 'back' => $backUrl], ['class' => 'btn btn-outline-secondary btn-sm', 'encode' => false, 'title' => 'Scheda']) ?>
+                                                <?= Html::a('<i class="bi bi-person"></i>', ['/player/view', 'id' => $p->id, 'back' => $backUrl], ['class' => 'btn btn-outline-secondary btn-sm', 'encode' => false, 'title' => Yii::t('app', 'Card')]) ?>
                                                 <?php if ($team && !$isOwn && \app\components\ScoutingService::canScout((int)$team->id)): ?>
                                                     <?= Html::beginForm(['/scouting/scout'], 'post', ['class' => 'd-inline']) ?>
                                                     <input type="hidden" name="player_id" value="<?= $p->id ?>">
-                                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="Osserva">🔍</button>
+                                                    <button type="submit" class="btn btn-outline-secondary btn-sm" title="<?= Yii::t('app', 'Scout') ?>">🔍</button>
                                                     <?= Html::endForm() ?>
                                                 <?php endif; ?>
                                                 <?php if ($isOwn): ?>
                                                     <?= Html::beginForm(['/transfer/delist', 'id' => (int) $transfer?->id], 'post', ['class' => 'd-inline']) ?>
-                                                    <button class="btn btn-outline-danger btn-sm" type="submit">Ritira</button>
+                                                    <button class="btn btn-outline-danger btn-sm" type="submit"><?= Yii::t('app', 'Withdraw') ?></button>
                                                     <?= Html::endForm() ?>
                                                 <?php elseif (!$windowOpen): ?>
-                                                    <button class="btn btn-outline-secondary btn-sm" disabled>Chiusa</button>
+                                                    <button class="btn btn-outline-secondary btn-sm" disabled><?= Yii::t('app', 'Closed') ?></button>
                                                 <?php elseif ($kind === 'market' && $marketEntry): ?>
                                                     <button type="button" class="btn btn-gold btn-sm js-bid-open"
                                                             data-player="<?= Html::encode($p->name) ?>"
                                                             data-action="<?= Html::encode(\yii\helpers\Url::to(['/transfer/sign-free-agent', 'id' => (int) $marketEntry->id])) ?>"
                                                             data-ask="<?= $ask ?>"
-                                                            data-type="Asta svincolato"
+                                                            data-type="<?= Yii::t('app', 'Free agent auction') ?>"
                                                             data-current-bid="<?= $myMarketBid ? (int) $myMarketBid->bid_amount : 0 ?>">
-                                                        <?= $myMarketBid ? 'Modifica offerta' : 'Offri' ?>
+                                                        <?= $myMarketBid ? Yii::t('app', 'Edit offer') : Yii::t('app', 'Bid') ?>
                                                     </button>
                                                 <?php else: ?>
                                                     <button type="button" class="btn btn-gold btn-sm js-bid-open"
                                                             data-player="<?= Html::encode($p->name) ?>"
                                                             data-action="<?= Html::encode(\yii\helpers\Url::to(['/transfer/make-offer', 'id' => (int) $transfer?->id])) ?>"
                                                             data-ask="<?= $ask ?>"
-                                                            data-type="<?= $transfer && $transfer->transfer_type === Transfer::TYPE_LOAN ? 'Prestito' : 'Vendita' ?>"
+                                                            data-type="<?= $transfer && $transfer->transfer_type === Transfer::TYPE_LOAN ? Yii::t('app', 'Loan') : Yii::t('app', 'Sale') ?>"
                                                             data-current-bid="0">
-                                                        Offri
+                                                        <?= Yii::t('app', 'Bid') ?>
                                                     </button>
                                                 <?php endif; ?>
                                             </div>
@@ -321,7 +321,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                 </div>
                 <?php if (($marketPages ?? 1) > 1): ?>
                     <div class="d-flex justify-content-between align-items-center mt-2 px-2 pb-2">
-                        <span class="text-muted-gm" style="font-size:.72rem">Totale <?= (int) $marketTotal ?> · pagina <?= (int) $marketPage ?>/<?= (int) $marketPages ?></span>
+                        <span class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Total') ?> <?= (int) $marketTotal ?> · <?= Yii::t('app', 'page') ?> <?= (int) $marketPage ?>/<?= (int) $marketPages ?></span>
                         <div class="btn-group btn-group-sm">
                             <?= Html::a('«', $pagerUrl(['page' => max(1, (int) $marketPage - 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage <= 1 ? ' disabled' : '')]) ?>
                             <?= Html::a('»', $pagerUrl(['page' => min((int) $marketPages, (int) $marketPage + 1)]), ['class' => 'btn btn-outline-secondary' . ((int)$marketPage >= (int)$marketPages ? ' disabled' : '')]) ?>
@@ -334,7 +334,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
         <div class="tab-pane fade <?= $activeTab === 'offers' ? 'show active' : '' ?>" id="offers" role="tabpanel">
             <?php if (!empty($myAuctionBids)): ?>
             <div class="gm-card mb-4">
-                <h3 class="h6 text-white mb-3"><i class="bi bi-hammer"></i> Le mie aste (svincolati)</h3>
+                <h3 class="h6 text-white mb-3"><i class="bi bi-hammer"></i> <?= Yii::t('app', 'My auctions (free agents)') ?></h3>
                 <?php foreach ($myAuctionBids as $bid):
                     $bidPool = \app\models\PlayerPool::findOne($bid->market_ref_id);
                     $bidPlayer = $bidPool?->player;
@@ -347,10 +347,10 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                             <span class="text-white small fw-bold"><?= Html::encode($bidPlayer->name) ?></span>
                         </div>
                         <div class="text-muted-gm" style="font-size:.72rem">
-                            La tua offerta: <span class="text-warning fw-bold">€<?= number_format((int) $bid->bid_amount, 0, ',', '.') ?></span>
-                            · Richiesta: €<?= number_format((int) ($bidPool->asking_fee ?? 0), 0, ',', '.') ?>
+                            <?= Yii::t('app', 'Your bid') ?>: <span class="text-warning fw-bold">€<?= number_format((int) $bid->bid_amount, 0, ',', '.') ?></span>
+                            · <?= Yii::t('app', 'Request') ?>: €<?= number_format((int) ($bidPool->asking_fee ?? 0), 0, ',', '.') ?>
                             <br>
-                            <span class="text-muted-gm">asta scade <?= date('d/m/Y H:i', (int) $bidPool->expires_at) ?></span>
+                            <span class="text-muted-gm"><?= Yii::t('app', 'auction ends') ?> <?= date('d/m/Y H:i', (int) $bidPool->expires_at) ?></span>
                             <span class="auction-countdown text-warning ms-1" data-expires="<?= (int) $bidPool->expires_at ?>" data-prefix="tra ">--</span>
                         </div>
                     </div>
@@ -359,14 +359,14 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                                 data-player="<?= Html::encode($bidPlayer->name) ?>"
                                 data-action="<?= Html::encode(\yii\helpers\Url::to(['/transfer/sign-free-agent', 'id' => (int) $bid->market_ref_id])) ?>"
                                 data-ask="<?= (int) ($bidPool->asking_fee ?? 0) ?>"
-                                data-type="Asta svincolato"
+                                data-type="<?= Yii::t('app', 'Free agent auction') ?>"
                                 data-current-bid="<?= (int) $bid->bid_amount ?>">
-                            Modifica
+                            <?= Yii::t('app', 'Edit') ?>
                         </button>
                         <?= Html::beginForm(['/transfer/withdraw-bid', 'id' => (int) $bid->id], 'post', ['class' => 'd-inline']) ?>
                         <button type="submit" class="btn btn-outline-danger btn-sm"
-                                data-confirm="Ritirare l'offerta su <?= Html::encode($bidPlayer->name) ?>?">
-                            Ritira
+                                data-confirm="<?= Yii::t('app', "Ritirare l'offerta su") ?> <?= Html::encode($bidPlayer->name) ?>?">
+                            <?= Yii::t('app', 'Withdraw') ?>
                         </button>
                         <?= Html::endForm() ?>
                     </div>
@@ -378,29 +378,29 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
             <div class="row g-4">
                 <div class="col-lg-6">
                     <div class="gm-card h-100">
-                        <h3 class="h6 text-white mb-3">Offerte ricevute</h3>
+                        <h3 class="h6 text-white mb-3"><?= Yii::t('app', 'Received offers') ?></h3>
                         <?php if (empty($incomingOffers)): ?>
-                            <p class="text-muted-gm small mb-0">Nessuna offerta in attesa.</p>
+                            <p class="text-muted-gm small mb-0"><?= Yii::t('app', 'No pending offers.') ?></p>
                         <?php else: ?>
                             <?php foreach ($incomingOffers as $offer): ?>
                                 <div class="d-flex justify-content-between align-items-center py-2 border-bottom" style="border-color:var(--border)!important">
                                     <div>
                                         <div class="text-white small fw-bold"><?= Html::encode($offer->player->name ?? ('Player #' . $offer->player_id)) ?></div>
                                         <div class="text-muted-gm" style="font-size:.72rem">
-                                            da <?= Html::encode($offer->fromTeam->name ?? ('Team #' . $offer->from_team_id)) ?> ·
+                                            <?= Yii::t('app', 'from') ?> <?= Html::encode($offer->fromTeam->name ?? ('Team #' . $offer->from_team_id)) ?> ·
                                             €<?= number_format((int) $offer->offered_fee, 0, ',', '.') ?>
                                             <?php if ((string) $offer->status === TransferOffer::STATUS_PENDING && (int) ($offer->expires_at ?? 0) > 0): ?>
-                                                <br><span class="text-muted-gm">scade <?= date('d/m/Y H:i', (int) $offer->expires_at) ?></span>
-                                                <span class="auction-countdown text-warning" style="margin-left:.3rem" data-expires="<?= (int) $offer->expires_at ?>" data-prefix="tra ">--</span>
+                                                <br><span class="text-muted-gm"><?= Yii::t('app', 'expires') ?> <?= date('d/m/Y H:i', (int) $offer->expires_at) ?></span>
+                                                <span class="auction-countdown text-warning" style="margin-left:.3rem" data-expires="<?= (int) $offer->expires_at ?>" data-prefix="<?= Yii::t('app', 'tra ') ?>">--</span>
                                             <?php endif; ?>
                                         </div>
                                     </div>
                                     <div class="d-flex gap-1">
                                         <?= Html::beginForm(['/transfer/accept-offer', 'id' => $offer->id], 'post', ['class' => 'd-inline']) ?>
-                                        <button class="btn btn-success btn-sm" type="submit">Accetta</button>
+                                        <button class="btn btn-success btn-sm" type="submit"><?= Yii::t('app', 'Accept') ?></button>
                                         <?= Html::endForm() ?>
                                         <?= Html::beginForm(['/transfer/reject-offer', 'id' => $offer->id], 'post', ['class' => 'd-inline']) ?>
-                                        <button class="btn btn-outline-danger btn-sm" type="submit">Rifiuta</button>
+                                        <button class="btn btn-outline-danger btn-sm" type="submit"><?= Yii::t('app', 'Reject') ?></button>
                                         <?= Html::endForm() ?>
                                     </div>
                                 </div>
@@ -411,9 +411,9 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
 
                 <div class="col-lg-6">
                     <div class="gm-card h-100">
-                        <h3 class="h6 text-white mb-3">Offerte inviate</h3>
+                        <h3 class="h6 text-white mb-3"><?= Yii::t('app', 'Sent offers') ?></h3>
                         <?php if (empty($myOffersSent)): ?>
-                            <p class="text-muted-gm small mb-0">Nessuna offerta inviata.</p>
+                            <p class="text-muted-gm small mb-0"><?= Yii::t('app', 'No offers sent.') ?></p>
                         <?php else: ?>
                             <?php foreach ($myOffersSent as $offer): ?>
                                 <?php
@@ -428,11 +428,11 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                                     <div>
                                         <div class="text-white small fw-bold"><?= Html::encode($offer->player->name ?? ('Player #' . $offer->player_id)) ?></div>
                                         <div class="text-muted-gm" style="font-size:.72rem">
-                                            a <?= Html::encode($offer->toTeam->name ?? ('Team #' . $offer->to_team_id)) ?> ·
+                                            <?= Yii::t('app', 'to') ?> <?= Html::encode($offer->toTeam->name ?? ('Team #' . $offer->to_team_id)) ?> ·
                                             €<?= number_format((int) $offer->offered_fee, 0, ',', '.') ?>
                                             <?php if ((string) $offer->status === TransferOffer::STATUS_PENDING && (int) ($offer->expires_at ?? 0) > 0): ?>
-                                                <br><span class="text-muted-gm">scade <?= date('d/m/Y H:i', (int) $offer->expires_at) ?></span>
-                                                <span class="auction-countdown text-warning" style="margin-left:.3rem" data-expires="<?= (int) $offer->expires_at ?>" data-prefix="tra ">--</span>
+                                                <br><span class="text-muted-gm"><?= Yii::t('app', 'expires') ?> <?= date('d/m/Y H:i', (int) $offer->expires_at) ?></span>
+                                                <span class="auction-countdown text-warning" style="margin-left:.3rem" data-expires="<?= (int) $offer->expires_at ?>" data-prefix="<?= Yii::t('app', 'tra ') ?>">--</span>
                                             <?php endif; ?>
                                         </div>
                                     </div>
@@ -464,21 +464,21 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                 <div class="modal-body pt-3">
                     <div class="d-flex justify-content-between mb-3 pb-2" style="border-bottom:1px solid var(--border)">
                         <div>
-                            <div class="text-muted-gm" style="font-size:.72rem">Richiesta attuale</div>
+                            <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Current request') ?></div>
                             <div class="text-gold fw-bold fs-5" id="bidModalAsk">—</div>
                         </div>
                         <div id="bidModalCurrentBidWrap" style="display:none;text-align:right">
-                            <div class="text-muted-gm" style="font-size:.72rem">Tua offerta</div>
+                            <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Your bid') ?></div>
                             <div class="text-warning fw-bold fs-5" id="bidModalCurrentBid">—</div>
                         </div>
                     </div>
-                    <label class="text-muted-gm small d-block mb-1" for="bidModalAmount">La tua offerta (€)</label>
+                    <label class="text-muted-gm small d-block mb-1" for="bidModalAmount"><?= Yii::t('app', 'Your bid (€)') ?></label>
                     <input type="number" id="bidModalAmount" min="1" step="1000" value="0"
                            class="form-control bg-dark text-white border-secondary">
                 </div>
                 <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal">Annulla</button>
-                    <button type="button" class="btn btn-gold btn-sm" id="bidModalConfirm">Conferma</button>
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"><?= Yii::t('app', 'Cancel') ?></button>
+                    <button type="button" class="btn btn-gold btn-sm" id="bidModalConfirm"><?= Yii::t('app', 'Confirm') ?></button>
                 </div>
             </form>
         </div>

@@ -6,7 +6,7 @@
 use yii\bootstrap5\ActiveForm;
 use yii\bootstrap5\Html;
 
-$this->title = 'Crea account';
+$this->title = Yii::t('app', 'Create account');
 ?>
 
 <div class="auth-page">
@@ -15,12 +15,12 @@ $this->title = 'Crea account';
         <a href="<?= Yii::$app->homeUrl ?>" class="auth-logo">
             GOLD <span>MANAGER</span>
         </a>
-        <p class="auth-subtitle">Registrati e prendi in mano la tua squadra</p>
+        <p class="auth-subtitle"><?= Yii::t('app', 'Register and take control of your team') ?></p>
 
         <div class="text-center mb-4">
             <span class="auth-badge">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"><circle cx="6" cy="6" r="5" stroke="#f59e0b" stroke-width="1.5"/><path d="M4 6l1.5 1.5L8 4.5" stroke="#f59e0b" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
-                La tua squadra sarà generata automaticamente in Serie C
+                <?= Yii::t('app', 'Your team will be automatically generated in Serie C') ?>
             </span>
         </div>
 
@@ -41,7 +41,7 @@ $this->title = 'Crea account';
                 'labelOptions' => [],
                 'inputOptions' => [
                     'class'       => 'form-control',
-                    'placeholder' => 'Scegli un username (lettere, numeri, _)',
+                    'placeholder' => Yii::t('app', 'Choose a username (letters, numbers, _)'),
                     'autofocus'   => true,
                 ],
             ])->label('Username') ?>
@@ -53,7 +53,7 @@ $this->title = 'Crea account';
                 'labelOptions' => [],
                 'inputOptions' => [
                     'class'       => 'form-control',
-                    'placeholder' => 'Minimo 6 caratteri',
+                    'placeholder' => Yii::t('app', 'Minimum 6 characters'),
                 ],
             ])->passwordInput()->label('Password') ?>
         </div>
@@ -64,19 +64,19 @@ $this->title = 'Crea account';
                 'labelOptions' => [],
                 'inputOptions' => [
                     'class'       => 'form-control',
-                    'placeholder' => 'Ripeti la password',
+                    'placeholder' => Yii::t('app', 'Repeat password'),
                 ],
-            ])->passwordInput()->label('Conferma password') ?>
+            ])->passwordInput()->label(Yii::t('app', 'Confirm password')) ?>
         </div>
 
-        <?= Html::submitButton('Registrati & Entra in campo', ['class' => 'btn-auth', 'name' => 'register-button']) ?>
+        <?= Html::submitButton(Yii::t('app', 'Register & Get on the pitch'), ['class' => 'btn-auth', 'name' => 'register-button']) ?>
 
         <?php ActiveForm::end(); ?>
 
         <hr class="auth-divider">
 
         <div class="auth-footer">
-            Hai già un account? <?= Html::a('Accedi', ['/site/login']) ?>
+            <?= Yii::t('app', 'Already have an account?') ?> <?= Html::a(Yii::t('app', 'Login'), ['/site/login']) ?>
         </div>
 
     </div>

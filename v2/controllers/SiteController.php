@@ -241,7 +241,7 @@ class SiteController extends Controller
         }
 
         if ($identity->status === \app\models\User::STATUS_ERROR) {
-            Yii::$app->session->setFlash('error', 'Errore durante la generazione della squadra. Contatta l\'amministratore.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Error during team generation. Contact administrator.'));
             return $this->redirect(['/site/login']);
         }
 

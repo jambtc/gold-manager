@@ -137,7 +137,7 @@ class AdminController extends Controller
         }
 
         if ($user->isAdmin()) {
-            Yii::$app->session->setFlash('error', 'Cannot delete an admin account.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Cannot delete an admin account.'));
             return $this->redirect(['/admin/index']);
         }
 
@@ -157,11 +157,11 @@ class AdminController extends Controller
 
             $transaction->commit();
 
-            Yii::$app->session->setFlash('success', "Manager «{$username}» eliminato." .
-                ($team ? " La squadra «{$team->name}» è stata restituita al controllo CPU." : ''));
+            Yii::$app->session->setFlash('success', Yii::t('app', "Manager «{username}» eliminato.", ['{username}' => $username]) .
+                ($team ? ' ' . Yii::t('app', "La squadra «{name}» è stata restituita al controllo CPU.", ['{name}' => $team->name]) : ''));
         } catch (\Throwable $e) {
             $transaction->rollBack();
-            Yii::$app->session->setFlash('error', 'Errore: ' . $e->getMessage());
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Error: {message}', ['{message}' => $e->getMessage()]));
         }
 
         return $this->redirect(['/admin/index']);
@@ -207,7 +207,7 @@ class AdminController extends Controller
         $fixture   = Fixture::findOne($fixtureId);
 
         if (!$fixture) {
-            Yii::$app->session->setFlash('error', "Fixture #$fixtureId non trovata.");
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Fixture #{id} not found.', ['{id}' => $fixtureId]));
             return $this->redirect(['/fixture/index']);
         }
 
@@ -257,7 +257,7 @@ class AdminController extends Controller
         $awayId = (int) Yii::$app->request->post('away_team_id');
 
         if (!$homeId || !$awayId || $homeId === $awayId) {
-            Yii::$app->session->setFlash('error', 'Seleziona due squadre diverse.');
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Select two different teams.'));
             return $this->redirect(['/admin/friendly']);
         }
 
@@ -283,7 +283,7 @@ class AdminController extends Controller
         $fixture->away_score     = 0;
 
         if (!$fixture->save()) {
-            Yii::$app->session->setFlash('error', 'Errore creazione partita: ' . json_encode($fixture->errors));
+            Yii::$app->session->setFlash('error', Yii::t('app', 'Match creation error: {errors}', ['{errors}' => json_encode($fixture->errors)]));
             return $this->redirect(['/admin/friendly']);
         }
 

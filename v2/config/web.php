@@ -6,7 +6,7 @@ $db = require __DIR__ . '/db.php';
 $config = [
     'id' => 'basic',
     'basePath' => dirname(__DIR__),
-    'bootstrap' => ['log'],
+    'bootstrap' => ['log', 'languageBootstrap'],
     'container' => [
         'singletons' => [
             \yii\mail\MailerInterface::class => [
@@ -22,6 +22,9 @@ $config = [
         '@npm'   => '@vendor/npm-asset',
     ],
     'components' => [
+        'languageBootstrap' => [
+            'class' => \app\components\LanguageBootstrap::class,
+        ],
         'request' => [
             // Required for cookie tamper protection; override via env in deployment.
             'cookieValidationKey' => getenv('COOKIE_VALIDATION_KEY') ?: '3hCiLu7RxzT026pnS5zmw1fd4BLdbajl',
