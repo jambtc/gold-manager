@@ -122,7 +122,7 @@ Required conventions:
 | SIP-0078 | Prestiti Giocatori (Loan) con Scadenza Reale | Accepted (Implemented) |
 | SIP-0079 | Multilingual Match Commentary | Draft |
 | SIP-0080 | Notifiche affidabili (SSE first, Telegram best-effort) | Accepted (Implemented) |
-| SIP-0081 | Daily Manager Digest (riepilogo giornaliero) | Proposed |
+| SIP-0081 | Daily Manager Digest (riepilogo giornaliero) | Accepted (Implemented) |
 | SIP-0082 | Gold Manager Coin (GMC) — Token Economy su Besu | Draft |
 | SIP-0083 | Smart Contract Suite (GoldManagerCoin + GameEconomy) | Proposed |
 | SIP-0084 | Wallet Manager UI | Proposed |

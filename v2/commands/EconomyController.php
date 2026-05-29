@@ -234,6 +234,47 @@ class EconomyController extends Controller
     }
 
     /**
+     * SIP-0081: Send daily digest to all human managers (runs once at noon).
+     * Idempotent — double-run on same day sends a second digest (acceptable).
+     *
+     * Usage: ./yii economy/send-daily-digest
+     */
+    public function actionSendDailyDigest(): int
+    {
+        $teams = \app\models\Team::find()
+            ->where(['is_cpu' => 0])
+            ->andWhere(['not', ['user_id' => null]])
+            ->with(['user'])
+            ->all();
+
+        $sent = 0;
+        foreach ($teams as $team) {
+            if (!$team->user_id) {
+                continue;
+            }
+            try {
+                $digest = \app\components\DigestBuilder::build($team);
+                NotificationService::notify(
+                    (int) $team->user_id,
+                    \app\models\NewsItem::CAT_SYSTEM,
+                    '📊',
+                    $digest->title,
+                    $digest->body,
+                    '',
+                    0,
+                    $digest->telegramText
+                );
+                $sent++;
+            } catch (\Throwable $e) {
+                Yii::warning("DigestBuilder failed for team#{$team->id}: " . $e->getMessage(), 'digest');
+            }
+        }
+
+        $this->stdout("📊 Daily digest inviato: {$sent} manager\n");
+        return ExitCode::OK;
+    }
+
+    /**
      * SIP-0078: Return expired loans to their original club.
      * Run every 5 minutes via cron. Idempotent — double-run is safe.
      *

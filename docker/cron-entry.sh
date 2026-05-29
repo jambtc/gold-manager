@@ -109,6 +109,13 @@ register_job \
     "$LOGS/loan-returns.log" \
     "loan-returns"
 
+register_job \
+    "${CRON_ENABLE_DAILY_DIGEST:-1}" \
+    "${CRON_DAILY_DIGEST_SCHEDULE:-0 12 * * *}" \
+    "php yii economy/send-daily-digest" \
+    "$LOGS/daily-digest.log" \
+    "daily-digest"
+
 crontab "$TMP_CRON"
 
 LOADED="$(grep -Ecv '^(#|$|[A-Za-z_][A-Za-z0-9_]*=)' "$TMP_CRON" || true)"
@@ -141,6 +148,7 @@ LOG_FILES=(
     "$LOGS/notification-dispatch.log"
     "$LOGS/pre-match-notifications.log"
     "$LOGS/loan-returns.log"
+    "$LOGS/daily-digest.log"
 )
 tail -n 0 -F "${LOG_FILES[@]}" &
 TAIL_PID=$!
