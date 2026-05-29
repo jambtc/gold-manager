@@ -114,6 +114,7 @@ class FixtureSeeder
             $fixture->away_team_id   = $away->id;
             $fixture->match_date     = $kickoff;
             $fixture->status         = Fixture::STATUS_SCHEDULED;
+            $fixture->language       = Fixture::langFromHomeTeam((int) $home->id);
 
             if (!$fixture->save()) {
                 throw new \RuntimeException(

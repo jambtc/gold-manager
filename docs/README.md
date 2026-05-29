@@ -120,7 +120,7 @@ Required conventions:
 | SIP-0076 | Multi-Nation Onboarding + Campionati per Paese | Proposed |
 | SIP-0077 | Go Orchestrator Hard-Cut (No Cron, Reset DB) | Proposed |
 | SIP-0078 | Prestiti Giocatori (Loan) con Scadenza Reale | Accepted (Implemented) |
-| SIP-0079 | Multilingual Match Commentary | Draft |
+| SIP-0079 | Multilingual Match Commentary | Accepted (Implemented) |
 | SIP-0080 | Notifiche affidabili (SSE first, Telegram best-effort) | Accepted (Implemented) |
 | SIP-0081 | Daily Manager Digest (riepilogo giornaliero) | Accepted (Implemented) |
 | SIP-0082 | Gold Manager Coin (GMC) — Token Economy su Besu | Draft |

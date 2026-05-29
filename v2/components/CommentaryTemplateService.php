@@ -66,6 +66,9 @@ class CommentaryTemplateService
      * Pick a weighted-random template for the given event type and context,
      * render placeholders, and return the final string.
      * Returns null if no template found.
+     *
+     * SIP-0079: $lang filters templates by language column (default 'it-IT').
+     * Falls back to 'it-IT' templates if no $lang match found.
      */
     public static function pick(
         string $eventType,
@@ -73,25 +76,45 @@ class CommentaryTemplateService
         array  $tokens = [],
         string $subtype = '',
         int    $fixtureId = 0,
-        string $gameState = ''
+        string $gameState = '',
+        string $lang = 'it-IT'
     ): ?string {
+        $baseParams = [
+            ':et'   => $eventType,
+            ':sub'  => $subtype, ':sub2' => $subtype,
+            ':gs'   => $gameState, ':gs2' => $gameState,
+            ':min1' => $minute,  ':min2' => $minute,
+            ':max1' => $minute,  ':max2' => $minute,
+        ];
+
         $rows = Yii::$app->db->createCommand(
             'SELECT id, text, weight
              FROM {{%commentary_template}}
              WHERE event_type = :et AND enabled = 1
+               AND language = :lang
                AND (:sub = "" OR subtype IS NULL OR subtype = :sub2)
                AND (:gs = "" OR game_state IS NULL OR game_state = :gs2)
                AND (:min1 = 0 OR min_minute IS NULL OR min_minute <= :min2)
                AND (:max1 = 0 OR max_minute IS NULL OR max_minute >= :max2)
              ORDER BY weight DESC',
-            [
-                ':et'   => $eventType,
-                ':sub'  => $subtype, ':sub2' => $subtype,
-                ':gs'   => $gameState, ':gs2' => $gameState,
-                ':min1' => $minute,  ':min2' => $minute,
-                ':max1' => $minute,  ':max2' => $minute,
-            ]
+            array_merge($baseParams, [':lang' => $lang])
         )->queryAll();
+
+        // Fallback to it-IT if no templates exist for requested language
+        if (empty($rows) && $lang !== 'it-IT') {
+            $rows = Yii::$app->db->createCommand(
+                'SELECT id, text, weight
+                 FROM {{%commentary_template}}
+                 WHERE event_type = :et AND enabled = 1
+                   AND language = "it-IT"
+                   AND (:sub = "" OR subtype IS NULL OR subtype = :sub2)
+                   AND (:gs = "" OR game_state IS NULL OR game_state = :gs2)
+                   AND (:min1 = 0 OR min_minute IS NULL OR min_minute <= :min2)
+                   AND (:max1 = 0 OR max_minute IS NULL OR max_minute >= :max2)
+                 ORDER BY weight DESC',
+                $baseParams
+            )->queryAll();
+        }
 
         if (empty($rows)) return null;
 
@@ -124,7 +147,21 @@ class CommentaryTemplateService
     /** Replace {placeholders} with token values */
     private static function render(string $template, array $tokens): string
     {
-        $defaults = [
+        $lang     = $tokens['_lang'] ?? 'it-IT';
+        $defaults = $lang === 'en-US' ? [
+            'player_attacker' => 'a player',
+            'player_defender' => 'the defender',
+            'player_gk'       => 'the goalkeeper',
+            'player_assist'   => 'a teammate',
+            'player_in'       => 'the substitute',
+            'player_out'      => 'the outgoing player',
+            'home_team'       => 'the home side',
+            'away_team'       => 'the away side',
+            'score_home'      => '0',
+            'score_away'      => '0',
+            'minute'          => '?',
+            'spectators'      => 'many',
+        ] : [
             'player_attacker' => 'un giocatore',
             'player_defender' => 'il difensore',
             'player_gk'       => 'il portiere',

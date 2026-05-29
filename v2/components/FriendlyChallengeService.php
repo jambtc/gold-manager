@@ -187,6 +187,7 @@ class FriendlyChallengeService
         $fixture->home_score = 0;
         $fixture->away_score = 0;
         $fixture->friendly_ticket_price = $ticketPrice;
+        $fixture->language = Fixture::langFromHomeTeam((int) $challenge->challenger_id);
         $fixture->save(false);
 
         return $fixture;

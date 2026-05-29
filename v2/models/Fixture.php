@@ -18,9 +18,10 @@ use yii\db\ActiveRecord;
  * @property int $match_date
  * @property int|null $home_score
  * @property int|null $away_score
- * @property int $status
- * @property int $created_at
- * @property int $updated_at
+ * @property int    $status
+ * @property string $language   BCP-47 language tag for commentary (it-IT|en-US) — SIP-0079
+ * @property int    $created_at
+ * @property int    $updated_at
  *
  * @property Competition $competition
  * @property Team $awayTeam
@@ -58,6 +59,8 @@ class Fixture extends ActiveRecord
         return [
             [['competition_id', 'home_team_id', 'away_team_id', 'match_date'], 'required'],
             [['competition_id', 'home_team_id', 'away_team_id', 'match_date', 'home_score', 'away_score', 'status'], 'integer'],
+            [['language'], 'string', 'max' => 10],
+            [['language'], 'default', 'value' => 'it-IT'],
             [['competition_id'], 'exist', 'skipOnError' => true, 'targetClass' => Competition::class, 'targetAttribute' => ['competition_id' => 'id']],
             [['away_team_id'], 'exist', 'skipOnError' => true, 'targetClass' => Team::class, 'targetAttribute' => ['away_team_id' => 'id']],
             [['home_team_id'], 'exist', 'skipOnError' => true, 'targetClass' => Team::class, 'targetAttribute' => ['home_team_id' => 'id']],
@@ -81,6 +84,22 @@ class Fixture extends ActiveRecord
             'created_at' => 'Created At',
             'updated_at' => 'Updated At',
         ];
+    }
+
+    /**
+     * SIP-0079: Derive commentary language from home team's manager.
+     * Falls back to 'it-IT' for CPU vs CPU or unregistered manager.
+     */
+    public static function langFromHomeTeam(int $homeTeamId): string
+    {
+        $row = Yii::$app->db->createCommand(
+            'SELECT u.language FROM {{%team}} t
+             JOIN {{%user}} u ON u.id = t.user_id
+             WHERE t.id = :tid AND t.is_cpu = 0 LIMIT 1',
+            [':tid' => $homeTeamId]
+        )->queryScalar();
+
+        return ($row && in_array($row, ['it-IT', 'en-US'], true)) ? (string) $row : 'it-IT';
     }
 
     /**

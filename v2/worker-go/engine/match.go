@@ -155,7 +155,8 @@ func (e *MatchEngine) BuildPreMatchPayload(fixtureID int) (PreMatchPayload, erro
 		return PreMatchPayload{}, err
 	}
 
-	weather, field := randomWeatherField()
+	lang := e.fixtureLang(fixtureID)
+	weather, field := randomWeatherField(lang)
 	capacity := base.Capacity
 	if capacity < 8000 {
 		capacity = 8000
@@ -214,15 +215,23 @@ func (e *MatchEngine) BuildPreMatchPayload(fixtureID int) (PreMatchPayload, erro
 	}, nil
 }
 
-func randomWeatherField() (string, string) {
-	options := []struct {
-		weather string
-		field   string
-	}{
-		{"soleggiato", "terreno asciutto e rapido"},
-		{"nuvoloso", "manto regolare e compatto"},
-		{"ventoso", "vento a raffiche, palloni lunghi più insidiosi"},
-		{"piovoso", "terreno pesante e scivoloso"},
+func randomWeatherField(lang string) (string, string) {
+	type option struct{ weather, field string }
+	var options []option
+	if lang == "en-US" {
+		options = []option{
+			{"sunny", "dry and fast pitch"},
+			{"cloudy", "regular compact surface"},
+			{"gusty", "windy conditions, long balls trickier"},
+			{"rainy", "heavy and slippery pitch"},
+		}
+	} else {
+		options = []option{
+			{"soleggiato", "terreno asciutto e rapido"},
+			{"nuvoloso", "manto regolare e compatto"},
+			{"ventoso", "vento a raffiche, palloni lunghi più insidiosi"},
+			{"piovoso", "terreno pesante e scivoloso"},
+		}
 	}
 	selected := options[rand.Intn(len(options))]
 	return selected.weather, selected.field
@@ -1089,6 +1098,15 @@ func (e *MatchEngine) activeLineupPlayers(fixtureID int, side, posGroup string) 
 	return nil
 }
 
+// fixtureLang reads fixture.language from DB. Returns "it-IT" on any error.
+func (e *MatchEngine) fixtureLang(fixtureID int) string {
+	var lang string
+	if err := e.DB.Get(&lang, "SELECT COALESCE(language,'it-IT') FROM fixture WHERE id=?", fixtureID); err != nil || lang == "" {
+		return "it-IT"
+	}
+	return lang
+}
+
 // enrichEventAsync calls Ollama in the background and updates event commentary.
 // Never blocks tick loop.
 func (e *MatchEngine) enrichEventAsync(
@@ -1100,6 +1118,7 @@ func (e *MatchEngine) enrichEventAsync(
 	prompt string,
 	fallback string,
 ) {
+	lang := e.fixtureLang(fixtureID)
 	meta := commentaryMeta{
 		EventType: eventType,
 		Minute:    minute,
@@ -1117,7 +1136,7 @@ func (e *MatchEngine) enrichEventAsync(
 	}
 
 	streamStarted := false
-	text := e.CallOllama(prompt, func(token string) {
+	text := e.CallOllama(prompt, lang, func(token string) {
 		if strings.TrimSpace(token) == "" {
 			return
 		}
@@ -1151,6 +1170,7 @@ func (e *MatchEngine) enrichEventAsync(
 }
 
 func (e *MatchEngine) EnrichPreMatchAsync(fixtureID int, eventID int64, payload PreMatchPayload) {
+	lang := e.fixtureLang(fixtureID)
 	meta := commentaryMeta{
 		EventType: "pre_match",
 		Minute:    0,
@@ -1168,7 +1188,7 @@ func (e *MatchEngine) EnrichPreMatchAsync(fixtureID int, eventID int64, payload 
 	}
 
 	streamStarted := false
-	text := e.CallOllamaLong(payload.Prompt, func(token string) {
+	text := e.CallOllamaLong(payload.Prompt, lang, func(token string) {
 		if strings.TrimSpace(token) == "" {
 			return
 		}
@@ -2344,13 +2364,14 @@ type OllamaResponse struct {
 
 // CallOllama calls Ollama with stream=true to avoid idle timeouts on slow CPU inference.
 // Each line is a JSON chunk {"response":"token","done":false}; we accumulate tokens until done=true.
-func (e *MatchEngine) CallOllama(prompt string, onToken func(string)) string {
+// SIP-0079: lang is passed to strictOllamaPrompt for bilingual instruction.
+func (e *MatchEngine) CallOllama(prompt, lang string, onToken func(string)) string {
 	if !envBool("GM_LLM_ENABLED", true) || !envBool("GM_LLM_MATCH_ENRICH_ENABLED", true) {
 		return ""
 	}
 	payload := OllamaRequest{
 		Model:  "telecronista",
-		Prompt: strictOllamaPrompt(prompt),
+		Prompt: strictOllamaPrompt(prompt, lang),
 		Stream: true,
 		Options: map[string]interface{}{
 			"temperature":    0.30,
@@ -2397,13 +2418,13 @@ func (e *MatchEngine) CallOllama(prompt string, onToken func(string)) string {
 	return cleanOllamaText(accumulated)
 }
 
-func (e *MatchEngine) CallOllamaLong(facts string, onToken func(string)) string {
+func (e *MatchEngine) CallOllamaLong(facts, lang string, onToken func(string)) string {
 	if !envBool("GM_LLM_ENABLED", true) || !envBool("GM_LLM_PREMATCH_ENABLED", true) {
 		return ""
 	}
 	payload := OllamaRequest{
 		Model:  "telecronista",
-		Prompt: longOllamaPrompt(facts),
+		Prompt: longOllamaPrompt(facts, lang),
 		Stream: true,
 		Options: map[string]interface{}{
 			"temperature":    0.22,
@@ -2448,7 +2469,18 @@ func (e *MatchEngine) CallOllamaLong(facts string, onToken func(string)) string 
 	return cleanOllamaLongText(accumulated)
 }
 
-func strictOllamaPrompt(facts string) string {
+// SIP-0079: lang is BCP-47 (it-IT or en-US). Default it-IT if unknown.
+func strictOllamaPrompt(facts, lang string) string {
+	if lang == "en-US" {
+		return "Write football commentary in English.\n" +
+			"Mandatory rules:\n" +
+			"- one sentence only;\n" +
+			"- maximum 22 words;\n" +
+			"- use only supplied data;\n" +
+			"- do not invent names, actions, scores or context;\n" +
+			"- no preamble, no quotes.\n" +
+			"Data: " + facts
+	}
 	return "Scrivi telecronaca calcio italiana.\n" +
 		"Regole obbligatorie:\n" +
 		"- una sola frase;\n" +
@@ -2459,7 +2491,18 @@ func strictOllamaPrompt(facts string) string {
 		"Dati: " + facts
 }
 
-func longOllamaPrompt(facts string) string {
+func longOllamaPrompt(facts, lang string) string {
+	if lang == "en-US" {
+		return "Write a coherent English football pre-match report.\n" +
+			"Mandatory rules:\n" +
+			"- 3 to 4 sentences, fluid text;\n" +
+			"- 70-120 words;\n" +
+			"- use only supplied data;\n" +
+			"- mention stadium, fans, weather, pitch, standings, opponent;\n" +
+			"- do not invent goals, past events or external facts;\n" +
+			"- no emoji, no quotes.\n" +
+			"Data: " + facts
+	}
 	return "Scrivi pre-partita calcio italiana coerente.\n" +
 		"Regole obbligatorie:\n" +
 		"- 3 o 4 frasi, testo fluido;\n" +
