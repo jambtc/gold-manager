@@ -88,6 +88,20 @@ register_job \
     "$LOGS/resolve-market-auctions.log" \
     "resolve-market-auctions"
 
+register_job \
+    "${CRON_ENABLE_NOTIFICATION_DISPATCH:-1}" \
+    "${CRON_NOTIFICATION_DISPATCH_SCHEDULE:-* * * * *}" \
+    "php yii notification/dispatch" \
+    "$LOGS/notification-dispatch.log" \
+    "notification-dispatch"
+
+register_job \
+    "${CRON_ENABLE_PRE_MATCH_NOTIFICATIONS:-1}" \
+    "${CRON_PRE_MATCH_NOTIFICATIONS_SCHEDULE:-* * * * *}" \
+    "php yii economy/send-pre-match-notifications" \
+    "$LOGS/pre-match-notifications.log" \
+    "pre-match-notifications"
+
 crontab "$TMP_CRON"
 
 LOADED="$(grep -Ecv '^(#|$|[A-Za-z_][A-Za-z0-9_]*=)' "$TMP_CRON" || true)"
@@ -117,6 +131,8 @@ LOG_FILES=(
     "$LOGS/scouting.log"
     "$LOGS/run-fixtures.log"
     "$LOGS/resolve-market-auctions.log"
+    "$LOGS/notification-dispatch.log"
+    "$LOGS/pre-match-notifications.log"
 )
 tail -n 0 -F "${LOG_FILES[@]}" &
 TAIL_PID=$!

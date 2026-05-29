@@ -9,7 +9,6 @@ use app\models\Fixture;
 use app\models\FriendlyChallenge;
 use app\models\NewsItem;
 use app\models\Team;
-use app\components\TelegramService;
 
 class FriendlyChallengeService
 {
@@ -141,16 +140,11 @@ class FriendlyChallengeService
             $count++;
 
             if ($challenge->challenger && $challenge->challenger->user_id) {
-                NewsService::create(
-                    (int) $challenge->challenger->user_id,
-                    NewsItem::CAT_FRIENDLY,
-                    'T',
+                NotificationService::notify(
+                    (int) $challenge->challenger->user_id, NewsItem::CAT_FRIENDLY, 'T',
                     'Sfida amichevole scaduta',
                     'La tua sfida non ha ricevuto risposta entro 24 ore.',
-                    \Yii::$app->urlManager->createUrl(['/friendly/index'])
-                );
-                TelegramService::sendToUser(
-                    (int) $challenge->challenger->user_id,
+                    \Yii::$app->urlManager->createUrl(['/friendly/index']), 0,
                     "📩 <b>Sfida amichevole scaduta</b>\nLa tua sfida non ha ricevuto risposta entro 24 ore."
                 );
             }

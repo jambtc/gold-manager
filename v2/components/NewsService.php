@@ -16,7 +16,7 @@ class NewsService
         string $body = '',
         string $linkUrl = '',
         int    $priority = 0
-    ): void {
+    ): int {
         $item             = new NewsItem();
         $item->user_id    = $userId;
         $item->category   = $category;
@@ -28,6 +28,7 @@ class NewsService
         $item->is_read    = 0;
         $item->created_at = time();
         $item->save(false);
+        return (int) $item->id;
     }
 
     public static function unreadCount(int $userId): int

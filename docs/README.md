@@ -121,7 +121,8 @@ Required conventions:
 | SIP-0077 | Go Orchestrator Hard-Cut (No Cron, Reset DB) | Proposed |
 | SIP-0078 | Prestiti Giocatori (Loan) con Scadenza Reale | Proposed |
 | SIP-0079 | Multilingual Match Commentary | Draft |
-| SIP-0080 | Notifiche affidabili (SSE first, Telegram best-effort) | Draft |
+| SIP-0080 | Notifiche affidabili (SSE first, Telegram best-effort) | Accepted (Implemented) |
+| SIP-0081 | Daily Manager Digest (riepilogo giornaliero) | Proposed |
 
 ## Current verification snapshot
 

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace app\components;
 
+use app\components\NotificationService;
 use app\components\PhysicalHelper;
 use app\models\Fixture;
 use app\models\Formation;
@@ -581,21 +582,14 @@ class MatchEngine extends Component
                 'injury_weeks' => $player->injury_weeks,
             ]);
 
-            // SIP-0050 + SIP-0058: news + Telegram for human manager
+            // SIP-0050 + SIP-0058 + SIP-0080: news + async Telegram
             $team = $side === 'home' ? $fixture->homeTeam : $fixture->awayTeam;
             if ($team?->user_id) {
-                \app\components\NewsService::create(
+                NotificationService::injury(
                     (int)$team->user_id,
-                    \app\models\NewsItem::CAT_INJURY,
-                    '🏥',
-                    "{$player->name} infortunato: {$type}",
-                    "Fuori {$player->injury_weeks} settimane",
-                    '',
-                    1
-                );
-                \app\components\TelegramService::sendToUser(
-                    (int)$team->user_id,
-                    "🏥 <b>{$player->name}</b> infortunato ({$type}) — fuori {$player->injury_weeks} settimane"
+                    (string)$player->name,
+                    $type,
+                    (int)$player->injury_weeks
                 );
             }
         }
@@ -1921,15 +1915,14 @@ class MatchEngine extends Component
                 ['team_id' => $fixture->home_team_id]
             );
             if ($homeTeam?->user_id) {
-                \app\components\NewsService::create(
+                NotificationService::notify(
                     (int)$homeTeam->user_id,
-                    \app\models\NewsItem::CAT_MATCH,
-                    '📣',
+                    \app\models\NewsItem::CAT_MATCH, '📣',
                     sprintf('Amichevole: %d spettatori allo stadio!', $spectators),
-                    'Grande atmosfera — +1 forma per tutta la rosa'
+                    'Grande atmosfera — +1 forma per tutta la rosa',
+                    '', 0,
+                    "📣 <b>Grande atmosfera!</b>\nAmichevole con {$spectators} spettatori — +1 forma."
                 );
-                \app\components\TelegramService::sendToUser((int)$homeTeam->user_id,
-                    "📣 <b>Grande atmosfera!</b>\nAmichevole con {$spectators} spettatori — +1 forma.");
             }
         } elseif ($attendancePct < 0.20) {
             // Low attendance: freshness -3, no revenue
@@ -2066,18 +2059,11 @@ class MatchEngine extends Component
     {
         $team = $side === 'home' ? $fixture->homeTeam : $fixture->awayTeam;
         if (!$team?->user_id || $matches <= 0) return;
-        \app\components\NewsService::create(
+        NotificationService::discipline(
             (int)$team->user_id,
-            \app\models\NewsItem::CAT_DISCIPLINE,
-            '🟥',
-            "{$player->name} squalificato ({$reason})",
-            "Salta {$matches} gara/e",
-            '',
-            1
-        );
-        \app\components\TelegramService::sendToUser(
-            (int)$team->user_id,
-            "🟥 <b>{$player->name}</b> squalificato ({$reason}) — salta {$matches} gara/e"
+            (string)$player->name,
+            $reason,
+            $matches
         );
     }
 
@@ -2095,19 +2081,14 @@ class MatchEngine extends Component
                 $side['myScore'] === $side['oppScore'] => ['🤝', 'Pareggiato'],
                 default => ['❌', 'Sconfitto'],
             };
-            $type = $fixture->competition?->type === 'friendly' ? 'Amichevole' : 'Campionato';
-            \app\components\NewsService::create(
+            $type    = $fixture->competition?->type === 'friendly' ? 'Amichevole' : 'Campionato';
+            $linkUrl = \Yii::$app->urlManager->createUrl(['/fixture/view', 'id' => $fixture->id]);
+            NotificationService::matchResult(
                 (int)$team->user_id,
-                \app\models\NewsItem::CAT_MATCH,
                 $icon,
                 "{$result} {$side['myScore']}–{$side['oppScore']} contro {$side['opp']}",
                 $type,
-                \Yii::$app->urlManager->createUrl(['/fixture/view', 'id' => $fixture->id]),
-                $side['myScore'] > $side['oppScore'] ? 1 : 0
-            );
-            \app\components\TelegramService::sendToUser(
-                (int)$team->user_id,
-                "{$icon} <b>Finale:</b> {$side['myScore']}–{$side['oppScore']} vs {$side['opp']}\n{$type}"
+                $linkUrl
             );
         }
     }

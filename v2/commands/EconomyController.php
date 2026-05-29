@@ -16,6 +16,7 @@ use app\components\seeders\PlayerSeeder;
 use app\components\WorldData;
 use app\components\WorldSeeder;
 use app\components\NewsService;
+use app\components\NotificationService;
 use app\components\SponsorService;
 use app\components\TelegramService;
 use app\models\Competition;
@@ -898,6 +899,61 @@ class EconomyController extends Controller
             ));
         }
 
+        return ExitCode::OK;
+    }
+
+    /**
+     * SIP-0080: Send pre-match notifications for fixtures starting within 15 minutes.
+     * Run every minute: * * * * * php yii economy/send-pre-match-notifications
+     *
+     * Usage: ./yii economy/send-pre-match-notifications
+     */
+    public function actionSendPreMatchNotifications(): int
+    {
+        $now     = time();
+        $horizon = $now + 900; // 15 minutes
+
+        $fixtures = Fixture::find()
+            ->with(['homeTeam', 'awayTeam'])
+            ->where(['status' => Fixture::STATUS_SCHEDULED, 'pre_match_notified' => 0])
+            ->andWhere(['between', 'match_date', $now, $horizon])
+            ->all();
+
+        $sent = 0;
+        foreach ($fixtures as $fixture) {
+            $homeName = (string) ($fixture->homeTeam->name ?? 'Home');
+            $awayName = (string) ($fixture->awayTeam->name ?? 'Away');
+            $linkUrl  = \Yii::$app->urlManager->createUrl(['/fixture/view', 'id' => $fixture->id]);
+
+            // Notify home manager
+            if ($fixture->homeTeam?->user_id) {
+                NotificationService::preMatch(
+                    (int) $fixture->homeTeam->user_id,
+                    $homeName, $awayName,
+                    (int) $fixture->id,
+                    $linkUrl
+                );
+                $sent++;
+            }
+
+            // Notify away manager
+            if ($fixture->awayTeam?->user_id
+                && $fixture->awayTeam->user_id !== $fixture->homeTeam?->user_id
+            ) {
+                NotificationService::preMatch(
+                    (int) $fixture->awayTeam->user_id,
+                    $homeName, $awayName,
+                    (int) $fixture->id,
+                    $linkUrl
+                );
+                $sent++;
+            }
+
+            // Mark as notified
+            Fixture::updateAll(['pre_match_notified' => 1], ['id' => $fixture->id]);
+        }
+
+        $this->stdout("⏰ Pre-match notifications sent: {$sent} (for " . count($fixtures) . " fixtures)\n");
         return ExitCode::OK;
     }
 
@@ -1835,16 +1891,12 @@ class EconomyController extends Controller
 
                 if ($challenger->user_id) {
                     $title = $challenged->name . " ha declinato l'amichevole";
-                    $body = (string) $reason;
-                    NewsService::create(
-                        (int) $challenger->user_id,
-                        NewsItem::CAT_FRIENDLY,
-                        '-',
-                        $title,
-                        $body,
-                        $this->safeUrl('/friendly/index')
+                    $body  = (string) $reason;
+                    NotificationService::notify(
+                        (int) $challenger->user_id, NewsItem::CAT_FRIENDLY, '-',
+                        $title, $body, $this->safeUrl('/friendly/index'), 0,
+                        "📩 <b>{$title}</b>\n{$body}"
                     );
-                    TelegramService::sendToUser((int) $challenger->user_id, "📩 <b>{$title}</b>\n{$body}");
                 }
                 continue;
             }
@@ -1858,17 +1910,12 @@ class EconomyController extends Controller
 
             if ($challenger->user_id) {
                 $title = $challenged->name . " ha accettato l'amichevole";
-                $body = sprintf('Partita programmata per %s.', date('d/m H:i', (int) $challenge->proposed_at));
-                NewsService::create(
-                    (int) $challenger->user_id,
-                    NewsItem::CAT_FRIENDLY,
-                    '+',
-                    $title,
-                    $body,
-                    $this->safeUrl('/fixture/live', ['id' => (int) $fixture->id]),
-                    1
+                $body  = sprintf('Partita programmata per %s.', date('d/m H:i', (int) $challenge->proposed_at));
+                NotificationService::notify(
+                    (int) $challenger->user_id, NewsItem::CAT_FRIENDLY, '+',
+                    $title, $body, $this->safeUrl('/fixture/live', ['id' => (int) $fixture->id]), 1,
+                    "📩 <b>{$title}</b>\n{$body}"
                 );
-                TelegramService::sendToUser((int) $challenger->user_id, "📩 <b>{$title}</b>\n{$body}");
             }
         }
 
@@ -1968,17 +2015,12 @@ class EconomyController extends Controller
                 $initiated++;
                 if ($target->user_id) {
                     $title = 'Invito amichevole ricevuto';
-                    $body = sprintf('%s ti sfida per %s.', $cpuTeam->name, date('d/m H:i', $slot));
-                    NewsService::create(
-                        (int) $target->user_id,
-                        NewsItem::CAT_FRIENDLY,
-                        'I',
-                        $title,
-                        $body,
-                        $this->safeUrl('/friendly/index'),
-                        1
+                    $body  = sprintf('%s ti sfida per %s.', $cpuTeam->name, date('d/m H:i', $slot));
+                    NotificationService::notify(
+                        (int) $target->user_id, NewsItem::CAT_FRIENDLY, 'I',
+                        $title, $body, $this->safeUrl('/friendly/index'), 1,
+                        "📩 <b>{$title}</b>\n{$body}"
                     );
-                    TelegramService::sendToUser((int) $target->user_id, "📩 <b>{$title}</b>\n{$body}");
                 }
             }
         }
@@ -2363,27 +2405,24 @@ class EconomyController extends Controller
         }
 
         if ($winnerTeam->user_id) {
-            NewsService::create(
-                (int) $winnerTeam->user_id,
-                NewsItem::CAT_TRANSFER,
-                '🏁',
+            $fmtBid = number_format((int) $winner->bid_amount, 0, ',', '.');
+            NotificationService::notify(
+                (int) $winnerTeam->user_id, NewsItem::CAT_TRANSFER, '🏁',
                 "Asta vinta: {$player->name}",
-                sprintf('Acquisto completato a €%s.', number_format((int) $winner->bid_amount, 0, ',', '.')),
-                $this->safeUrl('/transfer/market'),
-                1
-            );
-            TelegramService::sendToUser(
-                (int) $winnerTeam->user_id,
-                "✅ Hai vinto l'asta per {$player->name}!\nCosto: €" . number_format((int) $winner->bid_amount, 0, ',', '.')
+                "Acquisto completato a €{$fmtBid}.",
+                $this->safeUrl('/transfer/market'), 1,
+                "✅ Hai vinto l'asta per <b>{$player->name}</b>!\nCosto: €{$fmtBid}"
             );
         }
         foreach ($bids as $bid) {
             if ((int) $bid->id === (int) $winner->id) continue;
             $loserTeam = \app\models\Team::findOne($bid->team_id);
             if ($loserTeam && $loserTeam->user_id) {
-                TelegramService::sendToUser(
-                    (int) $loserTeam->user_id,
-                    "❌ Hai perso l'asta per {$player->name}.\nVincitore: {$winnerTeam->name}"
+                NotificationService::notify(
+                    (int) $loserTeam->user_id, NewsItem::CAT_TRANSFER, '❌',
+                    "Asta persa: {$player->name}",
+                    "Vincitore: {$winnerTeam->name}", '', 0,
+                    "❌ Hai perso l'asta per <b>{$player->name}</b>.\nVincitore: {$winnerTeam->name}"
                 );
             }
         }
@@ -2457,26 +2496,24 @@ class EconomyController extends Controller
         }
 
         if ($team->user_id) {
-            NewsService::create(
-                (int) $team->user_id,
-                NewsItem::CAT_FINANCE,
-                '🧑‍💼',
+            $fmtStaff = number_format((int) $winner->bid_amount, 0, ',', '.');
+            NotificationService::notify(
+                (int) $team->user_id, NewsItem::CAT_FINANCE, '🧑‍💼',
                 "Staff assunto: {$staff->name}",
-                sprintf('Ruolo %s · costo asta €%s.', $staff->role, number_format((int) $winner->bid_amount, 0, ',', '.')),
-                $this->safeUrl('/staff/view')
-            );
-            TelegramService::sendToUser(
-                (int) $team->user_id,
-                "✅ Hai vinto l'asta staff per {$staff->name}!\nCosto: €" . number_format((int) $winner->bid_amount, 0, ',', '.')
+                "Ruolo {$staff->role} · costo asta €{$fmtStaff}.",
+                $this->safeUrl('/staff/view'), 0,
+                "✅ Hai vinto l'asta staff per <b>{$staff->name}</b>!\nCosto: €{$fmtStaff}"
             );
         }
         foreach ($bids as $bid) {
             if ((int) $bid->id === (int) $winner->id) continue;
             $loserTeam = Team::findOne($bid->team_id);
             if ($loserTeam && $loserTeam->user_id) {
-                TelegramService::sendToUser(
-                    (int) $loserTeam->user_id,
-                    "❌ Hai perso l'asta staff per {$staff->name}.\nVincitore: {$team->name}"
+                NotificationService::notify(
+                    (int) $loserTeam->user_id, NewsItem::CAT_STAFF, '❌',
+                    "Asta staff persa: {$staff->name}",
+                    "Vincitore: {$team->name}", '', 0,
+                    "❌ Hai perso l'asta staff per <b>{$staff->name}</b>.\nVincitore: {$team->name}"
                 );
             }
         }
@@ -2574,27 +2611,25 @@ class EconomyController extends Controller
         }
 
         if ($team->user_id) {
-            NewsService::create(
-                (int) $team->user_id,
-                NewsItem::CAT_FINANCE,
-                '🤝',
+            $fmtBid  = number_format((int) $winner->bid_amount, 0, ',', '.');
+            $fmtPay  = number_format((int) $sponsor->base_payment, 0, ',', '.');
+            NotificationService::notify(
+                (int) $team->user_id, NewsItem::CAT_FINANCE, '🤝',
                 "Sponsor acquisito: {$sponsor->name}",
-                sprintf('Asta vinta con €%s.', number_format((int) $winner->bid_amount, 0, ',', '.')),
-                $this->safeUrl('/sponsor/index'),
-                1
-            );
-            TelegramService::sendToUser(
-                (int) $team->user_id,
-                "✅ Hai vinto l'asta sponsor per {$sponsor->name}!\nEntrate: €" . number_format((int) $sponsor->base_payment, 0, ',', '.') . '/stagione'
+                "Asta vinta con €{$fmtBid}.",
+                $this->safeUrl('/sponsor/index'), 1,
+                "✅ Hai vinto l'asta sponsor per <b>{$sponsor->name}</b>!\nEntrate: €{$fmtPay}/stagione"
             );
         }
         foreach ($bids as $bid) {
             if ((int) $bid->id === (int) $winner->id) continue;
             $loserTeam = Team::findOne($bid->team_id);
             if ($loserTeam && $loserTeam->user_id) {
-                TelegramService::sendToUser(
-                    (int) $loserTeam->user_id,
-                    "❌ Hai perso l'asta sponsor per {$sponsor->name}.\nVincitore: {$team->name}"
+                NotificationService::notify(
+                    (int) $loserTeam->user_id, NewsItem::CAT_FINANCE, '❌',
+                    "Asta sponsor persa: {$sponsor->name}",
+                    "Vincitore: {$team->name}", '', 0,
+                    "❌ Hai perso l'asta sponsor per <b>{$sponsor->name}</b>.\nVincitore: {$team->name}"
                 );
             }
         }

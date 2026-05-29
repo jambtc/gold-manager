@@ -7,6 +7,7 @@ namespace app\controllers;
 use app\components\AuctionService;
 use app\components\MultiplayerSyncService;
 use app\components\NewsService;
+use app\components\NotificationService;
 use app\components\TelegramService;
 use app\components\TransferWindowService;
 use app\models\Competition;
@@ -469,16 +470,14 @@ class TransferController extends Controller
             // News al compratore
             if ($buyer->user_id) {
                 $playerName = Player::findOne($transfer->player_id)?->name ?? 'giocatore';
-                NewsService::create(
-                    (int) $buyer->user_id,
-                    NewsItem::CAT_TRANSFER,
-                    '✅',
+                $fmtFee = number_format((int) $offer->offered_fee, 0, ',', '.');
+                NotificationService::notify(
+                    (int) $buyer->user_id, NewsItem::CAT_TRANSFER, '✅',
                     "Offerta accettata: {$playerName}",
-                    sprintf('%s ha accettato €%s', $team->name, number_format((int) $offer->offered_fee, 0, ',', '.')),
-                    Yii::$app->urlManager->createUrl(['/transfer/market'])
+                    "{$team->name} ha accettato €{$fmtFee}",
+                    Yii::$app->urlManager->createUrl(['/transfer/market']), 1,
+                    "✅ <b>Offerta accettata!</b>\n{$playerName} acquistato per €{$fmtFee}"
                 );
-                TelegramService::sendToUser((int) $buyer->user_id,
-                    "✅ <b>Offerta accettata!</b>\n{$playerName} acquistato per €" . number_format((int) $offer->offered_fee, 0, ',', '.'));
             }
             } else {
                 $tx->rollBack();
@@ -529,13 +528,13 @@ class TransferController extends Controller
         $buyerTeam = Team::findOne((int) $offer->from_team_id);
         if ($buyerTeam?->user_id) {
             $playerName = Player::findOne($offer->player_id)?->name ?? 'giocatore';
-            NewsService::create(
-                (int) $buyerTeam->user_id,
-                NewsItem::CAT_TRANSFER,
-                '❌',
+            $fmtFee = number_format((int) $offer->offered_fee, 0, ',', '.');
+            NotificationService::notify(
+                (int) $buyerTeam->user_id, NewsItem::CAT_TRANSFER, '❌',
                 "Offerta rifiutata: {$playerName}",
-                sprintf('%s ha rifiutato la tua offerta di €%s', $team->name, number_format((int) $offer->offered_fee, 0, ',', '.')),
-                Yii::$app->urlManager->createUrl(['/transfer/market'])
+                "{$team->name} ha rifiutato la tua offerta di €{$fmtFee}",
+                Yii::$app->urlManager->createUrl(['/transfer/market']), 0,
+                "❌ <b>Offerta rifiutata</b> per {$playerName}\n{$team->name} ha rifiutato €{$fmtFee}"
             );
         }
 

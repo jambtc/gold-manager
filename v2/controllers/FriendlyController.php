@@ -7,7 +7,7 @@ namespace app\controllers;
 use app\components\FriendlyChallengeService;
 use app\components\MultiplayerSyncService;
 use app\components\NewsService;
-use app\components\TelegramService;
+use app\components\NotificationService;
 use app\models\Fixture;
 use app\models\FriendlyChallenge;
 use app\models\NewsItem;
@@ -223,23 +223,13 @@ class FriendlyController extends Controller
 
         // Human manager target: wait for response.
         if (!$target->is_cpu && $target->user_id) {
-            NewsService::create(
-                (int) $target->user_id,
-                NewsItem::CAT_FRIENDLY,
-                'I',
+            $challengeBody = sprintf(Yii::t('app', '%s challenges you for %s.'), $myTeam->name, date('d/m H:i', $proposedAt));
+            NotificationService::notify(
+                (int) $target->user_id, NewsItem::CAT_FRIENDLY, 'I',
                 Yii::t('app', 'Friendly challenge received'),
-                sprintf(
-                    Yii::t('app', '%s challenges you for %s.'),
-                    $myTeam->name,
-                    date('d/m H:i', $proposedAt)
-                ),
-                Yii::$app->urlManager->createUrl(['/friendly/index']),
-                1
-            );
-            $this->sendFriendlyTelegram(
-                (int) $target->user_id,
-                Yii::t('app', 'Friendly challenge received'),
-                sprintf(Yii::t('app', '%s challenges you for %s.'), $myTeam->name, date('d/m H:i', $proposedAt))
+                $challengeBody,
+                Yii::$app->urlManager->createUrl(['/friendly/index']), 1,
+                "📩 <b>" . Yii::t('app', 'Friendly challenge received') . "</b>\n{$challengeBody}"
             );
 
             Yii::$app->session->setFlash('success', Yii::t('app', 'Challenge sent to {name}. Awaiting response.', ['{name}' => $target->name]));
@@ -269,19 +259,13 @@ class FriendlyController extends Controller
             $challenge->save(false, ['status', 'fixture_id', 'responded_at', 'request_id', 'request_source']);
 
             if ($myTeam->user_id) {
-                NewsService::create(
-                    (int) $myTeam->user_id,
-                    NewsItem::CAT_FRIENDLY,
-                    '+',
-                    Yii::t('app', '{name} accepted the friendly', ['{name}' => $target->name]),
-                    sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', $proposedAt)),
-                    Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id]),
-                    1
-                );
-                $this->sendFriendlyTelegram(
-                    (int) $myTeam->user_id,
-                    Yii::t('app', '{name} accepted the friendly', ['{name}' => $target->name]),
-                    sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', $proposedAt))
+                $acceptBody = sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', $proposedAt));
+                $acceptTitle = Yii::t('app', '{name} accepted the friendly', ['{name}' => $target->name]);
+                NotificationService::notify(
+                    (int) $myTeam->user_id, NewsItem::CAT_FRIENDLY, '+',
+                    $acceptTitle, $acceptBody,
+                    Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id]), 1,
+                    "📩 <b>{$acceptTitle}</b>\n{$acceptBody}"
                 );
             }
 
@@ -295,18 +279,13 @@ class FriendlyController extends Controller
             $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
             if ($myTeam->user_id) {
-                NewsService::create(
-                    (int) $myTeam->user_id,
-                    NewsItem::CAT_FRIENDLY,
-                    '-',
-                    Yii::t('app', '{name} declined the friendly', ['{name}' => $target->name]),
-                    $reason ?: Yii::t('app', 'Challenge rejected.'),
-                    Yii::$app->urlManager->createUrl(['/friendly/index'])
-                );
-                $this->sendFriendlyTelegram(
-                    (int) $myTeam->user_id,
-                    Yii::t('app', '{name} declined the friendly', ['{name}' => $target->name]),
-                    (string) ($reason ?: Yii::t('app', 'Challenge rejected.'))
+                $declineTitle = Yii::t('app', '{name} declined the friendly', ['{name}' => $target->name]);
+                $declineBody  = $reason ?: Yii::t('app', 'Challenge rejected.');
+                NotificationService::notify(
+                    (int) $myTeam->user_id, NewsItem::CAT_FRIENDLY, '-',
+                    $declineTitle, $declineBody,
+                    Yii::$app->urlManager->createUrl(['/friendly/index']), 0,
+                    "📩 <b>{$declineTitle}</b>\n{$declineBody}"
                 );
             }
 
@@ -371,18 +350,12 @@ class FriendlyController extends Controller
                 $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
                 if ($challenge->challenger && $challenge->challenger->user_id) {
-                    NewsService::create(
-                        (int) $challenge->challenger->user_id,
-                        NewsItem::CAT_FRIENDLY,
-                        '-',
+                    NotificationService::notify(
+                        (int) $challenge->challenger->user_id, NewsItem::CAT_FRIENDLY, '-',
                         Yii::t('app', 'Friendly challenge cancelled'),
-                        $challenge->decline_reason,
-                        Yii::$app->urlManager->createUrl(['/friendly/index'])
-                    );
-                    $this->sendFriendlyTelegram(
-                        (int) $challenge->challenger->user_id,
-                        Yii::t('app', 'Friendly challenge cancelled'),
-                        (string) $challenge->decline_reason
+                        (string) $challenge->decline_reason,
+                        Yii::$app->urlManager->createUrl(['/friendly/index']), 0,
+                        "📩 <b>" . Yii::t('app', 'Friendly challenge cancelled') . "</b>\n{$challenge->decline_reason}"
                     );
                 }
 
@@ -399,35 +372,22 @@ class FriendlyController extends Controller
             $challenge->save(false, ['status', 'fixture_id', 'responded_at', 'request_id', 'request_source']);
 
             if ($challenge->challenger && $challenge->challenger->user_id) {
-                NewsService::create(
-                    (int) $challenge->challenger->user_id,
-                    NewsItem::CAT_FRIENDLY,
-                    '+',
-                    Yii::t('app', '{name} accepted the friendly', ['{name}' => $myTeam->name]),
-                    sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', (int) $challenge->proposed_at)),
-                    Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id]),
-                    1
-                );
-                $this->sendFriendlyTelegram(
-                    (int) $challenge->challenger->user_id,
-                    Yii::t('app', '{name} accepted the friendly', ['{name}' => $myTeam->name]),
-                    sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', (int) $challenge->proposed_at))
+                $t = Yii::t('app', '{name} accepted the friendly', ['{name}' => $myTeam->name]);
+                $b = sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', (int) $challenge->proposed_at));
+                NotificationService::notify(
+                    (int) $challenge->challenger->user_id, NewsItem::CAT_FRIENDLY, '+',
+                    $t, $b, Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id]), 1,
+                    "📩 <b>{$t}</b>\n{$b}"
                 );
             }
 
             if ($myTeam->user_id) {
-                NewsService::create(
-                    (int) $myTeam->user_id,
-                    NewsItem::CAT_FRIENDLY,
-                    '+',
-                    Yii::t('app', 'You accepted the friendly challenge'),
-                    sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', (int) $challenge->proposed_at)),
-                    Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id])
-                );
-                $this->sendFriendlyTelegram(
-                    (int) $myTeam->user_id,
-                    Yii::t('app', 'You accepted the friendly challenge'),
-                    sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', (int) $challenge->proposed_at))
+                $t = Yii::t('app', 'You accepted the friendly challenge');
+                $b = sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', (int) $challenge->proposed_at));
+                NotificationService::notify(
+                    (int) $myTeam->user_id, NewsItem::CAT_FRIENDLY, '+',
+                    $t, $b, Yii::$app->urlManager->createUrl(['/fixture/live', 'id' => $fixture->id]), 0,
+                    "📩 <b>{$t}</b>\n{$b}"
                 );
             }
 
@@ -443,18 +403,12 @@ class FriendlyController extends Controller
         $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
         if ($challenge->challenger && $challenge->challenger->user_id) {
-            NewsService::create(
-                (int) $challenge->challenger->user_id,
-                NewsItem::CAT_FRIENDLY,
-                '-',
-                Yii::t('app', '{name} declined your challenge', ['{name}' => $myTeam->name]),
-                Yii::t('app', 'Invitation rejected.'),
-                Yii::$app->urlManager->createUrl(['/friendly/index'])
-            );
-            $this->sendFriendlyTelegram(
-                (int) $challenge->challenger->user_id,
-                Yii::t('app', '{name} declined your challenge', ['{name}' => $myTeam->name]),
-                Yii::t('app', 'Invitation rejected.')
+            $t = Yii::t('app', '{name} declined your challenge', ['{name}' => $myTeam->name]);
+            $b = Yii::t('app', 'Invitation rejected.');
+            NotificationService::notify(
+                (int) $challenge->challenger->user_id, NewsItem::CAT_FRIENDLY, '-',
+                $t, $b, Yii::$app->urlManager->createUrl(['/friendly/index']), 0,
+                "📩 <b>{$t}</b>\n{$b}"
             );
         }
 
@@ -556,12 +510,5 @@ class FriendlyController extends Controller
         return $value >= 0 ? $value : 15;
     }
 
-    private function sendFriendlyTelegram(int $userId, string $title, string $body = ''): void
-    {
-        $msg = '📩 <b>' . $title . '</b>';
-        if ($body !== '') {
-            $msg .= "\n" . $body;
-        }
-        TelegramService::sendToUser($userId, $msg);
-    }
 }
+

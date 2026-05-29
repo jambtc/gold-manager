@@ -408,6 +408,15 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 		eventID, _ := res.LastInsertId()
 		e.broadcastEvent(fixtureID, eventID, 45, "half_time", "home", fallback, state.HomeScore, state.AwayScore, "")
+
+		// SIP-0080: halftime in-app notification for both managers
+		htHome := e.teamName(fixtureID, "home")
+		htAway := e.teamName(fixtureID, "away")
+		htTitle := fmt.Sprintf("Intervallo: %s %d–%d %s", htHome, state.HomeScore, state.AwayScore, htAway)
+		htTg := fmt.Sprintf("🔔 <b>Intervallo:</b> %s %d–%d %s", htHome, state.HomeScore, state.AwayScore, htAway)
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "home"), "match", "🔔", htTitle, "", htTg)
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "away"), "match", "🔔", htTitle, "", htTg)
+
 		prompt := fmt.Sprintf(
 			"Intervallo: %s %d-%d %s. Commento telecronista calcio.",
 			e.teamName(fixtureID, "home"),
@@ -490,6 +499,16 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		suspense := pickSuspense(homeSuspense)
 		suspenseText = suspense
 		fallback = fmt.Sprintf("GOL! %s segna per il %s al minuto %d! Punteggio: %d-%d!", scorer, e.teamName(fixtureID, "home"), state.CurrentMinute, state.HomeScore, state.AwayScore)
+
+		// SIP-0080: in-app goal notifications
+		homeName := e.teamName(fixtureID, "home")
+		awayName := e.teamName(fixtureID, "away")
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "home"), "match", "⚽",
+			fmt.Sprintf("GOL! %s segna al minuto %d! %d–%d", scorer, state.CurrentMinute, state.HomeScore, state.AwayScore),
+			"", fmt.Sprintf("⚽ <b>GOL!</b> %s al minuto %d! %s %d–%d %s", scorer, state.CurrentMinute, homeName, state.HomeScore, state.AwayScore, awayName))
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "away"), "match", "😰",
+			fmt.Sprintf("Gol subito al minuto %d: %s %d–%d %s", state.CurrentMinute, homeName, state.HomeScore, state.AwayScore, awayName),
+			"", fmt.Sprintf("😰 <b>Gol subito</b> al minuto %d! %s %d–%d %s", state.CurrentMinute, homeName, state.HomeScore, state.AwayScore, awayName))
 		gameState := deriveGameState(state.HomeScore, state.AwayScore, "home", state.CurrentMinute)
 		if tpl, ok := e.pickTemplate("goal", "home", gameState, state.CurrentMinute, fixtureID, map[string]string{
 			"home_team":       e.teamName(fixtureID, "home"),
@@ -518,6 +537,16 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		suspense := pickSuspense(awaySuspense)
 		suspenseText = suspense
 		fallback = fmt.Sprintf("GOL! %s segna per il %s al minuto %d! Punteggio: %d-%d!", scorer, e.teamName(fixtureID, "away"), state.CurrentMinute, state.HomeScore, state.AwayScore)
+
+		// SIP-0080: in-app goal notifications
+		homeName2 := e.teamName(fixtureID, "home")
+		awayName2 := e.teamName(fixtureID, "away")
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "away"), "match", "⚽",
+			fmt.Sprintf("GOL! %s segna al minuto %d! %d–%d", scorer, state.CurrentMinute, state.HomeScore, state.AwayScore),
+			"", fmt.Sprintf("⚽ <b>GOL!</b> %s al minuto %d! %s %d–%d %s", scorer, state.CurrentMinute, homeName2, state.HomeScore, state.AwayScore, awayName2))
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "home"), "match", "😰",
+			fmt.Sprintf("Gol subito al minuto %d: %s %d–%d %s", state.CurrentMinute, homeName2, state.HomeScore, state.AwayScore, awayName2),
+			"", fmt.Sprintf("😰 <b>Gol subito</b> al minuto %d! %s %d–%d %s", state.CurrentMinute, homeName2, state.HomeScore, state.AwayScore, awayName2))
 		gameState := deriveGameState(state.HomeScore, state.AwayScore, "away", state.CurrentMinute)
 		if tpl, ok := e.pickTemplate("goal", "away", gameState, state.CurrentMinute, fixtureID, map[string]string{
 			"home_team":       e.teamName(fixtureID, "home"),
@@ -1236,6 +1265,54 @@ func (e *MatchEngine) teamID(fixtureID int, side string) (int, error) {
 	}
 	err := e.DB.Get(&teamID, "SELECT "+col+" FROM fixture WHERE id = ?", fixtureID)
 	return teamID, err
+}
+
+// teamUserID returns the user_id of the manager who owns this team (0 if CPU or error).
+func (e *MatchEngine) teamUserID(fixtureID int, side string) int {
+	teamID, err := e.teamID(fixtureID, side)
+	if err != nil || teamID <= 0 {
+		return 0
+	}
+	var userID int
+	if err := e.DB.Get(&userID, "SELECT COALESCE(user_id, 0) FROM team WHERE id = ?", teamID); err != nil {
+		return 0
+	}
+	return userID
+}
+
+// insertMatchNotification writes a news_item and a notification_delivery row
+// directly into the DB (bypassing PHP). The PHP notification/dispatch worker
+// picks up the delivery row and sends Telegram asynchronously (SIP-0080).
+func (e *MatchEngine) insertMatchNotification(userID int, category, icon, title, body, telegramText string) {
+	if userID <= 0 {
+		return
+	}
+	now := time.Now().Unix()
+
+	res, err := e.DB.Exec(`
+		INSERT INTO news_item (user_id, category, icon, title, body, link_url, is_read, priority, created_at)
+		VALUES (?, ?, ?, ?, ?, '', 0, 0, ?)
+	`, userID, category, icon, title, body, now)
+	if err != nil {
+		log.Printf("[NOTIF] news_item insert failed user=%d: %v", userID, err)
+		return
+	}
+	newsItemID, _ := res.LastInsertId()
+
+	// Check telegram_enabled before inserting delivery row
+	var tgEnabled int
+	_ = e.DB.Get(&tgEnabled, "SELECT COALESCE(telegram_enabled, 0) FROM user WHERE id = ?", userID)
+	if tgEnabled == 0 || telegramText == "" {
+		return
+	}
+
+	_, err = e.DB.Exec(`
+		INSERT INTO notification_delivery (user_id, news_item_id, channel, status, telegram_text, attempts, created_at, updated_at)
+		VALUES (?, ?, 'telegram', 'pending', ?, 0, ?, ?)
+	`, userID, newsItemID, telegramText, now, now)
+	if err != nil {
+		log.Printf("[NOTIF] delivery insert failed user=%d: %v", userID, err)
+	}
 }
 
 type teamTraitProfile struct {
