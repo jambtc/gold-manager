@@ -353,6 +353,15 @@ class MatchEngine extends Component
         $shotPower = (int) ($atk['tc'] * 0.4 + $atk['tr'] * 0.6);
         $gkPower = (int) ($def['po'] * 2.0 + $def['df'] * 0.2);
 
+        // SIP-0073: GK height penalty — short GK loses effective po (not persisted)
+        $defGk = $this->getActivePlayer($fixture, $state, $defSide, 'GK');
+        if ($defGk) {
+            $gkHPenalty = PhysicalHelper::gkHeightPenalty((int)($defGk->height_cm ?? 183));
+            if ($gkHPenalty > 0) {
+                $gkPower = max(0, $gkPower - $gkHPenalty * 2);
+            }
+        }
+
         if (!$this->duel($shotPower, $gkPower)) {
             $type = mt_rand(0, 1) === 0 ? 'near_miss' : 'gk_save';
             $shooter = $this->getActivePlayer($fixture, $state, $attSide, 'FW');

@@ -444,8 +444,9 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// SIP-0075: set piece skill modifier
 	homeSetPieceMod := e.teamSetPieceMod(homeTeamID, fixtureID)
 	awaySetPieceMod := e.teamSetPieceMod(awayTeamID, fixtureID)
-	homeGoalThreshold := 2.5 * homeBonus * homeGoalMod * homeSetPieceMod
-	awayGoalThreshold := homeGoalThreshold + 2.5*awayBonus*awayGoalMod*awaySetPieceMod
+	// SIP-0073: short opposing GK raises the attacking team's goal threshold
+	homeGoalThreshold := 2.5 * homeBonus * homeGoalMod * homeSetPieceMod * awayTraits.GkHeightMod
+	awayGoalThreshold := homeGoalThreshold + 2.5*awayBonus*awayGoalMod*awaySetPieceMod*homeTraits.GkHeightMod
 
 	chance := rand.Float64() * 100.0
 
@@ -1242,6 +1243,7 @@ type teamTraitProfile struct {
 	DisciplineScalar float64
 	InjuryScalar     float64
 	HasCarismatico   bool
+	GkHeightMod      float64 // >1.0 when this team's GK is short → opposing team scores more easily
 }
 
 type playerVitals struct {
@@ -1348,6 +1350,22 @@ func (e *MatchEngine) teamTraitsProfile(fixtureID int, side string, isLosing boo
 		}
 		teamPFI := pfiSum / float64(len(physRows))
 		profile.Bonus = clampFloat(profile.Bonus*teamPFI, 0.80, 1.25)
+	}
+
+	// SIP-0073: GK height penalty — parity with PhysicalHelper::gkHeightPenalty().
+	// GkHeightMod > 1.0 means this team's GK is short → opponents score more easily.
+	profile.GkHeightMod = 1.0
+	var gkHRow struct {
+		HeightCm int `db:"height_cm"`
+	}
+	if qErr := e.DB.Get(&gkHRow, `
+		SELECT COALESCE(p.height_cm, 183) AS height_cm
+		FROM player p
+		WHERE p.team_id = ? AND p.position = 'GK'
+		ORDER BY p.general_skill DESC
+		LIMIT 1
+	`, teamID); qErr == nil && gkHRow.HeightCm < 183 {
+		profile.GkHeightMod = 1.0 + float64(183-gkHRow.HeightCm)*0.005
 	}
 
 	return profile

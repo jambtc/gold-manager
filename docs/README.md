@@ -110,6 +110,18 @@ Required conventions:
 | SIP-0066 | Unified Commentary Event Stream | Accepted (Implemented) |
 | SIP-0067 | Campo Logico 10-Righe (Field Grid Refactor) | Accepted (Implemented) |
 | SIP-0068 | Player Experience Ibrida (Quadrante + Cella) | Accepted (Implemented) |
+| SIP-0069 | Internationalization (i18n) | Accepted (Implemented) |
+| SIP-0070 | Player Nationality & Multi-National Name Database | Draft |
+| SIP-0071 | Auction Market System (Free Agent, Staff, Sponsor) | Accepted (Implemented) |
+| SIP-0072 | Repository Migration: gold-manager → gold-manager-v2 | Accepted |
+| SIP-0073 | Player Physical Attributes: Height & Weight | Accepted (Implemented) |
+| SIP-0074 | Natural Position Overall Rating (OVR) | Accepted (Implemented) |
+| SIP-0075 | Set Piece Skill (Calci Piazzati) | Accepted (Implemented) |
+| SIP-0076 | Multi-Nation Onboarding + Campionati per Paese | Proposed |
+| SIP-0077 | Go Orchestrator Hard-Cut (No Cron, Reset DB) | Proposed |
+| SIP-0078 | Prestiti Giocatori (Loan) con Scadenza Reale | Proposed |
+| SIP-0079 | Multilingual Match Commentary | Draft |
+| SIP-0080 | Notifiche affidabili (SSE first, Telegram best-effort) | Draft |
 
 ## Current verification snapshot
 
