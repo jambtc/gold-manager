@@ -301,6 +301,32 @@ class TransferController extends Controller
             $transferType = Transfer::TYPE_SALE;
         }
 
+        // SIP-0078: loan-specific validation
+        $loanEndsAt = null;
+        if ($transferType === Transfer::TYPE_LOAN) {
+            $loanDays = (int) Yii::$app->request->post('loan_days', 0);
+            $minDays  = (int) (getenv('GM_LOAN_MIN_DAYS') ?: 7);
+            $maxDays  = (int) (getenv('GM_LOAN_MAX_DAYS') ?: 365);
+            if ($loanDays < $minDays || $loanDays > $maxDays) {
+                Yii::$app->session->setFlash('error', Yii::t('app', 'Loan duration must be between {min} and {max} days.', ['{min}' => $minDays, '{max}' => $maxDays]));
+                return $this->redirect(['market']);
+            }
+            $loanEndsAt = time() + $loanDays * 86400;
+
+            // Fee must be 5–50% of market value
+            $marketValue = (int) Yii::$app->playerValuator->marketValue($player);
+            if ($marketValue > 0) {
+                $feePercent = $askingFee / $marketValue * 100;
+                if ($feePercent < 5 || $feePercent > 50) {
+                    Yii::$app->session->setFlash('error', Yii::t('app', 'Loan fee must be between 5% and 50% of market value (€{min}–€{max}).', [
+                        '{min}' => number_format((int) ($marketValue * 0.05), 0, ',', '.'),
+                        '{max}' => number_format((int) ($marketValue * 0.50), 0, ',', '.'),
+                    ]));
+                    return $this->redirect(['market']);
+                }
+            }
+        }
+
         $transfer = new Transfer();
         $transfer->player_id = (int) $player->id;
         $transfer->from_team_id = (int) $team->id;
@@ -310,6 +336,7 @@ class TransferController extends Controller
         $transfer->status = Transfer::STATUS_LISTED;
         $transfer->transfer_type = $transferType;
         $transfer->loan_return_season = $transferType === Transfer::TYPE_LOAN ? $this->currentSeason() + 1 : null;
+        $transfer->loan_ends_at = $loanEndsAt;
         $transfer->listed_at = time();
         $transfer->save(false);
 

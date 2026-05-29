@@ -268,7 +268,20 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
                                                 <span class="text-muted-gm">—</span>
                                             <?php endif; ?>
                                         </td>
-                                        <td><?= $kind === 'market' ? Yii::t('app', 'Free agent auction') : ($transfer && $transfer->transfer_type === Transfer::TYPE_LOAN ? Yii::t('app', 'Loan') : Yii::t('app', 'Sale')) ?></td>
+                                        <td>
+                                            <?php if ($kind === 'market'): ?>
+                                                <span class="badge bg-secondary" style="font-size:.65rem"><?= Yii::t('app', 'Free agent') ?></span>
+                                            <?php elseif ($transfer && $transfer->transfer_type === \app\models\Transfer::TYPE_LOAN): ?>
+                                                <span class="badge" style="background:rgba(59,130,246,.25);color:#93c5fd;font-size:.65rem"><?= Yii::t('app', 'Loan') ?></span>
+                                                <?php if ($transfer->loan_ends_at): ?>
+                                                <div style="font-size:.65rem;color:var(--text-secondary);margin-top:.15rem">
+                                                    <?= Yii::t('app', 'until') ?> <?= date('d/m/Y', $transfer->loan_ends_at) ?>
+                                                </div>
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                <span class="badge bg-secondary" style="font-size:.65rem"><?= Yii::t('app', 'Sale') ?></span>
+                                            <?php endif; ?>
+                                        </td>
                                         <td>
                                             <?php if ($expiresAt > 0): ?>
                                                 <div class="text-muted-gm" style="font-size:.7rem"><?= Yii::t('app', 'expires') ?> <?= date('d/m/Y H:i', $expiresAt) ?></div>

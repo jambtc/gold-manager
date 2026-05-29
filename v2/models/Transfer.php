@@ -19,6 +19,7 @@ use yii\db\ActiveRecord;
  * @property string   $status          listed|bid_made|accepted|rejected|completed|cancelled
  * @property string   $transfer_type   sale|loan|free
  * @property int|null $loan_return_season
+ * @property int|null $loan_ends_at       Unix ts when loan expires (SIP-0078)
  * @property int      $listed_at
  * @property int|null $resolved_at
  *
@@ -48,7 +49,8 @@ class Transfer extends ActiveRecord
         return [
             [['player_id', 'listed_at'], 'required'],
             [['player_id', 'from_team_id', 'to_team_id', 'offered_by_team',
-              'fee', 'asking_fee', 'proposed_salary', 'listed_at', 'resolved_at', 'loan_return_season'], 'integer'],
+              'fee', 'asking_fee', 'proposed_salary', 'listed_at', 'resolved_at',
+              'loan_return_season', 'loan_ends_at'], 'integer'],
             [['status', 'transfer_type'], 'string', 'max' => 20],
             [['status'], 'in', 'range' => [
                 self::STATUS_LISTED, self::STATUS_BID_MADE, self::STATUS_ACCEPTED,
@@ -76,6 +78,7 @@ class Transfer extends ActiveRecord
             'status'          => 'Status',
             'transfer_type'   => 'Transfer Type',
             'loan_return_season' => 'Loan Return Season',
+            'loan_ends_at'       => 'Loan Ends At',
             'listed_at'       => 'Listed At',
             'resolved_at'     => 'Resolved At',
         ];
@@ -157,6 +160,14 @@ class Transfer extends ActiveRecord
         $this->save(false);
 
         return true;
+    }
+
+    /** Whether this loan has expired (loan_ends_at in the past). */
+    public function isLoanExpired(): bool
+    {
+        return $this->transfer_type === self::TYPE_LOAN
+            && $this->loan_ends_at !== null
+            && $this->loan_ends_at <= time();
     }
 
     public function getPlayer()   { return $this->hasOne(Player::class, ['id' => 'player_id']);    }

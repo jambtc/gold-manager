@@ -172,7 +172,7 @@ $this->params['breadcrumbs'][] = $this->title;
 
 <!-- Sell modal -->
 <div id="sell-modal" style="display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.7);align-items:center;justify-content:center">
-    <div class="gm-card" style="width:100%;max-width:400px;margin:1rem">
+    <div class="gm-card" style="width:100%;max-width:420px;margin:1rem">
         <h5 class="text-white fw-bold mb-3"><i class="bi bi-tag me-2 text-gold"></i><?= Yii::t('app', 'List for sale') ?></h5>
         <p class="text-muted-gm small mb-3" id="sell-player-name"></p>
         <form id="sell-form" method="post" action="<?= Url::to(['/transfer/list-player']) ?>">
@@ -182,13 +182,29 @@ $this->params['breadcrumbs'][] = $this->title;
                 <label class="text-muted-gm small mb-1 d-block"><?= Yii::t('app', 'Asking price (€)') ?></label>
                 <input type="number" name="asking_fee" id="sell-price" min="0" step="10000"
                        class="form-control" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;border-radius:.5rem">
+                <div id="sell-loan-hint" style="display:none;font-size:.7rem;color:var(--text-secondary);margin-top:.25rem"></div>
             </div>
-            <div class="mb-4">
+            <div class="mb-3">
                 <label class="text-muted-gm small mb-1 d-block"><?= Yii::t('app', 'Type') ?></label>
-                <select name="transfer_type" class="form-select" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;border-radius:.5rem">
+                <select name="transfer_type" id="sell-type" class="form-select" onchange="onSellTypeChange()"
+                        style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;border-radius:.5rem">
                     <option value="sale"><?= Yii::t('app', 'Sale') ?></option>
                     <option value="loan"><?= Yii::t('app', 'Loan') ?></option>
                 </select>
+            </div>
+            <div id="sell-loan-fields" style="display:none">
+                <div class="mb-3">
+                    <label class="text-muted-gm small mb-1 d-block">
+                        <?= Yii::t('app', 'Loan duration (days)') ?>
+                        <span style="color:var(--text-secondary)"><?= Yii::t('app', '({min}–{max})', ['{min}' => (int)(getenv('GM_LOAN_MIN_DAYS') ?: 7), '{max}' => (int)(getenv('GM_LOAN_MAX_DAYS') ?: 365)]) ?></span>
+                    </label>
+                    <input type="number" name="loan_days" id="sell-loan-days"
+                           min="<?= (int)(getenv('GM_LOAN_MIN_DAYS') ?: 7) ?>"
+                           max="<?= (int)(getenv('GM_LOAN_MAX_DAYS') ?: 365) ?>"
+                           value="30" step="1"
+                           class="form-control" style="background:rgba(255,255,255,.06);border:1px solid var(--border);color:#fff;border-radius:.5rem">
+                    <div id="sell-loan-expires" style="font-size:.7rem;color:var(--text-secondary);margin-top:.25rem"></div>
+                </div>
             </div>
             <div class="d-flex gap-2">
                 <button type="submit" class="btn btn-gold fw-bold flex-grow-1"><?= Yii::t('app', 'Confirm') ?></button>
@@ -198,10 +214,43 @@ $this->params['breadcrumbs'][] = $this->title;
     </div>
 </div>
 <script>
+var _sellMarketValue = 0;
+var _loanFeePercent  = <?= (int)(getenv('GM_LOAN_FEE_PERCENT') ?: 25) ?>;
+
 function openSellModal(id, name, marketValue) {
+    _sellMarketValue = marketValue;
     document.getElementById('sell-player-id').value = id;
-    document.getElementById('sell-player-name').textContent = name + ' — valore stimato €' + marketValue.toLocaleString('it-IT');
+    document.getElementById('sell-player-name').textContent = name + ' — <?= Yii::t('app', 'estimated value') ?> €' + marketValue.toLocaleString('it-IT');
     document.getElementById('sell-price').value = marketValue;
+    document.getElementById('sell-type').value = 'sale';
+    onSellTypeChange();
     document.getElementById('sell-modal').style.display = 'flex';
 }
+function onSellTypeChange() {
+    var isLoan = document.getElementById('sell-type').value === 'loan';
+    document.getElementById('sell-loan-fields').style.display = isLoan ? 'block' : 'none';
+    var hint = document.getElementById('sell-loan-hint');
+    if (isLoan && _sellMarketValue > 0) {
+        var suggested = Math.round(_sellMarketValue * _loanFeePercent / 100 / 1000) * 1000;
+        hint.textContent = '<?= Yii::t('app', 'Suggested loan fee') ?>: €' + suggested.toLocaleString('it-IT')
+            + ' (' + _loanFeePercent + '% — <?= Yii::t('app', 'range') ?> 5–50%)';
+        hint.style.display = 'block';
+        document.getElementById('sell-price').value = suggested;
+    } else {
+        hint.style.display = 'none';
+        document.getElementById('sell-price').value = _sellMarketValue;
+    }
+    updateLoanExpiry();
+}
+function updateLoanExpiry() {
+    var days = parseInt(document.getElementById('sell-loan-days')?.value || 30);
+    var el   = document.getElementById('sell-loan-expires');
+    if (!el) return;
+    var d = new Date(Date.now() + days * 86400000);
+    el.textContent = '<?= Yii::t('app', 'Expires') ?>: ' + d.toLocaleDateString('it-IT', {day:'2-digit',month:'2-digit',year:'numeric'});
+}
+document.addEventListener('DOMContentLoaded', function() {
+    var daysInput = document.getElementById('sell-loan-days');
+    if (daysInput) daysInput.addEventListener('input', updateLoanExpiry);
+});
 </script>

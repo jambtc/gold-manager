@@ -102,6 +102,13 @@ register_job \
     "$LOGS/pre-match-notifications.log" \
     "pre-match-notifications"
 
+register_job \
+    "${CRON_ENABLE_LOAN_RETURNS:-1}" \
+    "${CRON_LOAN_RETURNS_SCHEDULE:-*/5 * * * *}" \
+    "php yii economy/process-loan-returns" \
+    "$LOGS/loan-returns.log" \
+    "loan-returns"
+
 crontab "$TMP_CRON"
 
 LOADED="$(grep -Ecv '^(#|$|[A-Za-z_][A-Za-z0-9_]*=)' "$TMP_CRON" || true)"
@@ -133,6 +140,7 @@ LOG_FILES=(
     "$LOGS/resolve-market-auctions.log"
     "$LOGS/notification-dispatch.log"
     "$LOGS/pre-match-notifications.log"
+    "$LOGS/loan-returns.log"
 )
 tail -n 0 -F "${LOG_FILES[@]}" &
 TAIL_PID=$!

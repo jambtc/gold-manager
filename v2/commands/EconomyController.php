@@ -234,6 +234,19 @@ class EconomyController extends Controller
     }
 
     /**
+     * SIP-0078: Return expired loans to their original club.
+     * Run every 5 minutes via cron. Idempotent — double-run is safe.
+     *
+     * Usage: ./yii economy/process-loan-returns
+     */
+    public function actionProcessLoanReturns(): int
+    {
+        $returned = $this->processLoanReturnsTimestamp();
+        $this->stdout("↩️  Prestiti rientrati: {$returned}\n");
+        return ExitCode::OK;
+    }
+
+    /**
      * Expires pending friendly challenges older than 24h.
      *
      * Usage: ./yii economy/expire-friendly-challenges
@@ -2168,6 +2181,79 @@ class EconomyController extends Controller
             }
             $loan->loan_return_season = null;
             $loan->save(false, ['loan_return_season', 'updated_at']);
+        }
+
+        return $returned;
+    }
+
+    /**
+     * SIP-0078: Timestamp-based loan return (runs between season rollovers).
+     * Idempotent: marks loan_ends_at = null after returning to prevent double-run.
+     */
+    private function processLoanReturnsTimestamp(): int
+    {
+        $now = time();
+
+        $loans = Transfer::find()
+            ->where(['transfer_type' => Transfer::TYPE_LOAN, 'status' => Transfer::STATUS_COMPLETED])
+            ->andWhere(['not', ['loan_ends_at' => null]])
+            ->andWhere(['<=', 'loan_ends_at', $now])
+            ->all();
+
+        $returned = 0;
+        foreach ($loans as $loan) {
+            $player = $loan->player;
+            if (!$player) {
+                $loan->loan_ends_at = null;
+                $loan->save(false, ['loan_ends_at', 'updated_at']);
+                continue;
+            }
+
+            $loanTeam  = $loan->toTeam;
+            $ownerTeam = $loan->fromTeam;
+
+            // Return player to original club
+            if ((int) $player->team_id === (int) $loan->to_team_id && $loan->from_team_id) {
+                $player->team_id = (int) $loan->from_team_id;
+                $player->save(false);
+                $returned++;
+
+                // Notify owner manager
+                if ($ownerTeam?->user_id) {
+                    NotificationService::notify(
+                        (int) $ownerTeam->user_id,
+                        \app\models\NewsItem::CAT_TRANSFER, '↩️',
+                        Yii::t('app', 'Loan return: {player}', ['{player}' => $player->name]),
+                        Yii::t('app', '{player} returned from {club}.', [
+                            '{player}' => $player->name,
+                            '{club}'   => $loanTeam?->name ?? '—',
+                        ]),
+                        '', 1,
+                        "↩️ <b>" . Yii::t('app', 'Loan return') . ":</b> {$player->name}\n"
+                        . Yii::t('app', 'Back from {club}.', ['{club}' => $loanTeam?->name ?? '—'])
+                    );
+                }
+
+                // Notify loan club manager
+                if ($loanTeam?->user_id && $loanTeam->user_id !== $ownerTeam?->user_id) {
+                    NotificationService::notify(
+                        (int) $loanTeam->user_id,
+                        \app\models\NewsItem::CAT_TRANSFER, '↩️',
+                        Yii::t('app', 'Loan ended: {player}', ['{player}' => $player->name]),
+                        Yii::t('app', '{player} has returned to {club}.', [
+                            '{player}' => $player->name,
+                            '{club}'   => $ownerTeam?->name ?? '—',
+                        ]),
+                        '', 0,
+                        "↩️ <b>" . Yii::t('app', 'Loan ended') . ":</b> {$player->name} "
+                        . Yii::t('app', 'returned to {club}.', ['{club}' => $ownerTeam?->name ?? '—'])
+                    );
+                }
+            }
+
+            // Mark as processed (idempotency)
+            $loan->loan_ends_at = null;
+            $loan->save(false, ['loan_ends_at', 'updated_at']);
         }
 
         return $returned;
