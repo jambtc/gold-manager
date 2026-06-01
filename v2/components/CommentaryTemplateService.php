@@ -8,6 +8,8 @@ use Yii;
 
 class CommentaryTemplateService
 {
+    private static ?bool $hasLanguageColumn = null;
+
     /** Returns true when LLM commentary is globally enabled */
     public static function llmEnabled(): bool
     {
@@ -87,26 +89,41 @@ class CommentaryTemplateService
             ':max1' => $minute,  ':max2' => $minute,
         ];
 
-        $rows = Yii::$app->db->createCommand(
-            'SELECT id, text, weight
-             FROM {{%commentary_template}}
-             WHERE event_type = :et AND enabled = 1
-               AND language = :lang
-               AND (:sub = "" OR subtype IS NULL OR subtype = :sub2)
-               AND (:gs = "" OR game_state IS NULL OR game_state = :gs2)
-               AND (:min1 = 0 OR min_minute IS NULL OR min_minute <= :min2)
-               AND (:max1 = 0 OR max_minute IS NULL OR max_minute >= :max2)
-             ORDER BY weight DESC',
-            array_merge($baseParams, [':lang' => $lang])
-        )->queryAll();
-
-        // Fallback to it-IT if no templates exist for requested language
-        if (empty($rows) && $lang !== 'it-IT') {
+        if (self::hasLanguageColumn()) {
             $rows = Yii::$app->db->createCommand(
                 'SELECT id, text, weight
                  FROM {{%commentary_template}}
                  WHERE event_type = :et AND enabled = 1
-                   AND language = "it-IT"
+                   AND language = :lang
+                   AND (:sub = "" OR subtype IS NULL OR subtype = :sub2)
+                   AND (:gs = "" OR game_state IS NULL OR game_state = :gs2)
+                   AND (:min1 = 0 OR min_minute IS NULL OR min_minute <= :min2)
+                   AND (:max1 = 0 OR max_minute IS NULL OR max_minute >= :max2)
+                 ORDER BY weight DESC',
+                array_merge($baseParams, [':lang' => $lang])
+            )->queryAll();
+
+            // Fallback to it-IT if no templates exist for requested language
+            if (empty($rows) && $lang !== 'it-IT') {
+                $rows = Yii::$app->db->createCommand(
+                    'SELECT id, text, weight
+                     FROM {{%commentary_template}}
+                     WHERE event_type = :et AND enabled = 1
+                       AND language = "it-IT"
+                       AND (:sub = "" OR subtype IS NULL OR subtype = :sub2)
+                       AND (:gs = "" OR game_state IS NULL OR game_state = :gs2)
+                       AND (:min1 = 0 OR min_minute IS NULL OR min_minute <= :min2)
+                       AND (:max1 = 0 OR max_minute IS NULL OR max_minute >= :max2)
+                     ORDER BY weight DESC',
+                    $baseParams
+                )->queryAll();
+            }
+        } else {
+            // Backward-compatibility guard for DBs missing migration m260529_210100.
+            $rows = Yii::$app->db->createCommand(
+                'SELECT id, text, weight
+                 FROM {{%commentary_template}}
+                 WHERE event_type = :et AND enabled = 1
                    AND (:sub = "" OR subtype IS NULL OR subtype = :sub2)
                    AND (:gs = "" OR game_state IS NULL OR game_state = :gs2)
                    AND (:min1 = 0 OR min_minute IS NULL OR min_minute <= :min2)
@@ -197,5 +214,19 @@ class CommentaryTemplateService
             return false;
         }
         return $default;
+    }
+
+    private static function hasLanguageColumn(): bool
+    {
+        if (self::$hasLanguageColumn !== null) {
+            return self::$hasLanguageColumn;
+        }
+        try {
+            $schema = Yii::$app->db->schema->getTableSchema('{{%commentary_template}}', true);
+            self::$hasLanguageColumn = $schema !== null && isset($schema->columns['language']);
+        } catch (\Throwable) {
+            self::$hasLanguageColumn = false;
+        }
+        return self::$hasLanguageColumn;
     }
 }
