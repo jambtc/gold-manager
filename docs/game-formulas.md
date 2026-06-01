@@ -37,7 +37,16 @@ Usate da motore partita e valutazione ruolo:
 - `skill_tc` (tecnica)
 - `skill_tr` (tiro)
 
-`general_skill = media arrotondata delle 8 skill`.
+`general_skill = media arrotondata delle 8 skill` (usata ancora in alcuni calcoli legacy).
+
+Per UI e confronto giocatori il riferimento canonico e:
+
+- `OVR = getNaturalOverall()`
+- zona canonica per ruolo:
+  - `GK -> zone 10`
+  - `DF -> zone(3,2)`
+  - `MF -> zone(6,2)`
+  - `FW -> zone(9,2)`
 
 ### 0.2 Stato atletico/forma giocatore
 
@@ -90,7 +99,13 @@ Switch live immediato:
 
 ### 1.1 Rating per zona (`Player::getOverallForPosition`)
 
-Per ogni zona `ord` (attuale 1..63 giocabili) viene caricata la riga coefficienti da tabella `calcolatore` (`formula = "Formula 2"`).
+Per ogni zona viene usata la matrice statica `PitchZoneHelper::FORMULA_2_COEFFS`
+(SIP-0067; tabella `calcolatore` rimossa).
+
+Normalizzazione zona:
+
+- input zona UI legacy/stored/current -> `PitchZoneHelper::normalizeToCurrent()`
+- lookup coefficienti sul codice zona normalizzato (`10`, `21..103` con lane `1..3`)
 
 Formula:
 
@@ -104,38 +119,25 @@ con:
   - corsia destra: `R=+6`, `L=-6`, `LR=+4`
 - output arrotondato a 1 decimale.
 
-### 1.3 Schema campo: stato attuale vs target
+### 1.3 Schema campo (implementato)
 
-#### Stato attuale (legacy)
+Modello logico engine:
 
-- griglia a zone storiche (layout non ancora separato formalmente in 10 righe)
-- riga portiere non isolata in modo rigido
+- `GK_ZONE = 10` (solo GK)
+- righe `2..10` con 3 corsie (`L/C/R`) => zone `21..103`
+- helper: `PitchZoneHelper::zone(row,lane)`, `coords()`, `laneCode()`
 
-#### Target richiesto (prossimo refactor)
+Modello visuale UI (compatibilita storica):
 
-Campo logico a **10 righe**:
+- griglia display `7x9` = `1..63` + cella GK display `64`
+- storage supporta anche codifica non ambigua `1001..1063` (`STORED_DISPLAY_*`)
+- mapping bidirezionale:
+  - `normalizeDisplayZone()` / `normalizeToCurrent()`
+  - `toLegacyDisplayZone()`
 
-1. Riga 1: solo portiere (GK-only)
-2. Righe 2-4: difesa (3 righe DF)
-3. Righe 5-7: centrocampo (3 righe MF)
-4. Righe 8-10: attacco (3 righe FW)
+Regola on-pitch:
 
-Schema concettuale:
-
-```text
-R1  [GK-only]
-R2  [DF lane L/C/R]
-R3  [DF lane L/C/R]
-R4  [DF lane L/C/R]
-R5  [MF lane L/C/R]
-R6  [MF lane L/C/R]
-R7  [MF lane L/C/R]
-R8  [FW lane L/C/R]
-R9  [FW lane L/C/R]
-R10 [FW lane L/C/R]
-```
-
-Nota migrazione: questa modifica impatta `FormationAutoHelper`, rendering campo (`formation/view`, `fixture/live`, `fixture/replay`), query zone `<=63` in PHP/Go e mapping `Player::getOverallForPosition`.
+- `PitchZoneHelper::onPitchSql()` include zone current + legacy + stored display + GK display.
 
 ### 1.2 Auto-formazione (`FormationAutoHelper::autoAssign`)
 
@@ -493,6 +495,25 @@ Salario suggerito:
   - capacità `+5000` per livello
   - costo upgrade `* 1.8`
 
+### 5.3 Regole aste mercato (attive)
+
+Risoluzione bid (`resolveExpiredMarketBids`):
+
+- si considerano solo bid `pending` con `expires_at <= now`
+- grouping per target (`market_type`, `market_ref_id`)
+- ordinamento:
+  - `bid_amount` desc
+  - a parita vince la prima (`created_at` asc, poi `id` asc)
+- validazione budget:
+  - vince la prima offerta con team capiente (`budget >= bid_amount`)
+- se nessuna valida: tutte `lost`
+
+Tipi gestiti:
+
+- `transfer_market`
+- `staff`
+- `sponsor`
+
 ---
 
 ## 6) Parametri ENV principali (tuning)
@@ -502,7 +523,22 @@ Salario suggerito:
 - `GM_TALENT_WEEKS_PER_LEVEL`
 - `GM_TALENT_GROWTH_CHANCE_BASE`
 - `GM_TALENT_GROWTH_CHANCE_MAX_BONUS`
+- `GM_MAX_FRIENDLIES_PER_WEEK`
+- `GM_LEAGUE_MATCH_DAYS`
+- `GM_FRIENDLY_SLOT_DOW`
+- `GM_FRIENDLY_SLOT_HOUR`
 - (commentary) `GM_LLM_*`, `GM_COMMENTARY_STREAM_*`
+
+## 6.1 Scheduling regole gameplay (attive)
+
+- Campionato:
+  - giorni giocata da `GM_LEAGUE_MATCH_DAYS` (default `3,6` = mer/sab)
+- Amichevoli:
+  - slot da `GM_FRIENDLY_SLOT_DOW` + `GM_FRIENDLY_SLOT_HOUR` (default gio 15:00)
+  - max impegni settimanali per team da `GM_MAX_FRIENDLIES_PER_WEEK` (default attuale 1000 in dev)
+- Start-now amichevole:
+  - se `GM_ORCHESTRATOR_ENABLED=1`, `friendly/start-now` mette evento in `orchestrator_event`
+  - consumer Go esegue trigger interno e resetta pre-match della fixture
 
 ---
 

@@ -211,4 +211,46 @@ class FriendlyChallengeService
 
         return $count;
     }
+
+    /**
+     * Force a scheduled/playing friendly to restart from pre-match now.
+     *
+     * @return array{ok:bool,fixtureId:int,message:string}
+     */
+    public static function forceStartNow(int $challengeId): array
+    {
+        $challenge = FriendlyChallenge::find()
+            ->with(['fixture.competition'])
+            ->where([
+                'id' => $challengeId,
+                'status' => FriendlyChallenge::STATUS_ACCEPTED,
+            ])
+            ->one();
+
+        if (!$challenge || !$challenge->fixture) {
+            return ['ok' => false, 'fixtureId' => 0, 'message' => 'Friendly not found'];
+        }
+
+        $fixture = $challenge->fixture;
+        if ($fixture->competition?->type !== 'friendly') {
+            return ['ok' => false, 'fixtureId' => (int) $fixture->id, 'message' => 'Not a friendly fixture'];
+        }
+
+        if ((int) $fixture->status === Fixture::STATUS_FINISHED) {
+            return ['ok' => false, 'fixtureId' => (int) $fixture->id, 'message' => 'Fixture already finished'];
+        }
+
+        if (!in_array((int) $fixture->status, [Fixture::STATUS_SCHEDULED, Fixture::STATUS_PLAYING], true)) {
+            return ['ok' => false, 'fixtureId' => (int) $fixture->id, 'message' => 'Fixture is not startable'];
+        }
+
+        \app\models\MatchState::deleteAll(['fixture_id' => (int) $fixture->id]);
+        \app\models\MatchEvent::deleteAll(['fixture_id' => (int) $fixture->id]);
+
+        $fixture->match_date = time() - 5;
+        $fixture->status = Fixture::STATUS_SCHEDULED;
+        $fixture->save(false, ['match_date', 'status']);
+
+        return ['ok' => true, 'fixtureId' => (int) $fixture->id, 'message' => 'Forced pre-match armed'];
+    }
 }

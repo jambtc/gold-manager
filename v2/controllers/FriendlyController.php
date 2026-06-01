@@ -8,6 +8,7 @@ use app\components\FriendlyChallengeService;
 use app\components\MultiplayerSyncService;
 use app\components\NewsService;
 use app\components\NotificationService;
+use app\components\OrchestratorEventService;
 use app\models\Fixture;
 use app\models\FriendlyChallenge;
 use app\models\NewsItem;
@@ -467,15 +468,31 @@ class FriendlyController extends Controller
             return $this->redirect(['/fixture/replay', 'id' => $fixture->id]);
         }
 
-        if (in_array((int) $fixture->status, [Fixture::STATUS_SCHEDULED, Fixture::STATUS_PLAYING], true)) {
-            // Reset to SCHEDULED so Go worker re-enters the pre-match branch,
-            // which deletes stale state/events and snapshots the latest formation.
-            \app\models\MatchState::deleteAll(['fixture_id' => (int) $fixture->id]);
-            \app\models\MatchEvent::deleteAll(['fixture_id' => (int) $fixture->id]);
+        if (!in_array((int) $fixture->status, [Fixture::STATUS_SCHEDULED, Fixture::STATUS_PLAYING], true)) {
+            Yii::$app->session->setFlash('info', Yii::t('app', 'Match cannot be started.'));
+            return $this->redirect(['/fixture/live', 'id' => $fixture->id]);
+        }
 
-            $fixture->match_date = time() - 5;
-            $fixture->status = Fixture::STATUS_SCHEDULED;
-            $fixture->save(false, ['match_date', 'status']);
+        if (OrchestratorEventService::isEnabled()) {
+            OrchestratorEventService::enqueue(
+                'friendly.start_now',
+                'friendly_challenge',
+                (int) $challenge->id,
+                [
+                    'challenge_id' => (int) $challenge->id,
+                    'requested_by_team_id' => (int) $myTeam->id,
+                ]
+            );
+            $prematchSeconds = $this->preMatchSeconds();
+            Yii::$app->session->setFlash(
+                'success',
+                Yii::t('app', 'Start queued. Kickoff in approximately {seconds} seconds.', ['{seconds}' => $prematchSeconds])
+            );
+            return $this->redirect(['/fixture/live', 'id' => $fixture->id]);
+        }
+
+        $result = FriendlyChallengeService::forceStartNow((int) $challenge->id);
+        if ($result['ok']) {
             $prematchSeconds = $this->preMatchSeconds();
             Yii::$app->session->setFlash(
                 'success',
@@ -511,4 +528,3 @@ class FriendlyController extends Controller
     }
 
 }
-

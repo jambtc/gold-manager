@@ -71,6 +71,20 @@ func halfTimePauseTicks() int {
 	return parsed
 }
 
+func kickoffSideForFixture(fixtureID int) string {
+	if fixtureID%2 == 0 {
+		return "away"
+	}
+	return "home"
+}
+
+func oppositeSide(side string) string {
+	if side == "away" {
+		return "home"
+	}
+	return "away"
+}
+
 func (e *MatchEngine) broadcast(fixtureID int, payload streamPayload) {
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -329,6 +343,11 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	}
 
 	if state.Phase == "NOT_STARTED" {
+		kickoffSide := kickoffSideForFixture(fixtureID)
+		kickoffTeam := e.teamName(fixtureID, kickoffSide)
+		otherSide := oppositeSide(kickoffSide)
+		otherTeam := e.teamName(fixtureID, otherSide)
+
 		state.Phase = "FIRST_HALF"
 		if _, err = e.DB.Exec("UPDATE match_state SET phase = 'FIRST_HALF', current_minute = 0 WHERE fixture_id = ?", fixtureID); err != nil {
 			return err
@@ -336,19 +355,29 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 
 		fallback := fmt.Sprintf(
 			"Calcio d'inizio: %s muove il primo pallone contro %s.",
-			e.teamName(fixtureID, "home"),
-			e.teamName(fixtureID, "away"),
+			kickoffTeam,
+			otherTeam,
 		)
-		detail := fmt.Sprintf(`{"description":%q}`, fallback)
+		detail := fmt.Sprintf(`{"description":%q,"kickoff_team":%q}`, fallback, kickoffTeam)
 		res, err2 := e.DB.Exec(
-			"INSERT INTO match_event (fixture_id, minute, type, team_side, detail) VALUES (?, 0, 'kickoff', 'home', ?)",
+			"INSERT INTO match_event (fixture_id, minute, type, team_side, detail) VALUES (?, 0, 'kickoff', ?, ?)",
 			fixtureID,
+			kickoffSide,
 			detail,
 		)
 		if err2 == nil {
 			eventID, _ := res.LastInsertId()
-			e.broadcastEvent(fixtureID, eventID, 0, "kickoff", "home", fallback, state.HomeScore, state.AwayScore, "")
+			e.broadcastEvent(fixtureID, eventID, 0, "kickoff", kickoffSide, fallback, state.HomeScore, state.AwayScore, "")
 		}
+
+		// SIP-0080: kickoff notification for both managers
+		koHome := e.teamName(fixtureID, "home")
+		koAway := e.teamName(fixtureID, "away")
+		koTitle := fmt.Sprintf("Calcio d'inizio: %s vs %s", koHome, koAway)
+		koTg := fmt.Sprintf("🏁 <b>Calcio d'inizio</b>: %s vs %s", koHome, koAway)
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "home"), "match", "🏁", koTitle, "", koTg)
+		go e.insertMatchNotification(e.teamUserID(fixtureID, "away"), "match", "🏁", koTitle, "", koTg)
+
 		return nil
 	}
 
@@ -378,9 +407,12 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 			tx.Rollback()
 			return err
 		}
-		fallback := "Fischio d'inizio del secondo tempo! Si riparte con grande intensità!"
-		res, err2 := tx.Exec("INSERT INTO match_event (fixture_id, minute, type, team_side, detail) VALUES (?, 45, 'second_half_start', 'home', ?)",
-			fixtureID, fmt.Sprintf(`{"description":%q}`, fallback))
+		firstKickoffSide := kickoffSideForFixture(fixtureID)
+		secondKickoffSide := oppositeSide(firstKickoffSide)
+		secondKickoffTeam := e.teamName(fixtureID, secondKickoffSide)
+		fallback := fmt.Sprintf("Fischio d'inizio del secondo tempo! Si riparte: palla a %s.", secondKickoffTeam)
+		res, err2 := tx.Exec("INSERT INTO match_event (fixture_id, minute, type, team_side, detail) VALUES (?, 45, 'second_half_start', ?, ?)",
+			fixtureID, secondKickoffSide, fmt.Sprintf(`{"description":%q,"kickoff_team":%q}`, fallback, secondKickoffTeam))
 		if err2 != nil {
 			tx.Rollback()
 			return err2
@@ -389,7 +421,7 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 			return err
 		}
 		eventID, _ := res.LastInsertId()
-		e.broadcastEvent(fixtureID, eventID, 45, "second_half_start", "home", fallback, state.HomeScore, state.AwayScore, "")
+		e.broadcastEvent(fixtureID, eventID, 45, "second_half_start", secondKickoffSide, fallback, state.HomeScore, state.AwayScore, "")
 		return nil
 	}
 
@@ -1710,6 +1742,14 @@ func (e *MatchEngine) EndMatch(fixtureID int) error {
 	}
 	eventID, _ := res.LastInsertId()
 	e.broadcastEvent(fixtureID, eventID, state.CurrentMinute, "full_time", "home", fallback, state.HomeScore, state.AwayScore, "")
+
+	// SIP-0080: full-time notification for both managers
+	ftHome := e.teamName(fixtureID, "home")
+	ftAway := e.teamName(fixtureID, "away")
+	ftTitle := fmt.Sprintf("Finale: %s %d–%d %s", ftHome, state.HomeScore, state.AwayScore, ftAway)
+	ftTg := fmt.Sprintf("🏁 <b>Finale</b>: %s %d–%d %s", ftHome, state.HomeScore, state.AwayScore, ftAway)
+	go e.insertMatchNotification(e.teamUserID(fixtureID, "home"), "match", "🏁", ftTitle, "", ftTg)
+	go e.insertMatchNotification(e.teamUserID(fixtureID, "away"), "match", "🏁", ftTitle, "", ftTg)
 
 	// LLM enrichment for full_time
 	prompt := fmt.Sprintf(

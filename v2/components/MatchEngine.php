@@ -53,9 +53,15 @@ class MatchEngine extends Component
 
         // Kick-off
         if ($state->phase === 'not_started') {
+            $kickoffSide = $this->kickoffSideForFixture((int) $fixture->id);
+            $kickoffTeam = $kickoffSide === 'away'
+                ? ((string) ($fixture->awayTeam->name ?? Yii::t('app', 'Away')))
+                : ((string) ($fixture->homeTeam->name ?? Yii::t('app', 'Home')));
             $state->phase = 'first_half';
             $state->current_minute = 1;
-            $events[] = $this->saveEvent($fixture, 1, 'kickoff', 'home', null, []);
+            $events[] = $this->saveEvent($fixture, 1, 'kickoff', $kickoffSide, null, [
+                'kickoff_team' => $kickoffTeam,
+            ]);
             $state->save(false);
             return $events;
         }
@@ -66,9 +72,16 @@ class MatchEngine extends Component
         if ($state->phase === 'half_time') {
             $state->half_time_ticks++;
             if ($state->half_time_ticks >= 15) {
+                $firstKickoffSide = $this->kickoffSideForFixture((int) $fixture->id);
+                $secondHalfSide = $this->oppositeSide($firstKickoffSide);
+                $secondKickoffTeam = $secondHalfSide === 'away'
+                    ? ((string) ($fixture->awayTeam->name ?? Yii::t('app', 'Away')))
+                    : ((string) ($fixture->homeTeam->name ?? Yii::t('app', 'Home')));
                 $state->phase = 'second_half';
                 $state->current_minute = 45; // next tick increments to 46 (first second-half minute)
-                $events[] = $this->saveEvent($fixture, 45, 'second_half_start', 'home', null, []);
+                $events[] = $this->saveEvent($fixture, 45, 'second_half_start', $secondHalfSide, null, [
+                    'kickoff_team' => $secondKickoffTeam,
+                ]);
             }
             $state->save(false);
             return $events;
@@ -1096,6 +1109,7 @@ class MatchEngine extends Component
             'player_in' => (string) ($detail['in_name'] ?? 'il nuovo entrato'),
             'player_out' => (string) ($detail['out_name'] ?? 'il giocatore uscente'),
             'spectators' => (string) ($detail['spectators'] ?? 'numerosi'),
+            'kickoff_team' => (string) ($detail['kickoff_team'] ?? ''),
         ];
         $templateSubtype = '';
         if ($type === 'goal') {
@@ -1108,9 +1122,9 @@ class MatchEngine extends Component
 
         return match ($type) {
             'kickoff' => self::pick([
-                "Benvenuti allo stadio! Si parte con {$home} contro {$away}.",
-                "Tutto pronto! Fischio d'inizio tra {$home} e {$away}.",
-                "Si comincia! {$home} e {$away} scendono in campo.",
+                (($detail['kickoff_team'] ?? '') !== '' ? "{$detail['kickoff_team']} " : '') . "batte il calcio d'inizio! {$home} contro {$away}, si parte.",
+                "Tutto pronto! Fischio d'inizio tra {$home} e {$away} — palla a " . (($detail['kickoff_team'] ?? '') !== '' ? "{$detail['kickoff_team']}." : 'una delle due squadre.'),
+                "Si comincia! {$home} e {$away} scendono in campo" . (($detail['kickoff_team'] ?? '') !== '' ? ", primo possesso a {$detail['kickoff_team']}." : '.'),
             ]),
 
             'half_time' => self::pick([
@@ -1120,9 +1134,9 @@ class MatchEngine extends Component
             ]),
 
             'second_half_start' => self::pick([
-                "Fischio d'inizio del secondo tempo! Si riparte.",
-                "Le squadre tornano in campo. Si ricomincia sul {$hs}-{$as}.",
-                "Riparte il match! Secondo tempo tra {$home} e {$away}.",
+                "Fischio d'inizio del secondo tempo! " . (($detail['kickoff_team'] ?? '') !== '' ? "{$detail['kickoff_team']} muove il primo pallone." : 'Si riparte.'),
+                "Le squadre tornano in campo. Si ricomincia sul {$hs}-{$as}" . (($detail['kickoff_team'] ?? '') !== '' ? ", palla a {$detail['kickoff_team']}." : '.'),
+                "Riparte il match! Secondo tempo tra {$home} e {$away}" . (($detail['kickoff_team'] ?? '') !== '' ? ", calcio d'inizio per {$detail['kickoff_team']}." : '.'),
             ]),
 
             'full_time' => self::pick([
@@ -1280,6 +1294,16 @@ class MatchEngine extends Component
     private static function pick(array $options): string
     {
         return $options[array_rand($options)];
+    }
+
+    private function kickoffSideForFixture(int $fixtureId): string
+    {
+        return ($fixtureId % 2 === 0) ? 'away' : 'home';
+    }
+
+    private function oppositeSide(string $side): string
+    {
+        return $side === 'away' ? 'home' : 'away';
     }
 
     private function deriveGameState(int $homeScore, int $awayScore, string $side, int $minute): string

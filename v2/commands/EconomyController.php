@@ -993,11 +993,13 @@ class EconomyController extends Controller
     {
         $now     = time();
         $horizon = $now + 900; // 15 minutes
+        $grace   = $now - 300; // tolerate short cron drift/restart gaps
 
         $fixtures = Fixture::find()
             ->with(['homeTeam', 'awayTeam'])
-            ->where(['status' => Fixture::STATUS_SCHEDULED, 'pre_match_notified' => 0])
-            ->andWhere(['between', 'match_date', $now, $horizon])
+            ->where(['pre_match_notified' => 0])
+            ->andWhere(['in', 'status', [Fixture::STATUS_SCHEDULED, Fixture::STATUS_PLAYING]])
+            ->andWhere(['between', 'match_date', $grace, $horizon])
             ->all();
 
         $sent = 0;

@@ -142,7 +142,7 @@ $orderedRoles = [
                     <div class="table-responsive">
                         <table class="table-gm w-100 mb-0">
                             <thead>
-                                <tr data-expire-lock="order">
+                                <tr>
                                     <th><?= Yii::t('app', 'Candidate') ?></th>
                                     <th><?= Yii::t('app', 'Role') ?></th>
                                     <th class="text-center"><?= Yii::t('app', 'Ab') ?></th>
@@ -158,7 +158,7 @@ $orderedRoles = [
                             <tbody>
                             <?php foreach ($market as $cand): ?>
                                 <?php $pendingBid = $pendingByCandidate[(int) $cand->id] ?? null; ?>
-                                <tr>
+                                <tr<?= ((int) $cand->expires_at > 0) ? ' data-expire-lock="order"' : '' ?>>
                                     <td>
                                         <div class="fw-bold text-white"><?php if (!empty($cand->nationality)): ?><?= UiIconHelper::flagImg((string)$cand->nationality, 14) ?> <?php endif; ?><?= Html::encode((string) $cand->name) ?></div>
                                         <div class="text-muted-gm small"><?= Yii::t('app', 'Attempts') ?>: <span class="text-gold fw-bold"><?= $dotAttempts((int) $cand->negotiations) ?></span></div>
@@ -185,16 +185,16 @@ $orderedRoles = [
                                     <td class="text-end text-white fw-bold">€<?= number_format((int) $cand->salary, 0, ',', '.') ?></td>
                                     <td class="text-end">
                                         <div class="d-inline-flex gap-1 align-items-center">
-                                            <?= Html::beginForm(['/staff/negotiate', 'id' => $cand->id], 'post', ['class' => 'd-inline-flex gap-1']) ?>
-                                            <input type="number"
-                                                   name="offered_fee"
-                                                   min="1"
-                                                   step="1000"
-                                                   value="<?= (int) ($pendingBid ? $pendingBid->bid_amount : max(1000, (int) $cand->salary)) ?>"
-                                                   class="form-control form-control-sm bg-dark text-white border-secondary"
-                                                   style="max-width:120px">
-                                            <button class="btn btn-gold btn-sm" type="submit"><?= Yii::t('app', 'Offer') ?></button>
-                                            <?= Html::endForm() ?>
+                                            <button type="button"
+                                                    class="btn btn-gold btn-sm js-bid-open"
+                                                    data-candidate="<?= Html::encode((string) $cand->name) ?>"
+                                                    data-role="<?= Html::encode($roleLabel((string) $cand->role)) ?>"
+                                                    data-action="<?= Html::encode(\yii\helpers\Url::to(['/staff/negotiate', 'id' => (int) $cand->id])) ?>"
+                                                    data-ask="<?= (int) $cand->salary ?>"
+                                                    data-current-bid="<?= $pendingBid ? (int) $pendingBid->bid_amount : 0 ?>"
+                                                    data-expires="<?= (int) $cand->expires_at ?>">
+                                                <?= $pendingBid ? Yii::t('app', 'Edit offer') : Yii::t('app', 'Bid') ?>
+                                            </button>
                                             <?= Html::beginForm(['/staff/raise-offer', 'id' => $cand->id], 'post', ['class' => 'd-inline']) ?>
                                             <button class="btn btn-outline-gold btn-sm"
                                                     type="submit"
@@ -247,3 +247,141 @@ $orderedRoles = [
         </div>
     </div>
 </div>
+
+<div class="modal fade" id="staffBidModal" tabindex="-1" aria-labelledby="staffBidModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-sm">
+        <div class="modal-content" style="background:#1a2235;border:1px solid var(--border)">
+            <div class="modal-header border-0 pb-0">
+                <div>
+                    <h5 class="modal-title text-white mb-0" id="staffBidModalLabel">—</h5>
+                    <div class="text-muted-gm" style="font-size:.72rem" id="staffBidModalRole"></div>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form id="staffBidModalForm" method="post">
+                <input type="hidden" name="<?= Yii::$app->request->csrfParam ?>" value="<?= Yii::$app->request->csrfToken ?>">
+                <input type="hidden" name="offered_fee" id="staffBidModalFee" value="0">
+                <div class="modal-body pt-3">
+                    <div class="d-flex justify-content-between mb-3 pb-2" style="border-bottom:1px solid var(--border)">
+                        <div>
+                            <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Current request') ?></div>
+                            <div class="text-gold fw-bold fs-5" id="staffBidModalAsk">—</div>
+                        </div>
+                        <div id="staffBidModalCurrentWrap" style="display:none;text-align:right">
+                            <div class="text-muted-gm" style="font-size:.72rem"><?= Yii::t('app', 'Your bid') ?></div>
+                            <div class="text-warning fw-bold fs-5" id="staffBidModalCurrent">—</div>
+                        </div>
+                    </div>
+                    <label class="text-muted-gm small d-block mb-1" for="staffBidModalAmount"><?= Yii::t('app', 'Your bid (€)') ?></label>
+                    <input type="number" id="staffBidModalAmount" min="1" step="1000" value="0"
+                           class="form-control bg-dark text-white border-secondary">
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" class="btn btn-outline-secondary btn-sm" data-bs-dismiss="modal"><?= Yii::t('app', 'Cancel') ?></button>
+                    <button type="button" class="btn btn-gold btn-sm" id="staffBidModalConfirm"><?= Yii::t('app', 'Confirm') ?></button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<?php $this->registerJs(<<<JS
+(function () {
+    var expiredText = <?= \yii\helpers\Json::encode(Yii::t('app', 'expired')) ?>;
+
+    function fmtRemaining(sec) {
+        sec = Math.max(0, sec | 0);
+        var d = Math.floor(sec / 86400);
+        var h = Math.floor((sec % 86400) / 3600);
+        var m = Math.floor((sec % 3600) / 60);
+        var s = sec % 60;
+        if (d > 0) return d + 'g ' + h + 'h ' + m + 'm';
+        if (h > 0) return h + 'h ' + m + 'm ' + s + 's';
+        if (m > 0) return m + 'm ' + s + 's';
+        return s + 's';
+    }
+
+    function lockExpiredOrder(el) {
+        var row = el.closest('[data-expire-lock=\"order\"]');
+        if (!row || row.dataset.orderLocked === '1') {
+            return;
+        }
+        row.dataset.orderLocked = '1';
+        row.querySelectorAll('input, button, select, textarea').forEach(function (ctrl) {
+            ctrl.disabled = true;
+            if (ctrl.classList && ctrl.classList.contains('btn-gold')) {
+                ctrl.classList.remove('btn-gold');
+                ctrl.classList.add('btn-outline-secondary');
+            }
+        });
+    }
+
+    function tickCountdowns() {
+        var now = Math.floor(Date.now() / 1000);
+        document.querySelectorAll('.auction-countdown[data-expires]').forEach(function (el) {
+            var exp = parseInt(el.getAttribute('data-expires') || '0', 10);
+            var pref = el.getAttribute('data-prefix') || '';
+            if (!exp || isNaN(exp)) { el.textContent = '--'; return; }
+            var rem = exp - now;
+            if (rem <= 0) {
+                el.textContent = expiredText;
+                el.classList.remove('text-warning');
+                el.classList.add('text-danger');
+                lockExpiredOrder(el);
+                return;
+            }
+            el.textContent = pref + fmtRemaining(rem);
+        });
+    }
+    tickCountdowns();
+    setInterval(tickCountdowns, 1000);
+
+    var modalEl = document.getElementById('staffBidModal');
+    if (!modalEl || !window.bootstrap) {
+        return;
+    }
+    var modal = new bootstrap.Modal(modalEl);
+    var fmtEuro = function (n) { return '€' + Number(n || 0).toLocaleString('it-IT'); };
+
+    document.querySelectorAll('.js-bid-open').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            var now = Math.floor(Date.now() / 1000);
+            var exp = parseInt(btn.dataset.expires || '0', 10);
+            if (exp > 0 && exp <= now) {
+                return;
+            }
+
+            var ask = parseInt(btn.dataset.ask || '0', 10);
+            var current = parseInt(btn.dataset.currentBid || '0', 10);
+            document.getElementById('staffBidModalLabel').textContent = btn.dataset.candidate || '—';
+            document.getElementById('staffBidModalRole').textContent = btn.dataset.role || '';
+            document.getElementById('staffBidModalAsk').textContent = fmtEuro(ask);
+            document.getElementById('staffBidModalForm').action = btn.dataset.action || '';
+            document.getElementById('staffBidModalAmount').value = current > 0 ? current : ask;
+
+            var wrap = document.getElementById('staffBidModalCurrentWrap');
+            if (current > 0) {
+                wrap.style.display = '';
+                document.getElementById('staffBidModalCurrent').textContent = fmtEuro(current);
+            } else {
+                wrap.style.display = 'none';
+            }
+
+            modal.show();
+            setTimeout(function () {
+                var amountEl = document.getElementById('staffBidModalAmount');
+                if (amountEl) amountEl.focus();
+            }, 250);
+        });
+    });
+
+    document.getElementById('staffBidModalConfirm').addEventListener('click', function () {
+        var amount = parseInt(document.getElementById('staffBidModalAmount').value, 10);
+        if (!amount || amount < 1) {
+            return;
+        }
+        document.getElementById('staffBidModalFee').value = amount;
+        document.getElementById('staffBidModalForm').submit();
+    });
+}());
+JS); ?>

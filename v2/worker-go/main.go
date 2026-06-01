@@ -13,12 +13,14 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"gold-manager-worker/engine"
+	"gold-manager-worker/orchestrator"
 	"gold-manager-worker/stream"
 )
 
 var db *sqlx.DB
 var matchEngine *engine.MatchEngine
 var sseHub *stream.Hub
+var orchestratorRunner *orchestrator.Runner
 
 func initDB() {
 	host := os.Getenv("DB_HOST")
@@ -48,6 +50,7 @@ func initDB() {
 
 	sseHub = stream.NewHub()
 	matchEngine = &engine.MatchEngine{DB: db, Hub: sseHub}
+	orchestratorRunner = orchestrator.NewRunnerFromEnv(db)
 }
 
 func main() {
@@ -65,6 +68,9 @@ func main() {
 
 	// On startup: finalize zombie fixtures (status=0/1 but match_state at minute>=90)
 	finalizeZombieFixtures()
+
+	// SIP-0077 slice-1 orchestrator loop (schedule + event consumer)
+	go orchestratorRunner.Start()
 
 	// Main Polling Loop
 	for {
