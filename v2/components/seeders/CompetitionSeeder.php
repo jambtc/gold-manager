@@ -19,10 +19,17 @@ class CompetitionSeeder
      * @param int    $season
      * @return Competition
      */
-    public function seed(array $teams, int $tier = Competition::TIER_C, int $groupNumber = 1, int $season = 1): Competition
+    public function seed(
+        array $teams,
+        int $tier = Competition::TIER_C,
+        int $groupNumber = 1,
+        int $season = 1,
+        string $countryCode = 'IT'
+    ): Competition
     {
+        $countryCode = \app\components\CountryContext::normalize($countryCode);
         $tierName = Competition::TIER_NAMES[$tier];
-        $name     = $groupNumber > 1 ? "$tierName - Girone $groupNumber" : $tierName;
+        $name     = $groupNumber > 1 ? "{$countryCode} $tierName - " . \Yii::t('app', 'Group') . " $groupNumber" : "{$countryCode} $tierName";
 
         $competition = new Competition();
         $competition->name         = $name;
@@ -30,6 +37,7 @@ class CompetitionSeeder
         $competition->type         = 'league';
         $competition->tier         = $tier;
         $competition->group_number = $groupNumber;
+        $competition->country_code = $countryCode;
 
         if (!$competition->save()) {
             throw new \RuntimeException('CompetitionSeeder: failed to save competition: ' . json_encode($competition->errors));

@@ -5,7 +5,7 @@ return [
     'dsn' => 'mysql:host=mariadb;dbname=gold_manager',
     'username' => 'gm_user',
     'password' => 'secret',
-    'charset' => 'utf8',
+    'charset' => 'utf8mb4',
 
     // Schema cache options (for production environment)
     //'enableSchemaCache' => true,

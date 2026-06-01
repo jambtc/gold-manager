@@ -26,7 +26,13 @@ func initDB() {
 	user := os.Getenv("DB_USER")
 	pass := os.Getenv("DB_PASSWORD")
 
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:3306)/%s?parseTime=true", user, pass, host, name)
+	dsn := fmt.Sprintf(
+		"%s:%s@tcp(%s:3306)/%s?parseTime=true&charset=utf8mb4&collation=utf8mb4_unicode_ci",
+		user,
+		pass,
+		host,
+		name,
+	)
 
 	var err error
 	db, err = sqlx.Connect("mysql", dsn)

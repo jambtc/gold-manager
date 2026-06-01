@@ -17,6 +17,7 @@ use yii\db\ActiveRecord;
  * @property string $type
  * @property int    $tier         1=Serie A, 2=Serie B, 3=Serie C
  * @property int    $group_number Girone number within the tier (1, 2, 3…)
+ * @property string $country_code ISO-2 country code (IT, GB, ...)
  * @property int    $created_at
  * @property int    $updated_at
  *
@@ -60,6 +61,9 @@ class Competition extends ActiveRecord
             [['tier'], 'in', 'range' => [self::TIER_A, self::TIER_B, self::TIER_C]],
             [['name'], 'string', 'max' => 255],
             [['type'], 'string', 'max' => 50],
+            [['country_code'], 'string', 'max' => 2],
+            [['country_code'], 'default', 'value' => 'IT'],
+            [['country_code'], 'filter', 'filter' => static fn($v) => strtoupper((string) $v)],
         ];
     }
 
@@ -72,6 +76,7 @@ class Competition extends ActiveRecord
             'type'         => 'Type',
             'tier'         => 'Tier',
             'group_number' => Yii::t('app', 'Group'),
+            'country_code' => Yii::t('app', 'Country'),
             'created_at'   => 'Created At',
             'updated_at'   => 'Updated At',
         ];

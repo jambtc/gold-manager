@@ -20,6 +20,19 @@ class TeamSeeder
      */
     public function seed(int $cpuCount, ?int $userId, int $budget = 5_000_000): array
     {
+        return $this->seedByCountry($cpuCount, $userId, $budget, \app\components\CountryContext::DEFAULT_COUNTRY);
+    }
+
+    /**
+     * @param int      $cpuCount
+     * @param int|null $userId
+     * @param int      $budget
+     * @param string   $countryCode
+     * @return Team[]
+     */
+    public function seedByCountry(int $cpuCount, ?int $userId, int $budget = 5_000_000, string $countryCode = 'IT'): array
+    {
+        $countryCode = \app\components\CountryContext::normalize($countryCode);
         $used = Team::find()->select('name')->column();
 
         $available = array_values(array_diff(WorldData::TEAM_NAMES, $used));
@@ -49,6 +62,7 @@ class TeamSeeder
             $team->is_cpu  = $isHuman ? 0 : 1;
             $team->user_id = $isHuman ? $userId : null;
             $team->budget  = $budget;
+            $team->country_code = $countryCode;
             [$team->color_left, $team->color_right] = Team::randomUiColors();
 
             if (!$team->save()) {

@@ -10,6 +10,11 @@ class m260529_210000_add_language_to_fixture extends Migration
 {
     public function safeUp(): void
     {
+        $schema = $this->db->getTableSchema('{{%fixture}}', true);
+        if ($schema === null || isset($schema->columns['language'])) {
+            return;
+        }
+
         $this->addColumn(
             '{{%fixture}}',
             'language',
@@ -19,6 +24,11 @@ class m260529_210000_add_language_to_fixture extends Migration
 
     public function safeDown(): void
     {
+        $schema = $this->db->getTableSchema('{{%fixture}}', true);
+        if ($schema === null || !isset($schema->columns['language'])) {
+            return;
+        }
+
         $this->dropColumn('{{%fixture}}', 'language');
     }
 }

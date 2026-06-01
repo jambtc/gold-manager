@@ -7,6 +7,7 @@ namespace app\components;
 use app\models\Competition;
 use app\models\Standing;
 use app\models\Team;
+use app\models\User;
 use Yii;
 
 class TeamAssigner
@@ -22,14 +23,21 @@ class TeamAssigner
      */
     public function assign(int $userId): Team
     {
-        if ((int) Team::find()->count() === 0) {
-            (new WorldSeeder())->run();
+        $user = User::findOne($userId);
+        if ($user === null) {
+            throw new \RuntimeException("TeamAssigner: user #{$userId} not found.");
         }
 
-        $team = $this->findFreeSerieC();
+        $countryCode = CountryContext::normalize((string) ($user->country_code ?? CountryContext::DEFAULT_COUNTRY));
+
+        if (!$this->hasTeamsForCountry($countryCode)) {
+            (new WorldSeeder())->run(null, $countryCode);
+        }
+
+        $team = $this->findFreeSerieC($countryCode);
 
         if ($team === null) {
-            $team = $this->expandSerieC();
+            $team = $this->expandSerieC($countryCode);
         }
 
         $team->is_cpu  = 0;
@@ -43,15 +51,23 @@ class TeamAssigner
         return $team;
     }
 
+    private function hasTeamsForCountry(string $countryCode): bool
+    {
+        return Team::find()->where(['country_code' => $countryCode])->exists();
+    }
+
     /**
      * Returns the first CPU team in any Serie C group that has no user assigned.
      */
-    private function findFreeSerieC(): ?Team
+    private function findFreeSerieC(string $countryCode): ?Team
     {
         // Get all Serie C competition IDs
         $competitionIds = Competition::find()
             ->select('id')
-            ->where(['tier' => Competition::TIER_C])
+            ->where([
+                'tier' => Competition::TIER_C,
+                'country_code' => $countryCode,
+            ])
             ->column();
 
         if (empty($competitionIds)) {
@@ -67,6 +83,7 @@ class TeamAssigner
             ->where([
                 Team::tableName() . '.is_cpu'   => 1,
                 Team::tableName() . '.user_id'  => null,
+                Team::tableName() . '.country_code' => $countryCode,
                 's.competition_id'              => $competitionIds,
             ])
             ->one();
@@ -75,15 +92,15 @@ class TeamAssigner
     /**
      * Creates a new Serie C girone and returns one of its CPU teams.
      */
-    private function expandSerieC(): Team
+    private function expandSerieC(string $countryCode): Team
     {
         $nextGroup = (int) Competition::find()
-            ->where(['tier' => Competition::TIER_C])
+            ->where(['tier' => Competition::TIER_C, 'country_code' => $countryCode])
             ->max('group_number') + 1;
 
         $transaction = Yii::$app->db->beginTransaction();
         try {
-            $competition = (new WorldSeeder())->seedLeague(Competition::TIER_C, $nextGroup);
+            $competition = (new WorldSeeder())->seedLeague(Competition::TIER_C, $nextGroup, null, 16, $countryCode);
             $transaction->commit();
         } catch (\Throwable $e) {
             $transaction->rollBack();
@@ -98,6 +115,7 @@ class TeamAssigner
             ->where([
                 Team::tableName() . '.is_cpu'  => 1,
                 Team::tableName() . '.user_id' => null,
+                Team::tableName() . '.country_code' => $countryCode,
                 's.competition_id'             => $competition->id,
             ])
             ->one();

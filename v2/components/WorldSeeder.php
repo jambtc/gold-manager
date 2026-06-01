@@ -34,9 +34,10 @@ class WorldSeeder
      * Seeds the entire world: one group each for Serie A, B, C.
      * All teams are CPU. TeamAssigner assigns users to Serie C slots.
      */
-    public function run(?callable $log = null): void
+    public function run(?callable $log = null, string $countryCode = CountryContext::DEFAULT_COUNTRY): void
     {
-        $this->assertEmptyDatabase();
+        $countryCode = CountryContext::normalize($countryCode);
+        $this->assertCountryEmptyDatabase($countryCode);
 
         $log ??= static function (string $msg): void {};
 
@@ -45,8 +46,8 @@ class WorldSeeder
         try {
             foreach ([Competition::TIER_A, Competition::TIER_B, Competition::TIER_C] as $tier) {
                 $label = Competition::TIER_NAMES[$tier];
-                $log("Seeding $label...");
-                $this->seedLeague($tier, 1, $log);
+                $log("Seeding {$countryCode} $label...");
+                $this->seedLeague($tier, 1, $log, 16, $countryCode);
             }
 
             $transaction->commit();
@@ -67,11 +68,18 @@ class WorldSeeder
      * @param int           $teamCount   Teams per group (default 16)
      * @return Competition
      */
-    public function seedLeague(int $tier, int $groupNumber, ?callable $log = null, int $teamCount = 16): Competition
+    public function seedLeague(
+        int $tier,
+        int $groupNumber,
+        ?callable $log = null,
+        int $teamCount = 16,
+        string $countryCode = CountryContext::DEFAULT_COUNTRY
+    ): Competition
     {
         $log ??= static function (string $msg): void {};
+        $countryCode = CountryContext::normalize($countryCode);
 
-        $teams = $this->teamSeeder->seed($teamCount, null);
+        $teams = $this->teamSeeder->seedByCountry($teamCount, null, 5_000_000, $countryCode);
         $log(sprintf("  Created %d CPU teams.", count($teams)));
 
         foreach ($teams as $team) {
@@ -82,7 +90,7 @@ class WorldSeeder
         $this->stadiumSeeder->seed($teams);
         $log(sprintf("  Created %d stadiums.", count($teams)));
 
-        $competition = $this->competitionSeeder->seed($teams, $tier, $groupNumber);
+        $competition = $this->competitionSeeder->seed($teams, $tier, $groupNumber, 1, $countryCode);
         $log(sprintf("  Competition '%s' created.", $competition->getLabel()));
 
         $this->fixtureSeeder->seed($teams, $competition);
@@ -98,7 +106,12 @@ class WorldSeeder
      */
     public function seedCpuTeamForCompetition(Competition $competition, int $budget = 3_000_000): \app\models\Team
     {
-        $teams = $this->teamSeeder->seed(1, null, $budget);
+        $teams = $this->teamSeeder->seedByCountry(
+            1,
+            null,
+            $budget,
+            CountryContext::normalize((string) ($competition->country_code ?? CountryContext::DEFAULT_COUNTRY))
+        );
         $team  = $teams[0];
 
         $this->seedPlayersForTeam($team->id);
@@ -165,12 +178,12 @@ class WorldSeeder
         return $name;
     }
 
-    private function assertEmptyDatabase(): void
+    private function assertCountryEmptyDatabase(string $countryCode): void
     {
-        $count = (int) \app\models\Team::find()->count();
+        $count = (int) \app\models\Team::find()->where(['country_code' => $countryCode])->count();
         if ($count > 0) {
             throw new \RuntimeException(
-                "WorldSeeder: database is not empty ($count teams found). Aborting."
+                "WorldSeeder: country {$countryCode} is not empty ($count teams found). Aborting."
             );
         }
     }

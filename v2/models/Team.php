@@ -17,6 +17,7 @@ use yii\db\ActiveRecord;
  * @property int|null    $is_cpu
  * @property int         $budget
  * @property string|null $logo    LONGBLOB
+ * @property string      $country_code
  * @property string|null $color_left
  * @property string|null $color_right
  * @property int         $created_at
@@ -54,6 +55,9 @@ class Team extends ActiveRecord
             [['user_id', 'is_cpu', 'budget'], 'integer'],
             [['logo'], 'string'],
             [['color_left', 'color_right'], 'string', 'max' => 7],
+            [['country_code'], 'string', 'max' => 2],
+            [['country_code'], 'default', 'value' => 'IT'],
+            [['country_code'], 'filter', 'filter' => static fn($v) => strtoupper((string) $v)],
             [['color_left', 'color_right'], 'match', 'pattern' => '/^#[0-9A-Fa-f]{6}$/', 'skipOnEmpty' => true],
             [['name'], 'string', 'max' => 255],
             [['name'], 'unique'],
@@ -70,6 +74,7 @@ class Team extends ActiveRecord
             'is_cpu'     => 'CPU Team',
             'budget'     => 'Budget (€)',
             'logo'       => 'Logo',
+            'country_code'=> Yii::t('app', 'Country'),
             'color_left' => Yii::t('app', 'Left color'),
             'color_right'=> Yii::t('app', 'Right color'),
             'created_at' => 'Created At',
