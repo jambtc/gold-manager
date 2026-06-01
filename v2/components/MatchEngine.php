@@ -317,7 +317,8 @@ class MatchEngine extends Component
         $oppSide = $defSide;
 
         // SIP-0038: fuorigioco trap — negate attack
-        $offsideChance = (int) (($defTactics['fuorigioco'] ?? 0) * 0.15 * $defProfile['offside_mult']);
+        // Fine-tune: reduce hard cancellation from offside trap to avoid excess 0-0.
+        $offsideChance = (int) (($defTactics['fuorigioco'] ?? 0) * 0.10 * $defProfile['offside_mult']);
         if ($defProfile['offside_enabled'] && $offsideChance > 0 && mt_rand(1, 100) <= $offsideChance) {
             return $events;
         }
@@ -352,7 +353,8 @@ class MatchEngine extends Component
 
         // ── Step 4: Tiro vs Portiere ──
         $shotPower = (int) ($atk['tc'] * 0.4 + $atk['tr'] * 0.6);
-        $gkPower = (int) ($def['po'] * 2.0 + $def['df'] * 0.2);
+        // Fine-tune: GK influence still strong, but less absolute than before.
+        $gkPower = (int) ($def['po'] * 1.75 + $def['df'] * 0.2);
 
         // SIP-0073: GK height penalty — short GK loses effective po (not persisted)
         $defGk = $this->getActivePlayer($fixture, $state, $defSide, 'GK');
@@ -388,9 +390,9 @@ class MatchEngine extends Component
         $roleHelper = new FormationRoleHelper();
         $precisionCap = $setPieceType && $atkFormation
             ? $roleHelper->precisionCapForSetPiece($atkFormation, $setPieceType)
-            : 30;
+            : 36;
         if ($setPieceType) {
-            $precisionCap = min(65, $precisionCap);
+            $precisionCap = min(70, $precisionCap);
         }
         $taker = null;
         if ($setPieceType === 'penalty' && $atkFormation) {

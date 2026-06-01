@@ -463,8 +463,18 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	homeSetPieceMod := e.teamSetPieceMod(homeTeamID, fixtureID)
 	awaySetPieceMod := e.teamSetPieceMod(awayTeamID, fixtureID)
 	// SIP-0073: short opposing GK raises the attacking team's goal threshold
-	homeGoalThreshold := 2.5 * homeBonus * homeGoalMod * homeSetPieceMod * awayTraits.GkHeightMod
-	awayGoalThreshold := homeGoalThreshold + 2.5*awayBonus*awayGoalMod*awaySetPieceMod*homeTraits.GkHeightMod
+	// Fine-tune parity with PHP engine:
+	// - slightly higher base conversion
+	// - keep tactical/trait multipliers
+	baseGoalThreshold := 3.2
+	homeGoalThreshold := baseGoalThreshold * homeBonus * homeGoalMod * homeSetPieceMod * awayTraits.GkHeightMod
+	awayGoalThreshold := homeGoalThreshold + baseGoalThreshold*awayBonus*awayGoalMod*awaySetPieceMod*homeTraits.GkHeightMod
+	homeChanceEnd := awayGoalThreshold + 4.5
+	awayChanceEnd := homeChanceEnd + 4.5
+	midfieldEnd := awayChanceEnd + 15.0
+	attackEnd := midfieldEnd + 10.0
+	midfieldSplit := awayChanceEnd + 7.5
+	attackSplit := midfieldEnd + 5.0
 
 	chance := rand.Float64() * 100.0
 
@@ -493,7 +503,7 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	var eventPlayerID *int
 
 	switch {
-	// Home goal ~2.5% × trait bonus × tactic modifier
+	// Home goal threshold
 	case chance < homeGoalThreshold:
 		state.HomeScore++
 		eventType, teamSide = "goal", "home"
@@ -531,7 +541,7 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 		detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
 
-		// Away goal ~2.5% × trait bonus × tactic modifier
+		// Away goal threshold
 	case chance < awayGoalThreshold:
 		state.AwayScore++
 		eventType, teamSide = "goal", "away"
@@ -569,9 +579,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 		detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
 
-		// Away goal ~2.5% × trait bonus × tactic modifier
-	case chance < awayGoalThreshold:
-		state.AwayScore++
+		// Home near_miss or gk_save window
+	case chance < homeChanceEnd:
 		attackSide = "home"
 		shooter := e.randomPlayerName(fixtureID, "home", "FW")
 		gk := e.randomPlayerName(fixtureID, "away", "GK")
@@ -606,8 +615,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 			detail = fmt.Sprintf(`{"description":%q,"suspense_text":%q,"shooter_name":%q,"gk_name":%q}`, fallback, suspense, shooter, gk)
 		}
 
-		// Away near_miss or gk_save ~4.5%
-	case chance < 14.0:
+	// Away near_miss or gk_save ~4.5%
+	case chance < awayChanceEnd:
 		attackSide = "away"
 		shooter := e.randomPlayerName(fixtureID, "away", "FW")
 		gk := e.randomPlayerName(fixtureID, "home", "GK")
@@ -643,8 +652,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 
 	// Midfield duel ~15%
-	case chance < 29.0:
-		if chance < 21.5 {
+	case chance < midfieldEnd:
+		if chance < midfieldSplit {
 			attackSide = "home"
 			teamSide = "home"
 		} else {
@@ -673,8 +682,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		detail = fmt.Sprintf(`{"description":%q,"attacker_name":%q}`, fallback, mf)
 
 	// Attack attempt ~10%
-	case chance < 39.0:
-		if chance < 34.0 {
+	case chance < attackEnd:
+		if chance < attackSplit {
 			attackSide = "home"
 			teamSide = "home"
 		} else {
@@ -1579,7 +1588,7 @@ func tacticGoalModifier(atk, def teamTactics) float64 {
 
 	defMod := 1.0 +
 		caten*0.12 +
-		fuo*0.075 + // 15% nullification × 0.5 scaling
+		fuo*0.05 + // fine-tune parity: lighter offside defensive suppression
 		palla*0.05
 
 	mod := atkMod / defMod
