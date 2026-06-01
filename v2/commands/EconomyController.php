@@ -325,6 +325,9 @@ class EconomyController extends Controller
         $week = (int) date('W');
         $now = time();
         $dailyScale = $this->dailyTrainingScale();
+        $seasonDaysForTactic = $this->seasonDaysForTacticTraining();
+        $tacticSeasonGainCap = 30;
+        $tacticSeasonDecayAtZero = 18;
         $hasSetPieceAlloc = $this->hasSetPiecePhysicalAllocColumn();
 
         $statMap = [
@@ -414,6 +417,12 @@ class EconomyController extends Controller
             $tacticalStaffMod = 1 + (($headCoachEff * 0.10) / 100);
             $assistantSkillMod = 1 + (($assistantCoachEff * 0.05) / 100);
             $gkSkillMod = 1 + (($gkCoachEff * 0.15) / 100);
+            $tacticSeasonBaseline = $this->loadTacticSeasonBaseline(
+                (int) $team->id,
+                $season,
+                $tacticFields,
+                $tacticRow
+            );
 
             // Tactical LEVEL progression/decay from daily training plan.
             $tacticChanged = false;
@@ -421,20 +430,38 @@ class EconomyController extends Controller
             foreach ($tacticFields as $field) {
                 $value = max(0, min(100, (int) ($tacticRow[$field] ?? 0)));
                 $alloc = max(0, min(100, (int) ($tacticPlan[$field] ?? 0)));
-                if ($alloc > 0) {
-                    // levelMod: harder to improve when already high (mirrors skill growth curve)
-                    $levelMod = max(0.3, 1.0 - ($value / 100) * 0.55);
-                    $prob = ($alloc / 100) * 0.035 * $levelMod * $tacticalStaffMod * $dailyScale;
-                    if (mt_rand(1, 10000) <= (int) round($prob * 10000)) {
-                        $value = min(100, $value + 1);
-                        $tacticChanged = true;
+                $baseline = max(0, min(100, (int) ($tacticSeasonBaseline[$field] ?? $value)));
+                $seasonCap = min(100, $baseline + $tacticSeasonGainCap);
+                $original = $value;
+
+                if ($alloc === 0) {
+                    // At 0% allocation, tactic decays over time.
+                    $expectedDecay = ($tacticSeasonDecayAtZero / max(1, $seasonDaysForTactic)) * $dailyScale;
+                    $delta = $this->rollScaledPositive($expectedDecay, 1.0);
+                    if ($delta > 0) {
+                        $value = max(0, $value - $delta);
                     }
+                } elseif ($alloc <= 5) {
+                    // At 5% (or lower but non-zero), keep tactic stable.
+                    $value = $value;
                 } else {
-                    $decayChance = max(1, (int) round(150 * $dailyScale));
-                    if ($value > 0 && mt_rand(1, 10000) <= $decayChance) {
-                        $value = max(0, $value - 1);
-                        $tacticChanged = true;
+                    // Growth with hard seasonal cap: max +30 if always at 100%.
+                    if ($value < $seasonCap) {
+                        $intensity = ($alloc - 5) / 95.0; // 5% => 0, 100% => 1
+                        $staffAdj = max(0.85, min(1.15, $tacticalStaffMod));
+                        $expectedGain = ($tacticSeasonGainCap / max(1, $seasonDaysForTactic))
+                            * $intensity
+                            * $staffAdj
+                            * $dailyScale;
+                        $delta = $this->rollScaledPositive($expectedGain, 1.0);
+                        if ($delta > 0) {
+                            $value = min($seasonCap, $value + $delta);
+                        }
                     }
+                }
+
+                if ($value !== $original) {
+                    $tacticChanged = true;
                 }
                 $tacticRow[$field] = $value;
                 $tacticUpdate[$field] = $value;
@@ -3607,6 +3634,64 @@ class EconomyController extends Controller
     private function countTeams(array $teamIds): int
     {
         return count($teamIds);
+    }
+
+    /**
+     * Tactical training horizon in days for seasonal cap logic.
+     */
+    private function seasonDaysForTacticTraining(): int
+    {
+        $raw = trim((string) getenv('GM_TACTIC_SEASON_DAYS'));
+        if ($raw !== '' && ctype_digit($raw)) {
+            $v = (int) $raw;
+            if ($v >= 30 && $v <= 180) {
+                return $v;
+            }
+        }
+        return 90;
+    }
+
+    /**
+     * Baseline tactic values for current season.
+     *
+     * Uses first available snapshot of season; fallback to current row.
+     *
+     * @param string[] $tacticFields
+     * @param array<string,mixed> $currentTacticRow
+     * @return array<string,int>
+     */
+    private function loadTacticSeasonBaseline(
+        int $teamId,
+        int $season,
+        array $tacticFields,
+        array $currentTacticRow
+    ): array {
+        $baseline = [];
+        foreach ($tacticFields as $field) {
+            $baseline[$field] = max(0, min(100, (int) ($currentTacticRow[$field] ?? 0)));
+        }
+
+        try {
+            $first = Yii::$app->db->createCommand(
+                'SELECT * FROM {{%training_tactic_snapshot}}
+                 WHERE team_id = :t AND season = :s
+                 ORDER BY snapshot_date ASC, id ASC
+                 LIMIT 1',
+                [':t' => $teamId, ':s' => $season]
+            )->queryOne();
+            if (!$first) {
+                return $baseline;
+            }
+            foreach ($tacticFields as $field) {
+                if (array_key_exists($field, $first)) {
+                    $baseline[$field] = max(0, min(100, (int) $first[$field]));
+                }
+            }
+        } catch (\Throwable) {
+            return $baseline;
+        }
+
+        return $baseline;
     }
 
     private function hasSetPiecePhysicalAllocColumn(): bool

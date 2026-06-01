@@ -318,6 +318,128 @@ class GameController extends Controller
         return ExitCode::OK;
     }
 
+    /**
+     * Runs many friendlies instantly (no real-time wait between minutes).
+     * Useful for fast regression checks.
+     *
+     * Usage:
+     *   ./yii game/batch-friendly 100
+     *   ./yii game/batch-friendly 300 1
+     *
+     * @param int $count   Number of matches.
+     * @param int $cpuOnly 1=only CPU teams, 0=all teams.
+     */
+    public function actionBatchFriendly(int $count = 100, int $cpuOnly = 1): int
+    {
+        $count = max(1, min(5000, $count));
+
+        $teamQuery = Team::find()->select('id')->orderBy(['id' => SORT_ASC]);
+        if ($cpuOnly === 1) {
+            $teamQuery->andWhere(['is_cpu' => 1, 'user_id' => null]);
+        }
+        $teamIds = array_map('intval', $teamQuery->column());
+        if (count($teamIds) < 2) {
+            $this->stderr("Not enough teams to run batch.\n");
+            return ExitCode::UNSPECIFIED_ERROR;
+        }
+
+        $comp = Competition::findOne(['type' => 'friendly']);
+        if (!$comp) {
+            $comp = new Competition();
+            $comp->name = 'Amichevoli';
+            $comp->type = 'friendly';
+            $comp->season = 1;
+            $comp->tier = Competition::TIER_C;
+            $comp->group_number = 0;
+            $comp->save(false);
+        }
+
+        /** @var \app\components\MatchEngine $engine */
+        $engine = Yii::$app->matchEngine;
+
+        $nilNil = 0;
+        $sumGoals = 0;
+        $fail = 0;
+        $dist = [];
+        $start = microtime(true);
+
+        for ($i = 0; $i < $count; $i++) {
+            $homeId = $teamIds[array_rand($teamIds)];
+            $awayId = $teamIds[array_rand($teamIds)];
+            while ($awayId === $homeId) {
+                $awayId = $teamIds[array_rand($teamIds)];
+            }
+
+            $home = Team::findOne($homeId);
+            $away = Team::findOne($awayId);
+            if (!$home || !$away) {
+                $fail++;
+                continue;
+            }
+
+            if ($cpuOnly === 1) {
+                $this->ensureCpuTeamReady($home, (int) $comp->id, false);
+                $this->ensureCpuTeamReady($away, (int) $comp->id, false);
+            }
+
+            $fixture = new Fixture();
+            $fixture->competition_id = (int) $comp->id;
+            $fixture->home_team_id = (int) $homeId;
+            $fixture->away_team_id = (int) $awayId;
+            $fixture->match_date = time() - 60;
+            $fixture->status = Fixture::STATUS_PLAYING;
+            $fixture->home_score = 0;
+            $fixture->away_score = 0;
+            if (!$fixture->save(false)) {
+                $fail++;
+                continue;
+            }
+
+            if (!$this->simulateFixtureInstant($fixture, $engine)) {
+                $fail++;
+                continue;
+            }
+
+            $fixture->refresh();
+            $g = (int) $fixture->home_score + (int) $fixture->away_score;
+            $sumGoals += $g;
+            $dist[$g] = ($dist[$g] ?? 0) + 1;
+            if ((int) $fixture->home_score === 0 && (int) $fixture->away_score === 0) {
+                $nilNil++;
+            }
+
+            $done = $i + 1;
+            if ($done % 10 === 0 || $done === $count) {
+                $this->stdout(sprintf("[batch] %d/%d done\n", $done, $count));
+            }
+        }
+
+        $played = $count - $fail;
+        $elapsed = microtime(true) - $start;
+        ksort($dist);
+
+        $this->stdout(str_repeat('─', 72) . "\n");
+        $this->stdout("BATCH FRIENDLY (instant 1→90)\n");
+        $this->stdout("count={$count} played={$played} fail={$fail} cpuOnly={$cpuOnly}\n");
+        if ($played > 0) {
+            $this->stdout(sprintf(
+                "0-0=%d (%.2f%%) avg-goals=%.3f elapsed=%.2fs speed=%.1f match/s\n",
+                $nilNil,
+                ($nilNil * 100.0) / $played,
+                $sumGoals / $played,
+                $elapsed,
+                $played / max(0.001, $elapsed)
+            ));
+        }
+        $this->stdout("distribution:");
+        foreach ($dist as $goals => $n) {
+            $this->stdout(" {$goals}:{$n}");
+        }
+        $this->stdout("\n" . str_repeat('─', 72) . "\n");
+
+        return ExitCode::OK;
+    }
+
     // ───────────────────────────────────────────────────────────────────
     //  Helpers
     // ───────────────────────────────────────────────────────────────────
@@ -343,22 +465,22 @@ class GameController extends Controller
         $home = Team::findOne((int) $fixture->home_team_id);
         $away = Team::findOne((int) $fixture->away_team_id);
         if ($home) {
-            $this->ensureCpuTeamReady($home);
+            $this->ensureCpuTeamReady($home, (int) $fixture->competition_id);
         }
         if ($away) {
-            $this->ensureCpuTeamReady($away);
+            $this->ensureCpuTeamReady($away, (int) $fixture->competition_id);
         }
     }
 
-    private function ensureCpuTeamReady(Team $team): void
+    private function ensureCpuTeamReady(Team $team, int $competitionId = 0, bool $verbose = true): void
     {
         if ((int) $team->is_cpu !== 1) {
             return;
         }
 
         try {
-            $result = $this->cpuFormationService->ensureTeamReady($team, (int) ($fixture->competition_id ?? 0));
-            if ($result['updated']) {
+            $result = $this->cpuFormationService->ensureTeamReady($team, $competitionId);
+            if ($verbose && $result['updated']) {
                 $this->stdout(sprintf(
                     "[CPU auto-form] Team #%d %s -> %s / %s (%d, %s)\n",
                     $team->id,
@@ -374,6 +496,23 @@ class GameController extends Controller
                 sprintf('CPU auto-formation failed for team %d: %s', $team->id, $e->getMessage()),
                 __METHOD__
             );
+        }
+    }
+
+    private function simulateFixtureInstant(Fixture $fixture, \app\components\MatchEngine $engine): bool
+    {
+        try {
+            for ($tick = 0; $tick < 130; $tick++) {
+                $engine->advanceTick($fixture);
+                $state = MatchState::findOne(['fixture_id' => (int) $fixture->id]);
+                if ($state && $state->phase === MatchState::PHASE_FINISHED) {
+                    return true;
+                }
+            }
+            return false;
+        } catch (\Throwable $e) {
+            Yii::error('simulateFixtureInstant failed: ' . $e->getMessage(), __METHOD__);
+            return false;
         }
     }
 }
