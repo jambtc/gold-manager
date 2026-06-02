@@ -17,6 +17,7 @@ use yii\db\ActiveRecord;
  * @property int|null $offside_trap
  * @property string|null $trained_tactic
  * @property int $effort
+ * @property int $effort_level
  * @property int|null $captain_player_id
  * @property int|null $penalty_player_id
  * @property int|null $freekick_player_id
@@ -39,7 +40,9 @@ class Formation extends ActiveRecord
     {
         return [
             [['team_id'], 'required'],
-            [['team_id', 'effort', 'captain_player_id', 'penalty_player_id', 'freekick_player_id', 'corner_player_id', 'offside_trap'], 'integer'],
+            [['team_id', 'effort', 'captain_player_id', 'penalty_player_id', 'freekick_player_id', 'corner_player_id', 'offside_trap', 'effort_level'], 'integer'],
+            ['effort_level', 'in', 'range' => [0, 25, 50, 75, 100]],
+            ['effort_level', 'default', 'value' => 50],
             [['is_active'], 'boolean'],
             [['name', 'tactic', 'marking', 'trained_tactic'], 'string'],
         ];

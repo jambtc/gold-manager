@@ -1530,6 +1530,21 @@
         });
     };
 
+    // SIP-0083: send effort level to server
+    window.sendEffortLevel = function (level) {
+        var validLevels = [0, 25, 50, 75, 100];
+        if (validLevels.indexOf(level) === -1) return;
+        var body = new URLSearchParams();
+        body.append(GM_LIVE.csrfParam, GM_LIVE.csrfToken);
+        body.append('effort_level', level);
+        fetch(GM_LIVE.effortUrl, { method: 'POST', body: body })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                if (data.message) showLiveActionStatus(data.message);
+            })
+            .catch(function () {});
+    };
+
     function bindLiveUiActions() {
         document.querySelectorAll('button[data-tactic]').forEach(function (button) {
             button.addEventListener('click', function () {
@@ -1549,6 +1564,21 @@
                 window.sendLiveOffside(offside);
             });
         });
+
+        // SIP-0083: effort slider
+        var effortSlider = document.getElementById('live-effort-slider');
+        if (effortSlider) {
+            var effortLabel = document.getElementById('live-effort-label');
+            effortSlider.addEventListener('input', function () {
+                var snapped = Math.round(parseInt(effortSlider.value, 10) / 25) * 25;
+                effortSlider.value = snapped;
+                if (effortLabel) effortLabel.textContent = snapped + '%';
+            });
+            effortSlider.addEventListener('change', function () {
+                var level = Math.round(parseInt(effortSlider.value, 10) / 25) * 25;
+                window.sendEffortLevel(level);
+            });
+        }
 
         var debugToggle = document.getElementById('live-debug-toggle');
         if (debugToggle && typeof window.toggleLiveDebug === 'function') {

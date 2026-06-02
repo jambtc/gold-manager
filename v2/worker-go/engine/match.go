@@ -340,6 +340,18 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 				fixtureID,
 			)
 		}
+		// SIP-0083: snapshot effort_level from active formations
+		homeEffort, awayEffort := 50, 50
+		if homeFormID != nil {
+			_ = e.DB.Get(&homeEffort, "SELECT COALESCE(effort_level, 50) FROM formation WHERE id = ?", *homeFormID)
+		}
+		if awayFormID != nil {
+			_ = e.DB.Get(&awayEffort, "SELECT COALESCE(effort_level, 50) FROM formation WHERE id = ?", *awayFormID)
+		}
+		_, _ = e.DB.Exec("UPDATE match_state SET home_effort_level = ?, away_effort_level = ? WHERE fixture_id = ?",
+			homeEffort, awayEffort, fixtureID)
+		state.HomeEffortLevel = homeEffort
+		state.AwayEffortLevel = awayEffort
 	}
 
 	if state.Phase == "NOT_STARTED" {
@@ -515,8 +527,8 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// - slightly higher base conversion
 	// - keep tactical/trait multipliers
 	baseGoalThreshold := 3.0 // SIP-0090: calibrated for 2.5–3.0 avg goals/match
-	homeGoalThreshold := baseGoalThreshold * homeBonus * homeGoalMod * homeSetPieceMod * homePressureMod * awayTraits.GkHeightMod
-	awayGoalThreshold := homeGoalThreshold + baseGoalThreshold*awayBonus*awayGoalMod*awaySetPieceMod*awayPressureMod*homeTraits.GkHeightMod
+	homeGoalThreshold := baseGoalThreshold * homeBonus * homeGoalMod * homeSetPieceMod * homePressureMod * awayTraits.GkHeightMod * effortGoalMod(state.HomeEffortLevel)
+	awayGoalThreshold := homeGoalThreshold + baseGoalThreshold*awayBonus*awayGoalMod*awaySetPieceMod*awayPressureMod*homeTraits.GkHeightMod*effortGoalMod(state.AwayEffortLevel)
 	homeChanceEnd := awayGoalThreshold + 4.5
 	awayChanceEnd := homeChanceEnd + 4.5
 	midfieldEnd := awayChanceEnd + 15.0
@@ -829,8 +841,11 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// Cards check (~1.5% per team per tick)
 	e.resolveGoCards(fixtureID, state.CurrentMinute, homeTraits, awayTraits)
 
-	// Injury check (~0.05% per team per tick)
-	e.resolveGoInjury(fixtureID, state.CurrentMinute, homeTraits, awayTraits)
+	// Injury check — effort level modifies base probability
+	e.resolveGoInjury(fixtureID, state.CurrentMinute, homeTraits, awayTraits, state.HomeEffortLevel, state.AwayEffortLevel)
+
+	// SIP-0083: CPU dynamic effort change in last 20 minutes
+	e.maybeCpuAdjustEffort(fixtureID, &state)
 
 	// Pending substitutions from match_command table
 	e.processMatchCommands(fixtureID, state.CurrentMinute)
@@ -1111,10 +1126,11 @@ func (e *MatchEngine) resolveGoCards(fixtureID, minute int, homeTraits, awayTrai
 	}
 }
 
-func (e *MatchEngine) resolveGoInjury(fixtureID, minute int, homeTraits, awayTraits teamTraitProfile) {
+func (e *MatchEngine) resolveGoInjury(fixtureID, minute int, homeTraits, awayTraits teamTraitProfile, homeEffort, awayEffort int) {
+	effortLevels := map[string]int{"home": homeEffort, "away": awayEffort}
 	teams := map[string]teamTraitProfile{"home": homeTraits, "away": awayTraits}
 	for side, traits := range teams {
-		baseChance := 0.0005 * traits.InjuryScalar
+		baseChance := 0.0005 * traits.InjuryScalar * effortInjuryMod(effortLevels[side])
 		if baseChance < 0.0001 {
 			baseChance = 0.0001
 		}
@@ -1245,7 +1261,8 @@ func (e *MatchEngine) processMatchCommands(fixtureID, minute int) {
 			side = "away"
 		}
 
-		if c.CommandType == "substitution" {
+		switch c.CommandType {
+		case "substitution":
 			var payload struct {
 				Out int `json:"out"`
 				In  int `json:"in"`
@@ -1263,8 +1280,100 @@ func (e *MatchEngine) processMatchCommands(fixtureID, minute int) {
 					e.broadcastEvent(fixtureID, evID, minute, "substitution", side, desc, 0, 0, "")
 				}
 			}
+		case "effort_change":
+			// SIP-0083: update live effort level in match_state
+			var payload struct {
+				EffortLevel int `json:"effort_level"`
+			}
+			if err := json.Unmarshal([]byte(c.Payload), &payload); err == nil {
+				col := "home_effort_level"
+				if side == "away" {
+					col = "away_effort_level"
+				}
+				_, _ = e.DB.Exec(fmt.Sprintf("UPDATE match_state SET %s = ? WHERE fixture_id = ?", col), payload.EffortLevel, fixtureID)
+				teamName := e.teamName(fixtureID, side)
+				desc := fmt.Sprintf("%s modifica l'impegno a %d%%.", teamName, payload.EffortLevel)
+				det := fmt.Sprintf(`{"description":%q,"effort_level":%d}`, desc, payload.EffortLevel)
+				res, err := e.DB.Exec("INSERT INTO match_event (fixture_id, minute, type, team_side, detail) VALUES (?, ?, 'effort_change', ?, ?)",
+					fixtureID, minute, side, det)
+				if err == nil {
+					evID, _ := res.LastInsertId()
+					e.broadcastEvent(fixtureID, evID, minute, "effort_change", side, desc, 0, 0, "")
+				}
+			}
 		}
 		_, _ = e.DB.Exec("UPDATE match_command SET processed = 1 WHERE id = ?", c.ID)
+	}
+}
+
+// maybeCpuAdjustEffort: CPU teams may dynamically adjust effort in the last 20 minutes (SIP-0083).
+func (e *MatchEngine) maybeCpuAdjustEffort(fixtureID int, state *models.MatchState) {
+	if state.CurrentMinute < 70 || state.Phase != "SECOND_HALF" {
+		return
+	}
+	// Only trigger occasionally (~5% of eligible ticks)
+	if rand.Float64() > 0.05 {
+		return
+	}
+
+	for _, side := range []string{"home", "away"} {
+		teamID, err := e.teamID(fixtureID, side)
+		if err != nil || teamID == 0 {
+			continue
+		}
+		// Only CPU teams (user_id IS NULL)
+		var isCPU int
+		_ = e.DB.Get(&isCPU, "SELECT is_cpu FROM team WHERE id = ?", teamID)
+		if isCPU == 0 {
+			continue
+		}
+
+		scoreDiff := state.HomeScore - state.AwayScore
+		if side == "away" {
+			scoreDiff = -scoreDiff
+		}
+		currentEffortField := "home_effort_level"
+		if side == "away" {
+			currentEffortField = "away_effort_level"
+		}
+		currentEffort := state.HomeEffortLevel
+		if side == "away" {
+			currentEffort = state.AwayEffortLevel
+		}
+
+		newEffort := currentEffort
+		switch {
+		case scoreDiff < 0: // losing → push harder
+			if currentEffort < 100 {
+				newEffort = currentEffort + 25
+				if newEffort > 100 {
+					newEffort = 100
+				}
+			}
+		case scoreDiff > 0 && state.CurrentMinute >= 80: // winning late → preserve energy
+			if currentEffort > 25 {
+				newEffort = currentEffort - 25
+			}
+		}
+
+		if newEffort == currentEffort {
+			continue
+		}
+
+		_, _ = e.DB.Exec(fmt.Sprintf("UPDATE match_state SET %s = ? WHERE fixture_id = ?", currentEffortField), newEffort, fixtureID)
+		if side == "home" {
+			state.HomeEffortLevel = newEffort
+		} else {
+			state.AwayEffortLevel = newEffort
+		}
+		teamName := e.teamName(fixtureID, side)
+		desc := fmt.Sprintf("(%s alza l'impegno.)", teamName)
+		if newEffort < currentEffort {
+			desc = fmt.Sprintf("(%s gestisce le energie.)", teamName)
+		}
+		det := fmt.Sprintf(`{"description":%q,"effort_level":%d}`, desc, newEffort)
+		e.DB.Exec("INSERT INTO match_event (fixture_id, minute, type, team_side, detail) VALUES (?, ?, 'effort_change', ?, ?)",
+			fixtureID, state.CurrentMinute, side, det)
 	}
 }
 

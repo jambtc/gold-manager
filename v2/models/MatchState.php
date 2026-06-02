@@ -27,6 +27,8 @@ use yii\db\ActiveRecord;
  * @property int         $away_ejected    1 when away team has a player sent off
  * @property string|null $home_yellows    JSON {playerId: yellowsThisMatch}
  * @property string|null $away_yellows    JSON {playerId: yellowsThisMatch}
+ * @property int         $home_effort_level  0|25|50|75|100, snapshotted from formation at kickoff
+ * @property int         $away_effort_level
  *
  * @property Fixture     $fixture
  * @property Formation|null $homeFormation
@@ -52,7 +54,8 @@ class MatchState extends ActiveRecord
             [['fixture_id', 'current_minute', 'home_score', 'away_score',
               'home_formation_id', 'away_formation_id',
               'home_subs_used', 'away_subs_used', 'half_time_ticks',
-              'home_ejected', 'away_ejected'], 'integer'],
+              'home_ejected', 'away_ejected',
+              'home_effort_level', 'away_effort_level'], 'integer'],
             [['phase'], 'string', 'max' => 20],
             [['pending_home_actions', 'pending_away_actions',
               'home_yellows', 'away_yellows'], 'string'],

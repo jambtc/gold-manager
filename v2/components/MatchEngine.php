@@ -53,6 +53,15 @@ class MatchEngine extends Component
 
         // Kick-off
         if ($state->phase === 'not_started') {
+            // SIP-0083: snapshot effort_level from formation to match_state
+            if ($state->home_formation_id) {
+                $hf = Formation::findOne($state->home_formation_id);
+                $state->home_effort_level = (int)($hf->effort_level ?? 50);
+            }
+            if ($state->away_formation_id) {
+                $af = Formation::findOne($state->away_formation_id);
+                $state->away_effort_level = (int)($af->effort_level ?? 50);
+            }
             $kickoffSide = $this->kickoffSideForFixture((int) $fixture->id);
             $kickoffTeam = $kickoffSide === 'away'
                 ? ((string) ($fixture->awayTeam->name ?? Yii::t('app', 'Away')))
@@ -578,8 +587,10 @@ class MatchEngine extends Component
             // Condition modifier: low condition → higher risk
             $condMod = 1 + max(0, (60 - (int)$player->condition) / 100);
 
-            // Combined roll (base already passed, apply multipliers to severity threshold)
-            if (mt_rand(1, 1000) > (int)(1000 * $charMod * $ageMod * $condMod)) {
+            // SIP-0083: effort level modifies injury risk
+            $effortField = "{$side}_effort_level";
+            $effortInjMod = self::effortInjuryMod((int)($state->$effortField ?? 50));
+            if (mt_rand(1, 1000) > (int)(1000 * $charMod * $ageMod * $condMod * $effortInjMod)) {
                 continue;
             }
 
@@ -646,6 +657,41 @@ class MatchEngine extends Component
         if ($roll <= $totals['at_L'] + $totals['at_C'])
             return 'C';
         return 'R';
+    }
+
+    // ── SIP-0083: Effort level multipliers ───────────────────────────────
+
+    protected static function effortPerformanceMod(int $level): float
+    {
+        return match ($level) {
+            0   => 0.88,
+            25  => 0.95,
+            75  => 1.04,
+            100 => 1.08,
+            default => 1.00,
+        };
+    }
+
+    protected static function effortFreshnessMod(int $level): float
+    {
+        return match ($level) {
+            0   => 0.55,
+            25  => 0.80,
+            75  => 1.27,
+            100 => 1.55,
+            default => 1.00,
+        };
+    }
+
+    protected static function effortInjuryMod(int $level): float
+    {
+        return match ($level) {
+            0   => 0.70,
+            25  => 0.90,
+            75  => 1.20,
+            100 => 1.45,
+            default => 1.00,
+        };
     }
 
     // ──────────────────────────────────────────────────────────────────────
@@ -855,6 +901,23 @@ class MatchEngine extends Component
                     $totals[$k] = (int) round($totals[$k] * $teamPFI);
                 }
             }
+        }
+
+        // SIP-0083: apply effort_level multiplier from match_state snapshot
+        $effortField = "{$side}_effort_level";
+        $effortLevel = (int)($state->$effortField ?? 50);
+        $effortMod = self::effortPerformanceMod($effortLevel);
+        if (abs($effortMod - 1.0) > 0.001) {
+            // GK ability (po) not affected by team effort
+            foreach (array_keys($totals) as $k) {
+                if ($k !== 'po') {
+                    $totals[$k] = (int) round($totals[$k] * $effortMod);
+                }
+            }
+        }
+        // effort=0 also suppresses pressing/contrasts
+        if ($effortLevel === 0) {
+            $totals['cn'] = (int) round($totals['cn'] * 0.80);
         }
 
         return $totals;

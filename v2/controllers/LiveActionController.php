@@ -330,4 +330,43 @@ class LiveActionController extends Controller
             'season' => $season,
         ]))->execute();
     }
+
+    /**
+     * SIP-0083: Change team effort level during a live match.
+     * POST /live-action/effort
+     */
+    public function actionEffort(int $fixtureId): Response
+    {
+        $fixture = Fixture::findOne($fixtureId);
+        $team    = Team::findOne(['user_id' => Yii::$app->user->id]);
+        if (!$fixture || !$team) throw new BadRequestHttpException();
+
+        $effortLevel = (int) Yii::$app->request->post('effort_level', 50);
+        if (!in_array($effortLevel, [0, 25, 50, 75, 100], true)) {
+            return $this->asJson(['success' => false, 'message' => Yii::t('app', 'Invalid effort level.')]);
+        }
+
+        $state = MatchState::findOne(['fixture_id' => $fixtureId]);
+        if (!$state) throw new BadRequestHttpException();
+
+        $side = $fixture->home_team_id === $team->id ? 'home' : 'away';
+        $effortField = "{$side}_effort_level";
+        $state->$effortField = $effortLevel;
+        $state->save(false, [$effortField]);
+
+        // Queue match_command so Go worker picks it up on next tick
+        $cmd = new MatchCommand();
+        $cmd->fixture_id       = $fixtureId;
+        $cmd->team_id          = $team->id;
+        $cmd->command_type     = 'effort_change';
+        $cmd->payload          = Json::encode(['effort_level' => $effortLevel]);
+        $cmd->minute_submitted = $state->current_minute;
+        $cmd->save();
+
+        $labels = [0 => '0%', 25 => '25%', 50 => '50%', 75 => '75%', 100 => '100%'];
+        return $this->asJson([
+            'success' => true,
+            'message' => Yii::t('app', 'Effort: {level}. Active from next tick.', ['{level}' => $labels[$effortLevel]]),
+        ]);
+    }
 }

@@ -95,6 +95,9 @@ $currentMarking = in_array((string) $formation->marking, ['zone', 'man'], true)
     ? (string) $formation->marking
     : 'zone';
 $currentOffside = ((int) ($formation->offside_trap ?? 1)) > 0 ? 1 : 0;
+$currentEffortLevel = in_array((int)($formation->effort_level ?? 50), [0, 25, 50, 75, 100], true)
+    ? (int)$formation->effort_level
+    : 50;
 $trainedTactics = is_array($trainedTactics ?? null) ? $trainedTactics : [];
 $currentTrainedTactic = (string) ($formation->trained_tactic ?? '');
 if ($currentTrainedTactic === '' || !isset($trainedTactics[$currentTrainedTactic])) {
@@ -649,6 +652,19 @@ $_bestZoneJson = json_encode($_bestZoneMap);
                                     <?php endforeach; ?>
                                 </select>
                             </div>
+                            <div class="mb-2">
+                                <label class="form-label text-muted-gm small mb-1">
+                                    <?= Yii::t('app', 'Effort') ?>
+                                    <span id="effort-level-label" class="text-gold ms-1 fw-bold"><?= $currentEffortLevel ?>%</span>
+                                </label>
+                                <input type="range" id="effort-level-input"
+                                       class="form-range" min="0" max="100" step="25"
+                                       value="<?= $currentEffortLevel ?>"
+                                       style="accent-color:var(--gold)">
+                                <div class="d-flex justify-content-between" style="font-size:.65rem;color:var(--text-secondary);margin-top:.1rem">
+                                    <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                                </div>
+                            </div>
                             <div class="d-grid gap-2">
                                 <button type="button" class="btn btn-outline-gold btn-sm" onclick="window.saveFormationSettings()">
                                     <i class="bi bi-save me-1"></i> <?= Yii::t('app', 'Save settings') ?>
@@ -927,6 +943,19 @@ window.autoAssignFormation = function() {
     });
 };
 
+// SIP-0083: effort slider
+(function() {
+    var slider = document.getElementById('effort-level-input');
+    var label  = document.getElementById('effort-level-label');
+    if (!slider) return;
+    slider.addEventListener('input', function() {
+        // snap to nearest valid step (0/25/50/75/100)
+        var snapped = Math.round(parseInt(slider.value, 10) / 25) * 25;
+        slider.value = snapped;
+        if (label) label.textContent = snapped + '%';
+    });
+})();
+
 window.saveFormationSettings = function() {
     var gm = window._gm;
     var moduleEl = document.getElementById('auto-module');
@@ -934,11 +963,13 @@ window.saveFormationSettings = function() {
     var markingEl = document.getElementById('marking-type');
     var offsideEl = document.getElementById('offside-trap');
     var trainedEl = document.getElementById('trained-tactic');
+    var effortEl  = document.getElementById('effort-level-input');
     var moduleVal = moduleEl ? moduleEl.value : '4-4-2';
     var tacticVal = tacticEl ? tacticEl.value : 'balanced';
     var markingVal = markingEl ? markingEl.value : 'zone';
     var offsideVal = offsideEl ? offsideEl.value : '1';
     var trainedVal = trainedEl ? trainedEl.value : '';
+    var effortVal  = effortEl  ? effortEl.value : '50';
 
     var body = gm.csrfName + '=' + encodeURIComponent(gm.csrfToken)
         + '&formation_id=' + gm.formationId
@@ -946,7 +977,8 @@ window.saveFormationSettings = function() {
         + '&tactic=' + encodeURIComponent(tacticVal)
         + '&marking=' + encodeURIComponent(markingVal)
         + '&offside_trap=' + encodeURIComponent(offsideVal)
-        + '&trained_tactic=' + encodeURIComponent(trainedVal);
+        + '&trained_tactic=' + encodeURIComponent(trainedVal)
+        + '&effort_level=' + encodeURIComponent(effortVal);
 
     fetch(gm.saveSettingsUrl, {
         method: 'POST',

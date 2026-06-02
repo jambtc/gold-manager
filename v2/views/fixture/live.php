@@ -315,6 +315,22 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
 
                     </div>
 
+                    <!-- ── Impegno (SIP-0083) ─────────────────────── -->
+                    <div class="row mb-2">
+                        <label class="live-section-label">
+                            <?= Yii::t('app', 'Effort') ?>
+                            <span id="live-effort-label" class="text-gold ms-1 fw-bold">50%</span>
+                        </label>
+                        <div class="mt-2">
+                            <input type="range" id="live-effort-slider"
+                                   class="form-range" min="0" max="100" step="25" value="50"
+                                   style="accent-color:var(--gold)">
+                            <div class="d-flex justify-content-between" style="font-size:.60rem;color:var(--text-secondary);margin-top:.1rem">
+                                <span>0%</span><span>25%</span><span>50%</span><span>75%</span><span>100%</span>
+                            </div>
+                        </div>
+                    </div>
+
                     <!-- ── Sostituzioni ─────────────────────────────── -->
                     <div class="pt-2" style="border-top:1px solid var(--border)">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -360,6 +376,7 @@ $scorersUrl     = Url::to(['fixture/get-scorers',   'fixtureId' => $fixture->id]
 $formationsUrl  = Url::to(['fixture/formations',    'fixtureId' => $fixture->id]);
 $rosterUrl   = Url::to(['live-action/roster',        'fixtureId' => $fixture->id]);
 $subUrl      = Url::to(['live-action/substitution',  'fixtureId' => $fixture->id]);
+$effortUrl   = Url::to(['live-action/effort',        'fixtureId' => $fixture->id]);
 $csrfToken   = Yii::$app->request->getCsrfToken();
 $csrfParam   = Yii::$app->request->csrfParam;
 $isFinished  = $state && strtolower($state->phase) === \app\models\MatchState::PHASE_FINISHED ? 'true' : 'false';
@@ -453,6 +470,7 @@ $this->registerJs('window.GM_LIVE_CONFIG = ' . Json::htmlEncode([
     'tacticUrl' => $tacticUrl,
     'rosterUrl' => $rosterUrl,
     'subUrl' => $subUrl,
+    'effortUrl' => $effortUrl,
     'csrfParam' => $csrfParam,
     'csrfToken' => $csrfToken,
 ]) . ';', View::POS_HEAD, 'gm-live-config');

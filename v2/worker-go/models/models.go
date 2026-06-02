@@ -35,6 +35,8 @@ type MatchState struct {
 	HomeYellows        *string `db:"home_yellows"`
 	AwayYellows        *string `db:"away_yellows"`
 	HalfTimeTicks      int     `db:"half_time_ticks"`
+	HomeEffortLevel    int     `db:"home_effort_level"`
+	AwayEffortLevel    int     `db:"away_effort_level"`
 }
 
 type MatchEvent struct {

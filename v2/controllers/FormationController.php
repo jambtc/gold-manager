@@ -274,9 +274,12 @@ class FormationController extends Controller
         $formation->marking = $helper->normalizeMarking((string) Yii::$app->request->post('marking', 'zone'));
         $formation->offside_trap = (int) ((int) Yii::$app->request->post('offside_trap', 1) > 0 ? 1 : 0);
         $formation->trained_tactic = $helper->normalizeTrainedTactic((string) Yii::$app->request->post('trained_tactic', ''));
+        // SIP-0083: save effort_level
+        $effortRaw = (int) Yii::$app->request->post('effort_level', 50);
+        $formation->effort_level = in_array($effortRaw, [0, 25, 50, 75, 100], true) ? $effortRaw : 50;
         $formation->name = 'Auto ' . $module;
         $formation->updated_at = time();
-        $formation->save(false, ['name', 'tactic', 'marking', 'offside_trap', 'trained_tactic', 'updated_at']);
+        $formation->save(false, ['name', 'tactic', 'marking', 'offside_trap', 'trained_tactic', 'effort_level', 'updated_at']);
 
         return $this->asJson([
             'success' => true,
