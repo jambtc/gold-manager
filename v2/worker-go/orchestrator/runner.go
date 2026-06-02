@@ -210,14 +210,37 @@ func (r *Runner) processEvents() {
 	}
 }
 
+// jobEndpoint maps job names to their internal PHP endpoint paths.
+var jobEndpoint = map[string]string{
+	// market
+	"market.resolve_auctions": "/orchestrator/market-resolve",
+	"economy.market_refresh":  "/orchestrator/market-refresh",
+	// fixtures
+	"game.run_fixtures": "/orchestrator/run-fixtures",
+	// notifications
+	"notification.dispatch":  "/orchestrator/notification-dispatch",
+	"notification.pre_match": "/orchestrator/pre-match-notifications",
+	"economy.daily_digest":   "/orchestrator/daily-digest",
+	// economy
+	"economy.pay_wages":        "/orchestrator/pay-wages",
+	"economy.daily_training":   "/orchestrator/daily-training",
+	"economy.weekly_recovery":  "/orchestrator/weekly-recovery",
+	"economy.loan_returns":     "/orchestrator/loan-returns",
+	"economy.auto_rollover":    "/orchestrator/auto-rollover",
+	"economy.expansion_pool":   "/orchestrator/expansion-pool",
+	"economy.expire_friendlies": "/orchestrator/expire-friendlies",
+	// game
+	"game.cpu_formations": "/orchestrator/cpu-formations",
+	"scouting.process":    "/orchestrator/scouting",
+}
+
 func (r *Runner) execScheduleJob(row scheduleRow) (map[string]any, error) {
-	switch row.JobName {
-	case "market.resolve_auctions":
-		out, err := r.callInternal("/orchestrator/market-resolve", nil)
-		return map[string]any{"response": out}, err
-	default:
+	endpoint, ok := jobEndpoint[row.JobName]
+	if !ok {
 		return map[string]any{"job": row.JobName}, fmt.Errorf("unknown schedule job: %s", row.JobName)
 	}
+	out, err := r.callInternal(endpoint, nil)
+	return map[string]any{"response": out}, err
 }
 
 func (r *Runner) execEvent(row eventRow) (map[string]any, error) {

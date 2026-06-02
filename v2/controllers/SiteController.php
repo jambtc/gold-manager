@@ -170,6 +170,26 @@ class SiteController extends Controller
     }
 
     /**
+     * SIP-0092: Public platform stats for landing page.
+     */
+    public function actionStats(): \yii\web\Response
+    {
+        Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
+        $db  = Yii::$app->db;
+        $day = mktime(0, 0, 0);
+
+        return $this->asJson([
+            'managers'      => (int) $db->createCommand('SELECT COUNT(*) FROM {{%user}} WHERE status=1')->queryScalar(),
+            'live_now'      => (int) $db->createCommand('SELECT COUNT(*) FROM {{%fixture}} WHERE status=1')->queryScalar(),
+            'matches_today' => (int) $db->createCommand('SELECT COUNT(*) FROM {{%fixture}} WHERE status=2 AND match_date >= :d', [':d' => $day])->queryScalar(),
+            'goals_today'   => (int) $db->createCommand('SELECT COALESCE(SUM(home_score+away_score),0) FROM {{%fixture}} WHERE status=2 AND match_date >= :d', [':d' => $day])->queryScalar(),
+            'total_matches' => (int) $db->createCommand('SELECT COUNT(*) FROM {{%fixture}} WHERE status=2')->queryScalar(),
+            'total_goals'   => (int) $db->createCommand('SELECT COALESCE(SUM(home_score+away_score),0) FROM {{%fixture}} WHERE status=2')->queryScalar(),
+            'leagues'       => (int) $db->createCommand("SELECT COUNT(*) FROM {{%competition}} WHERE type='league'")->queryScalar(),
+        ]);
+    }
+
+    /**
      * Login action.
      *
      * @return Response|string

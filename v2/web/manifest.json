@@ -1,0 +1,39 @@
+{
+  "name": "Gold Manager",
+  "short_name": "Gold Manager",
+  "description": "The most thrilling football management game. Build your team, climb from the lower leagues to the top.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0f172a",
+  "theme_color": "#f59e0b",
+  "lang": "it",
+  "categories": ["games", "sports"],
+  "icons": [
+    {
+      "src": "/img/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/img/icon-192.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "url": "/",
+      "description": "Go to your team dashboard"
+    },
+    {
+      "name": "Mercato",
+      "url": "/transfer/market",
+      "description": "Transfer market"
+    }
+  ]
+}

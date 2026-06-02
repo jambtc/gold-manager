@@ -118,7 +118,7 @@ Required conventions:
 | SIP-0074 | Natural Position Overall Rating (OVR) | Accepted (Implemented) |
 | SIP-0075 | Set Piece Skill (Calci Piazzati) | Accepted (Implemented) |
 | SIP-0076 | Multi-Nation Onboarding + Campionati per Paese | Proposed |
-| SIP-0077 | Go Orchestrator Hard-Cut (No Cron, Reset DB) | Proposed |
+| SIP-0077 | Go Orchestrator Hard-Cut (No Cron, Reset DB) | Accepted (Implemented) |
 | SIP-0078 | Prestiti Giocatori (Loan) con Scadenza Reale | Accepted (Implemented) |
 | SIP-0079 | Multilingual Match Commentary | Accepted (Implemented) |
 | SIP-0080 | Notifiche affidabili (SSE first, Telegram best-effort) | Accepted (Implemented) |
@@ -132,6 +132,7 @@ Required conventions:
 | SIP-0088 | Sequenza Piazzati PHP (Set Piece Sequence Parity) | Accepted (Implemented) |
 | SIP-0089 | Besu Node Infrastructure | Proposed |
 | SIP-0090 | Goal Rate Calibration (anti-over-scoring) | Accepted (Implemented) |
+| SIP-0092 | PWA + Landing Page | Accepted (Implemented) |
 | SIP-0091 | Contract Duration & Termination Fees | Accepted (Implemented) |
 
 ## Current verification snapshot

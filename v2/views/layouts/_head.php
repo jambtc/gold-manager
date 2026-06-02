@@ -20,11 +20,13 @@ if (!empty($this->params['meta_description'])) {
     $this->registerMetaTag(['name' => 'description', 'content' => $this->params['meta_description']], 'description');
 }
 
-$this->registerLinkTag([
-    'rel' => 'icon',
-    'type' => 'image/x-icon',
-    'href' => Yii::getAlias('@web/favicon.ico'),
-]);
+$this->registerLinkTag(['rel' => 'icon', 'type' => 'image/svg+xml', 'href' => Yii::getAlias('@web/img/icon-192.svg')]);
+$this->registerLinkTag(['rel' => 'manifest', 'href' => Yii::getAlias('@web/manifest.json')]);
+$this->registerMetaTag(['name' => 'theme-color', 'content' => '#f59e0b'], 'theme-color');
+$this->registerMetaTag(['name' => 'mobile-web-app-capable', 'content' => 'yes'], 'mobile-web-app');
+$this->registerMetaTag(['name' => 'apple-mobile-web-app-capable', 'content' => 'yes'], 'apple-mobile');
+$this->registerMetaTag(['name' => 'apple-mobile-web-app-status-bar-style', 'content' => 'black-translucent'], 'apple-status');
+$this->registerJs("if('serviceWorker' in navigator){navigator.serviceWorker.register('/sw.js')}", \yii\web\View::POS_END, 'sw-reg');
 ?>
 <title><?= Html::encode($this->title ? $this->title . ' | ' . Yii::$app->name : Yii::$app->name) ?></title>
 <?php $this->head() ?>

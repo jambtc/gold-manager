@@ -61,53 +61,155 @@ $crest = function (?\app\models\Team $club, int $width = 30, int $height = 34): 
 </div>
 
 <?php elseif (Yii::$app->user->isGuest): ?>
-<!-- ── Landing hero ────────────────────────────────────────────────── -->
-<div class="row align-items-center g-5 py-5">
-    <div class="col-lg-6">
-        <h1 class="display-4 fw-black mb-3">
-            <span class="text-gold">GOLD</span> MANAGER
-        </h1>
-        <p class="lead text-muted-gm mb-4">
-            <?= Yii::t('app', 'The most thrilling football management game. Build your team, climb from the lower leagues to the top, and become a legend.') ?>
-        </p>
-        <div class="d-flex gap-3 flex-wrap">
-            <?= Html::a(Yii::t('app', 'Register — it\'s free'), ['/site/register'], ['class' => 'btn btn-gold btn-lg px-5']) ?>
-            <?= Html::a(Yii::t('app', 'Login'), ['/site/login'], ['class' => 'btn btn-outline-gold btn-lg px-4']) ?>
-        </div>
-        <div class="mt-4 d-flex gap-4">
-            <div><span class="text-gold fw-bold fs-5">3</span> <span class="text-muted-gm small"><?= Yii::t('app', 'Division') ?></span></div>
-            <div><span class="text-gold fw-bold fs-5">16</span> <span class="text-muted-gm small"><?= Yii::t('app', 'Teams per group') ?></span></div>
-            <div><span class="text-gold fw-bold fs-5">30</span> <span class="text-muted-gm small"><?= Yii::t('app', 'Matchdays') ?></span></div>
-        </div>
+<?php
+$statsUrl = \yii\helpers\Url::to(['/site/stats']);
+$registerUrl = \yii\helpers\Url::to(['/site/register']);
+$loginUrl    = \yii\helpers\Url::to(['/site/login']);
+?>
+<!-- ── HERO ──────────────────────────────────────────────────────────── -->
+<div style="margin:-1.5rem -1.5rem 0;padding:5rem 1.5rem 3rem;background:radial-gradient(ellipse 80% 60% at 50% -10%,rgba(245,158,11,.18) 0%,transparent 70%),linear-gradient(180deg,#0f172a 0%,#0d1526 100%);text-align:center;position:relative;overflow:hidden">
+    <!-- Background grid -->
+    <div aria-hidden="true" style="position:absolute;inset:0;background-image:linear-gradient(rgba(245,158,11,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(245,158,11,.04) 1px,transparent 1px);background-size:40px 40px;pointer-events:none"></div>
+
+    <!-- Logo mark -->
+    <div style="display:inline-flex;align-items:center;justify-content:center;width:80px;height:80px;background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.05));border:1px solid rgba(245,158,11,.3);border-radius:22px;margin-bottom:1.5rem">
+        <img src="<?= Yii::getAlias('@web/img/icon-192.svg') ?>" width="52" height="52" alt="Gold Manager icon">
     </div>
-    <div class="col-lg-6">
-        <div class="gm-card p-4" style="background: linear-gradient(135deg, rgba(245,158,11,0.08) 0%, rgba(15,23,42,0.9) 100%)">
-            <div class="d-flex align-items-center gap-3 mb-4">
-                <div style="width:48px;height:48px;background:var(--gold-glow);border-radius:12px;display:flex;align-items:center;justify-content:center">
-                    <i class="bi bi-trophy-fill text-gold fs-5"></i>
-                </div>
-                <div>
-                    <div class="fw-bold"><?= Yii::t('app', 'How it works') ?></div>
-                    <div class="text-muted-gm small"><?= Yii::t('app', 'Register and start now') ?></div>
-                </div>
+
+    <h1 style="font-size:clamp(2.4rem,6vw,4rem);font-weight:900;letter-spacing:-.03em;margin-bottom:.75rem;line-height:1.05">
+        <span style="color:#f59e0b">GOLD</span> MANAGER
+    </h1>
+    <p style="font-size:clamp(1rem,2.5vw,1.2rem);color:#94a3b8;max-width:540px;margin:0 auto 2rem">
+        <?= Yii::t('app', 'The most thrilling football management game. Build your dynasty from Serie C to the top.') ?>
+    </p>
+
+    <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap;margin-bottom:3rem">
+        <?= Html::a('<i class="bi bi-lightning-charge-fill me-2"></i>' . Yii::t('app', 'Start for free'), ['/site/register'], ['class' => 'btn btn-gold btn-lg px-5', 'encode' => false, 'style' => 'font-size:1.05rem;font-weight:700']) ?>
+        <?= Html::a(Yii::t('app', 'Login'), ['/site/login'], ['class' => 'btn btn-outline-gold btn-lg px-4']) ?>
+    </div>
+
+    <!-- Live stats bar -->
+    <div id="landing-stats" style="display:inline-flex;gap:2rem;flex-wrap:wrap;justify-content:center;padding:1rem 2rem;background:rgba(255,255,255,.03);border:1px solid rgba(245,158,11,.2);border-radius:999px">
+        <div style="text-align:center">
+            <div class="text-gold fw-black" style="font-size:1.5rem" id="stat-managers">—</div>
+            <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Managers') ?></div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.1)"></div>
+        <div style="text-align:center">
+            <div class="text-gold fw-black" style="font-size:1.5rem" id="stat-total-matches">—</div>
+            <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Matches') ?></div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.1)"></div>
+        <div style="text-align:center">
+            <div class="text-gold fw-black" style="font-size:1.5rem" id="stat-total-goals">—</div>
+            <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Goals') ?></div>
+        </div>
+        <div style="width:1px;background:rgba(255,255,255,.1)"></div>
+        <div style="text-align:center">
+            <div style="font-size:1.5rem;font-weight:900" id="stat-live">
+                <span class="badge bg-danger pulse" style="font-size:.75rem;vertical-align:middle">LIVE</span>
+                <span id="stat-live-num" style="color:#f59e0b">—</span>
             </div>
-            <?php foreach ([
-                ['bi-person-plus', Yii::t('app', 'Register'), Yii::t('app', 'Create your account in 30 seconds')],
-                ['bi-shield-shaded', Yii::t('app', 'Take the team'), Yii::t('app', 'You are assigned a team in Serie C')],
-                ['bi-graph-up-arrow', Yii::t('app', 'Climb the leagues'), Yii::t('app', 'Win the league and get promoted to B, then A')],
-                ['bi-stars', Yii::t('app', 'Become a legend'), Yii::t('app', 'Build a winning dynasty')],
-            ] as $i => [$icon, $title, $desc]): ?>
-            <div class="d-flex gap-3 mb-3 <?= $i < 3 ? 'pb-3 border-bottom' : '' ?>" style="border-color: var(--border) !important">
-                <div class="text-gold mt-1"><i class="bi <?= $icon ?>"></i></div>
-                <div>
-                    <div class="fw-semibold small"><?= $title ?></div>
-                    <div class="text-muted-gm" style="font-size:.8rem"><?= $desc ?></div>
-                </div>
-            </div>
-            <?php endforeach; ?>
+            <div style="font-size:.72rem;color:#64748b;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Now') ?></div>
         </div>
     </div>
 </div>
+
+<!-- ── TODAY TICKER ───────────────────────────────────────────────── -->
+<div id="today-ticker" style="background:rgba(245,158,11,.06);border-top:1px solid rgba(245,158,11,.15);border-bottom:1px solid rgba(245,158,11,.15);padding:.55rem 1.5rem;display:none">
+    <span style="font-size:.8rem;color:#94a3b8">
+        <?= Yii::t('app', 'Today') ?>:
+        <span class="text-gold fw-bold" id="stat-today-matches">—</span> <?= Yii::t('app', 'matches played') ?>,
+        <span class="text-gold fw-bold" id="stat-today-goals">—</span> <?= Yii::t('app', 'goals scored') ?>
+    </span>
+</div>
+
+<!-- ── FEATURES GRID ──────────────────────────────────────────────── -->
+<div style="padding:4rem 0 3rem">
+    <h2 style="text-align:center;font-weight:900;font-size:1.8rem;margin-bottom:.5rem"><?= Yii::t('app', 'Everything a real manager needs') ?></h2>
+    <p style="text-align:center;color:#64748b;margin-bottom:3rem;font-size:.95rem"><?= Yii::t('app', 'A complete simulation, updated in real time') ?></p>
+
+    <div class="row g-3">
+        <?php
+        $features = [
+            ['bi-graph-up-arrow',    '#10b981', Yii::t('app', 'Live Matches'),        Yii::t('app', 'Watch your team play minute by minute with AI commentary and live stats.')],
+            ['bi-people-fill',       '#3b82f6', Yii::t('app', 'Transfer Market'),     Yii::t('app', 'Buy, sell, and loan players. Negotiate contracts with termination fees.')],
+            ['bi-shield-shaded',     '#f59e0b', Yii::t('app', 'Tactics & Formations'),Yii::t('app', 'Full tactical control — change formation, effort, and style live during the match.')],
+            ['bi-trophy-fill',       '#f59e0b', Yii::t('app', 'League Progression'),  Yii::t('app', 'Climb from Serie C to Serie A. Automatic promotion, relegation, and new leagues.')],
+            ['bi-person-badge-fill', '#a855f7', Yii::t('app', 'Staff Management'),    Yii::t('app', 'Hire coaches, doctors, scouts. Each role amplifies your team\'s performance.')],
+            ['bi-cpu',               '#06b6d4', Yii::t('app', 'AI Engine'),            Yii::t('app', 'Go-powered match engine + Ollama LLM commentary. The most realistic simulation.')],
+            ['bi-cash-stack',        '#10b981', Yii::t('app', 'Economy'),              Yii::t('app', 'Manage wages, sponsors, stadium revenues. Careful budgeting wins championships.')],
+            ['bi-bell-fill',         '#f59e0b', Yii::t('app', 'Notifications'),        Yii::t('app', 'Push and Telegram alerts for goals, transfers, and pre-match reminders.')],
+        ];
+        foreach ($features as $i => [$icon, $color, $title, $desc]):
+        ?>
+        <div class="col-sm-6 col-lg-3">
+            <div class="gm-card h-100 p-3" style="transition:transform .15s,border-color .15s" onmouseover="this.style.transform='translateY(-3px)';this.style.borderColor='rgba(245,158,11,.35)'" onmouseout="this.style.transform='';this.style.borderColor=''">
+                <div style="width:40px;height:40px;background:<?= $color ?>1a;border-radius:10px;display:flex;align-items:center;justify-content:center;margin-bottom:.85rem">
+                    <i class="bi <?= $icon ?>" style="color:<?= $color ?>;font-size:1.1rem"></i>
+                </div>
+                <div class="fw-bold small mb-1"><?= $title ?></div>
+                <div style="font-size:.78rem;color:#64748b;line-height:1.45"><?= $desc ?></div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- ── HOW IT WORKS ───────────────────────────────────────────────── -->
+<div style="padding:3rem 0;border-top:1px solid var(--border)">
+    <h2 style="text-align:center;font-weight:900;font-size:1.6rem;margin-bottom:2.5rem"><?= Yii::t('app', 'Up and running in 30 seconds') ?></h2>
+    <div class="row g-4 justify-content-center" style="max-width:800px;margin:0 auto">
+        <?php foreach ([
+            ['01', '#f59e0b', Yii::t('app', 'Register'),         Yii::t('app', 'Choose your username and email. Free forever.')],
+            ['02', '#10b981', Yii::t('app', 'Get your team'),    Yii::t('app', 'You\'re automatically assigned a team in Serie C.')],
+            ['03', '#3b82f6', Yii::t('app', 'Build & compete'),  Yii::t('app', 'Sign players, choose tactics, follow live matches.')],
+            ['04', '#a855f7', Yii::t('app', 'Rise to the top'),  Yii::t('app', 'Win the league, get promoted, become a legend.')],
+        ] as [$num, $col, $step, $detail]): ?>
+        <div class="col-sm-6">
+            <div style="display:flex;gap:1rem;align-items:flex-start">
+                <div style="font-size:1.4rem;font-weight:900;color:<?= $col ?>;opacity:.7;min-width:2rem;flex-shrink:0"><?= $num ?></div>
+                <div>
+                    <div class="fw-bold small mb-1"><?= $step ?></div>
+                    <div style="font-size:.8rem;color:#64748b"><?= $detail ?></div>
+                </div>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</div>
+
+<!-- ── FINAL CTA ──────────────────────────────────────────────────── -->
+<div style="text-align:center;padding:3rem 1rem 4rem;background:radial-gradient(ellipse 60% 80% at 50% 100%,rgba(245,158,11,.1) 0%,transparent 70%)">
+    <h2 style="font-weight:900;font-size:clamp(1.5rem,4vw,2.4rem);margin-bottom:.75rem"><?= Yii::t('app', 'Your team is waiting for you') ?></h2>
+    <p style="color:#64748b;margin-bottom:1.75rem;font-size:.95rem"><?= Yii::t('app', 'Join the managers already competing. Free. No download needed.') ?></p>
+    <?= Html::a('<i class="bi bi-trophy-fill me-2"></i>' . Yii::t('app', 'Register now — it\'s free'), ['/site/register'], ['class' => 'btn btn-gold btn-lg px-5', 'encode' => false, 'style' => 'font-size:1.1rem;font-weight:700;padding:.8rem 2.5rem']) ?>
+    <div style="margin-top:1rem;font-size:.8rem;color:#475569">
+        <?= Yii::t('app', 'Already registered?') ?>
+        <?= Html::a(Yii::t('app', 'Login'), ['/site/login'], ['style' => 'color:#f59e0b']) ?>
+    </div>
+</div>
+
+<!-- ── STATS FETCH ────────────────────────────────────────────────── -->
+<script>
+(function(){
+    function fmt(n){return Number(n).toLocaleString('it-IT');}
+    fetch('<?= $statsUrl ?>')
+        .then(function(r){return r.json();})
+        .then(function(d){
+            document.getElementById('stat-managers').textContent      = fmt(d.managers);
+            document.getElementById('stat-total-matches').textContent = fmt(d.total_matches);
+            document.getElementById('stat-total-goals').textContent   = fmt(d.total_goals);
+            document.getElementById('stat-live-num').textContent      = d.live_now;
+            document.getElementById('stat-today-matches').textContent = fmt(d.matches_today);
+            document.getElementById('stat-today-goals').textContent   = fmt(d.goals_today);
+            if(d.matches_today > 0){
+                document.getElementById('today-ticker').style.display = 'block';
+            }
+        })
+        .catch(function(){});
+})();
+</script>
 
 <?php else: ?>
 <!-- ── Manager Dashboard ───────────────────────────────────────────── -->

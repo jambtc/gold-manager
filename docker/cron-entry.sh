@@ -3,7 +3,7 @@ set -euo pipefail
 
 ROOT="/var/www/html/v2"
 TMP_CRON="/tmp/gold-manager-cron"
-CRON_ENABLED="${CRON_ENABLED:-1}"
+CRON_ENABLED="${CRON_ENABLED:-0}"  # SIP-0077: default off — Go orchestrator handles all jobs
 CRON_TZ="${CRON_TZ:-Europe/Rome}"
 FLOCK="$(command -v flock || true)"
 LOCKS="/var/www/html/runtime/locks"
