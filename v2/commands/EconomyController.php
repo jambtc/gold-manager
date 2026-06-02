@@ -2229,7 +2229,9 @@ class EconomyController extends Controller
                     $cand->negotiations = 4;
                     $cand->raise_used = 0;
                     $cand->generated_at = $now;
-                    $cand->expires_at = $now + (AuctionService::hoursForType(MarketBid::TYPE_STAFF) * 3600);
+                    $staffTtl = AuctionService::hoursForType(MarketBid::TYPE_STAFF) * 3600;
+                    $staffMin = max(3600, (int) floor($staffTtl * 0.10));
+                    $cand->expires_at = $now + random_int($staffMin, $staffTtl);
                     $cand->save(false);
                     $created++;
                 }
