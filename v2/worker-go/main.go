@@ -181,8 +181,9 @@ func processActiveMatches() {
 	}
 }
 
-// finalizeZombieFixtures sets status=2 for fixtures that are stuck in status 0/1
-// but whose match_state is already at minute>=90 (Go worker crashed before full_time tx).
+// finalizeZombieFixtures sets status=2 for fixtures stuck in status 0/1 but
+// whose match_state is already at minute>=90 (Go worker crashed mid-EndMatch).
+// Also runs savePlayerStatsTx so stats are not lost on restart.
 func finalizeZombieFixtures() {
 	type zombie struct {
 		FixtureID int `db:"fixture_id"`
@@ -201,14 +202,15 @@ func finalizeZombieFixtures() {
 		return
 	}
 	for _, z := range rows {
-		_, err2 := db.Exec(
-			"UPDATE fixture SET status=2, home_score=?, away_score=? WHERE id=? AND status IN (0,1)",
-			z.HomeScore, z.AwayScore, z.FixtureID,
-		)
-		if err2 != nil {
-			log.Printf("finalizeZombie: fixture %d error: %v", z.FixtureID, err2)
+		if err2 := matchEngine.EndMatch(z.FixtureID); err2 != nil {
+			// EndMatch may fail if already finished; fall back to direct update
+			_, _ = db.Exec(
+				"UPDATE fixture SET status=2, home_score=?, away_score=? WHERE id=? AND status IN (0,1)",
+				z.HomeScore, z.AwayScore, z.FixtureID,
+			)
+			log.Printf("finalizeZombie: fixture %d fallback finalized %d-%d (EndMatch err: %v)", z.FixtureID, z.HomeScore, z.AwayScore, err2)
 		} else {
-			log.Printf("finalizeZombie: fixture %d finalized %d-%d", z.FixtureID, z.HomeScore, z.AwayScore)
+			log.Printf("finalizeZombie: fixture %d finalized via EndMatch %d-%d", z.FixtureID, z.HomeScore, z.AwayScore)
 		}
 	}
 }

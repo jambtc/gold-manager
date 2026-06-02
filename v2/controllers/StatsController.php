@@ -76,10 +76,17 @@ class StatsController extends Controller
                AND p.position = "GK"
                ' . $tierSql . '
              GROUP BY p.id, p.name, t.name
+             HAVING minutes_played > 0
              ORDER BY clean_sheets DESC, saves DESC, goals_conceded ASC, minutes_played DESC'
             ,
             $params
         )->queryAll();
+
+        // Tie-aware top 20 for keepers (by clean_sheets)
+        if (count($rows) > 20) {
+            $cutoff = (int) ($rows[19]['clean_sheets'] ?? 0);
+            $rows = array_values(array_filter($rows, fn($r) => (int)$r['clean_sheets'] >= $cutoff));
+        }
 
         return $this->render('keepers', [
             'rows' => $rows,
@@ -155,10 +162,17 @@ class StatsController extends Controller
                AND c.season = :season
                ' . $tierSql . '
              GROUP BY p.id, p.name, p.position, t.name
+             HAVING ' . $sortField . ' > 0
              ORDER BY ' . $sortField . ' DESC, goals DESC, assists DESC, matches ASC'
             ,
             $params
         )->queryAll();
+
+        // Tie-aware top 20: include all rows tied at position 20
+        if (count($rows) > 20) {
+            $cutoff = (int) ($rows[19][$sortField] ?? 0);
+            $rows = array_values(array_filter($rows, fn($r) => (int)$r[$sortField] >= $cutoff));
+        }
 
         return $this->render($mode === 'assists' ? 'assists' : 'scorers', [
             'rows' => $rows,

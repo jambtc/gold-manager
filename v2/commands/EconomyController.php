@@ -3898,6 +3898,100 @@ class EconomyController extends Controller
      * @param array<string, scalar> $params
      */
     /**
+     * Backfill player_stat for finished league fixtures that have 0 stat rows.
+     * Called once after deploying the EndMatch fix.
+     *
+     * Usage: ./yii economy/backfill-player-stats
+     */
+    public function actionBackfillPlayerStats(): int
+    {
+        $db = Yii::$app->db;
+
+        // Find finished league fixtures with no player_stat rows
+        $fixtures = $db->createCommand("
+            SELECT f.id, f.home_team_id, f.away_team_id,
+                   ms.home_formation_id, ms.away_formation_id,
+                   ms.home_score, ms.away_score
+            FROM fixture f
+            JOIN competition c ON c.id = f.competition_id
+            LEFT JOIN match_state ms ON ms.fixture_id = f.id
+            WHERE f.status = 2
+              AND c.type != 'friendly'
+              AND NOT EXISTS (SELECT 1 FROM player_stat ps WHERE ps.fixture_id = f.id)
+        ")->queryAll();
+
+        if (empty($fixtures)) {
+            $this->stdout("No fixtures need backfill.\n");
+            return ExitCode::OK;
+        }
+
+        $filled = 0;
+        foreach ($fixtures as $row) {
+            $fixtureId  = (int) $row['id'];
+            $homeTeamId = (int) $row['home_team_id'];
+            $awayTeamId = (int) $row['away_team_id'];
+
+            // Build stats from match events
+            $stats = [];
+            $ensure = function (int $pid, int $teamId) use (&$stats): array {
+                if (!isset($stats[$pid])) {
+                    $stats[$pid] = ['team_id' => $teamId, 'goals' => 0, 'assists' => 0,
+                        'yellow_cards' => 0, 'red_cards' => 0, 'minutes_played' => 0,
+                        'saves' => 0, 'clean_sheet' => 0, 'penalties_scored' => 0, 'penalties_missed' => 0];
+                }
+                return $stats[$pid];
+            };
+
+            // Goals
+            $goals = $db->createCommand('SELECT player_id, team_side FROM match_event WHERE fixture_id=:f AND type=\'goal\' AND player_id IS NOT NULL', [':f' => $fixtureId])->queryAll();
+            foreach ($goals as $g) {
+                $teamId = $g['team_side'] === 'home' ? $homeTeamId : $awayTeamId;
+                $ensure((int)$g['player_id'], $teamId);
+                $stats[(int)$g['player_id']]['goals']++;
+            }
+
+            // GK saves
+            $saves = $db->createCommand('SELECT player_id FROM match_event WHERE fixture_id=:f AND type=\'gk_save\' AND player_id IS NOT NULL', [':f' => $fixtureId])->queryAll();
+            foreach ($saves as $s) {
+                $gk = \app\models\Player::findOne((int)$s['player_id']);
+                if ($gk) {
+                    $ensure((int)$gk->id, (int)$gk->team_id);
+                    $stats[(int)$gk->id]['saves']++;
+                }
+            }
+
+            // Minutes: top 11 players per side (simple fallback)
+            foreach (['home' => $homeTeamId, 'away' => $awayTeamId] as $side => $teamId) {
+                $formColKey = $side === 'home' ? 'home_formation_id' : 'away_formation_id';
+                $formId = (int)($row[$formColKey] ?? 0);
+                if ($formId > 0) {
+                    $pids = $db->createCommand('SELECT DISTINCT player_id FROM formation_slot WHERE formation_id=:f AND player_id IS NOT NULL', [':f' => $formId])->queryColumn();
+                } else {
+                    $pids = \app\models\Player::find()->select('id')->where(['team_id' => $teamId])->orderBy(['general_skill' => SORT_DESC])->limit(11)->column();
+                }
+                foreach ($pids as $pid) {
+                    $ensure((int)$pid, $teamId);
+                    $stats[(int)$pid]['minutes_played'] = 90;
+                }
+            }
+
+            if (empty($stats)) {
+                continue;
+            }
+
+            $now = time();
+            foreach ($stats as $playerId => $s) {
+                $db->createCommand()->upsert('{{%player_stat}}', array_merge(['fixture_id' => $fixtureId, 'player_id' => $playerId, 'created_at' => $now], $s), true)->execute();
+            }
+            $filled++;
+            $this->stdout("Backfilled fixture #{$fixtureId}: " . count($stats) . " players\n");
+        }
+
+        $this->stdout("Done. Backfilled {$filled} fixtures.\n");
+        return ExitCode::OK;
+    }
+
+    /**
      * SIP-0025: Auto-rollover all league competitions whose season is fully played.
      * Runs daily (cron: 0 3 * * *). Safe to run multiple times — idempotent.
      *
