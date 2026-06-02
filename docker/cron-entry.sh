@@ -117,6 +117,13 @@ register_job \
     "daily-digest"
 
 register_job \
+    "${CRON_ENABLE_MARKET_REFRESH:-1}" \
+    "${CRON_MARKET_REFRESH_SCHEDULE:-0 */4 * * *}" \
+    "php yii economy/generate-youth" \
+    "$LOGS/market-refresh.log" \
+    "market-refresh"
+
+register_job \
     "${CRON_ENABLE_AUTO_ROLLOVER:-1}" \
     "${CRON_AUTO_ROLLOVER_SCHEDULE:-0 3 * * *}" \
     "php yii economy/auto-rollover" \
@@ -163,6 +170,7 @@ LOG_FILES=(
     "$LOGS/pre-match-notifications.log"
     "$LOGS/loan-returns.log"
     "$LOGS/daily-digest.log"
+    "$LOGS/market-refresh.log"
     "$LOGS/auto-rollover.log"
     "$LOGS/expansion-pool.log"
 )

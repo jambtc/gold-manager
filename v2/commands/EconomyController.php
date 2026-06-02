@@ -1143,10 +1143,21 @@ class EconomyController extends Controller
             $targetPool = max($targetPool, $minPool);
         }
 
+        // Stagger entries evenly across the full TTL window so they don't all expire at once.
+        // Each new entry is assigned to a slice of the [10%, 100%] TTL range,
+        // plus small jitter, so the market rotates gradually instead of emptying all at once.
         $toGenerate = max(0, $targetPool - $current);
+        $minExpiry  = max(3600, (int) floor($ttlSeconds * 0.10));
         for ($i = 0; $i < $toGenerate; $i++) {
-            $minExpiry = max(3600, (int) floor($ttlSeconds * 0.75));
-            $expiresAt = $now + random_int($minExpiry, $ttlSeconds);
+            if ($toGenerate > 1) {
+                // Spread: entry i gets a proportional slice across [minExpiry, ttlSeconds]
+                $fraction  = $i / ($toGenerate - 1);
+                $base      = (int) ($minExpiry + ($ttlSeconds - $minExpiry) * $fraction);
+                $jitter    = random_int(0, (int) max(1, ($ttlSeconds - $minExpiry) / max(1, $toGenerate)));
+                $expiresAt = $now + min($ttlSeconds, $base + $jitter);
+            } else {
+                $expiresAt = $now + random_int($minExpiry, $ttlSeconds);
+            }
             $this->createGeneratedFreeAgentIntoPool($expiresAt);
         }
 
