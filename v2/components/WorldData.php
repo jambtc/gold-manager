@@ -90,9 +90,12 @@ class WorldData
 
     /** Nationality weights for random pick (SIP-0070). Sum = 100. */
     private const NAT_WEIGHTS = [
-        'ITA' => 40, 'ESP' => 7, 'BRA' => 8, 'ARG' => 7,
-        'FRA' => 7, 'DEU' => 6, 'ENG' => 7, 'PRT' => 6,
-        'NLD' => 6, 'HRV' => 6,
+        'ITA' => 25, 'BRA' => 8, 'ARG' => 7, 'ESP' => 7,
+        'FRA' => 6,  'DEU' => 6, 'ENG' => 6, 'PRT' => 5,
+        'NLD' => 4,  'HRV' => 3, 'SRB' => 3, 'BEL' => 2,
+        'COL' => 2,  'URY' => 2, 'MEX' => 2, 'NGA' => 2,
+        'SEN' => 2,  'MAR' => 2, 'DZA' => 2, 'USA' => 2,
+        'CMR' => 1,  'CHI' => 1, 'JPN' => 1, 'KOR' => 1,
     ];
 
     public static function pickNationality(): string

@@ -182,7 +182,14 @@ final class UiIconHelper
     private const FLAG_CODE = [
         'ITA' => 'it', 'ESP' => 'es', 'BRA' => 'br', 'ARG' => 'ar',
         'FRA' => 'fr', 'DEU' => 'de', 'ENG' => 'gb-eng', 'PRT' => 'pt',
-        'NLD' => 'nl', 'HRV' => 'hr',
+        'NLD' => 'nl', 'HRV' => 'hr', 'SRB' => 'rs', 'BEL' => 'be',
+        'COL' => 'co', 'URY' => 'uy', 'MEX' => 'mx', 'NGA' => 'ng',
+        'SEN' => 'sn', 'MAR' => 'ma', 'DZA' => 'dz', 'USA' => 'us',
+        'CMR' => 'cm', 'CHI' => 'cl', 'JPN' => 'jp', 'KOR' => 'kr',
+        'SCO' => 'gb-sct', 'WAL' => 'gb-wls', 'IRL' => 'ie',
+        'TUR' => 'tr', 'POL' => 'pl', 'SWE' => 'se', 'NOR' => 'no',
+        'DNK' => 'dk', 'CHE' => 'ch', 'AUT' => 'at', 'GRC' => 'gr',
+        'RUS' => 'ru', 'UKR' => 'ua', 'CZE' => 'cz', 'HUN' => 'hu',
     ];
 
     public static function flagImg(string $nationality, int $width = 20): string

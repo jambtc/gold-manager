@@ -111,7 +111,7 @@ Required conventions:
 | SIP-0067 | Campo Logico 10-Righe (Field Grid Refactor) | Accepted (Implemented) |
 | SIP-0068 | Player Experience Ibrida (Quadrante + Cella) | Accepted (Implemented) |
 | SIP-0069 | Internationalization (i18n) | Accepted (Implemented) |
-| SIP-0070 | Player Nationality & Multi-National Name Database | Draft |
+| SIP-0070 | Player Nationality & Multi-National Name Database | Accepted (Implemented) |
 | SIP-0071 | Auction Market System (Free Agent, Staff, Sponsor) | Accepted (Implemented) |
 | SIP-0072 | Repository Migration: gold-manager → gold-manager-v2 | Accepted |
 | SIP-0073 | Player Physical Attributes: Height & Weight | Accepted (Implemented) |
