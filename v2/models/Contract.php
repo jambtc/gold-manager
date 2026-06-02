@@ -13,6 +13,7 @@ use yii\db\ActiveRecord;
  * @property int    $team_id
  * @property int    $salary         € per season
  * @property int|null $release_clause
+ * @property int    $termination_fee
  * @property int    $season_start
  * @property int    $season_end
  * @property string $status         active|expired|terminated|transferred
@@ -35,7 +36,7 @@ class Contract extends ActiveRecord
     {
         return [
             [['player_id', 'team_id', 'season_start', 'season_end'], 'required'],
-            [['player_id', 'team_id', 'salary', 'release_clause', 'season_start', 'season_end'], 'integer'],
+            [['player_id', 'team_id', 'salary', 'release_clause', 'termination_fee', 'season_start', 'season_end'], 'integer'],
             [['status'], 'string', 'max' => 20],
             [['status'], 'in', 'range' => [
                 self::STATUS_ACTIVE, self::STATUS_EXPIRED,
@@ -58,6 +59,40 @@ class Contract extends ActiveRecord
             'season_end'     => 'Season End',
             'status'         => 'Status',
         ];
+    }
+
+    /**
+     * SIP-0091: Pro-rata termination fee due today.
+     */
+    public function currentTerminationFee(int $currentSeason): int
+    {
+        if ($this->termination_fee <= 0) return 0;
+        $originalLength = max(1, $this->season_end - $this->season_start);
+        $remaining = max(0, $this->season_end - $currentSeason);
+        return (int) max(0, round($this->termination_fee * ($remaining / $originalLength)));
+    }
+
+    /**
+     * SIP-0091: Salary discount multiplier for multi-season contracts.
+     * 1=1.00, 2=0.92, 3=0.85, 4=0.80, 5=0.75
+     */
+    public static function durationSalaryMultiplier(int $seasons): float
+    {
+        return match ($seasons) {
+            2 => 0.92,
+            3 => 0.85,
+            4 => 0.80,
+            5 => 0.75,
+            default => 1.00,
+        };
+    }
+
+    /**
+     * SIP-0091: Calculate termination fee at signing.
+     */
+    public static function calcTerminationFee(int $salary, int $durationSeasons, float $factor): int
+    {
+        return (int) max(5000, round($salary * $durationSeasons * $factor, -3));
     }
 
     /** Is this contract currently binding? */

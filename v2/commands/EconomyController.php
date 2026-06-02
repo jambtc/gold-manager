@@ -1329,6 +1329,7 @@ class EconomyController extends Controller
                     $contract->season_start = $season;
                     $contract->season_end = $season + 2;
                     $contract->status = Contract::STATUS_ACTIVE;
+                    $contract->termination_fee = Contract::calcTerminationFee((int) $pool->salary_ask, 2, round(random_int(30, 60) / 100, 2));
                     $contract->save(false);
 
                     $pool->delete();
@@ -1776,13 +1777,15 @@ class EconomyController extends Controller
         $player->team_id = (int) $team->id;
         $player->save(false);
 
+        $contractSalary2 = (int) max(10000, (int) $pool->salary_ask);
         $contract = new Contract();
         $contract->player_id = (int) $player->id;
         $contract->team_id = (int) $team->id;
-        $contract->salary = (int) max(10000, (int) $pool->salary_ask);
+        $contract->salary = $contractSalary2;
         $contract->season_start = $season;
         $contract->season_end = $season + 2;
         $contract->status = Contract::STATUS_ACTIVE;
+        $contract->termination_fee = Contract::calcTerminationFee($contractSalary2, 2, round(random_int(30, 60) / 100, 2));
         $contract->save(false);
 
         if ($fee > 0) {
@@ -2169,13 +2172,15 @@ class EconomyController extends Controller
             ? Yii::$app->get('playerValuator')
             : new \app\components\PlayerValuator();
 
+        $contractSal3 = max(10000, (int) $valuator->suggestedSalary($player));
         $contract = new Contract();
         $contract->player_id = (int) $player->id;
         $contract->team_id = $teamId;
-        $contract->salary = max(10000, (int) $valuator->suggestedSalary($player));
+        $contract->salary = $contractSal3;
         $contract->season_start = $season;
         $contract->season_end = $season + 2;
         $contract->status = Contract::STATUS_ACTIVE;
+        $contract->termination_fee = Contract::calcTerminationFee($contractSal3, 2, round(random_int(30, 60) / 100, 2));
         $contract->save(false);
     }
 
@@ -2200,6 +2205,15 @@ class EconomyController extends Controller
 
         $created = 0;
         $now = time();
+
+        // Cleanup expired and anomalous entries (TTL > 3× max allowed)
+        $maxTtl = AuctionService::hoursForType(MarketBid::TYPE_STAFF) * 3600;
+        StaffMarket::deleteAll(['<=', 'expires_at', $now]);
+        Yii::$app->db->createCommand(
+            'DELETE FROM {{%staff_market}} WHERE (expires_at - generated_at) > :maxTtl',
+            [':maxTtl' => $maxTtl * 3]
+        )->execute();
+
         $teams = Team::find()->where(['is_cpu' => 0])->andWhere(['not', ['user_id' => null]])->all();
         foreach ($teams as $team) {
             foreach ($roles as $role) {
@@ -2533,13 +2547,18 @@ class EconomyController extends Controller
                 ['player_id' => (int) $player->id, 'status' => Contract::STATUS_ACTIVE]
             );
 
+            $contractSeason = $this->currentSeasonForGeneration();
+            $contractLength = 2; // default for pool signings
+            $contractFactor = round(random_int(30, 60) / 100, 2);
             $contract = new Contract();
             $contract->player_id = (int) $player->id;
             $contract->team_id = (int) $winnerTeam->id;
             $contract->salary = (int) $pool->salary_ask;
-            $contract->season_start = $this->currentSeasonForGeneration();
-            $contract->season_end = $this->currentSeasonForGeneration() + 1;
+            $contract->season_start = $contractSeason;
+            $contract->season_end = $contractSeason + $contractLength - 1;
             $contract->status = Contract::STATUS_ACTIVE;
+            // SIP-0091: termination fee at signing
+            $contract->termination_fee = Contract::calcTerminationFee((int) $pool->salary_ask, $contractLength, $contractFactor);
             $contract->save(false);
 
             $transfer = new Transfer();
@@ -2638,6 +2657,7 @@ class EconomyController extends Controller
         }
 
         $season = $this->currentSeasonForGeneration();
+        $contractLength = max(1, min(3, (int) $candidate->contract_length));
         $staff = new Staff();
         $staff->team_id = (int) $team->id;
         $staff->name = (string) $candidate->name;
@@ -2646,9 +2666,12 @@ class EconomyController extends Controller
         $staff->experience = (int) $candidate->experience;
         $staff->age = max(30, min(68, (int) $candidate->experience + random_int(22, 30)));
         $staff->motivation = (int) $candidate->motivation;
-        $staff->contract_ends = $season + max(1, (int) $candidate->contract_length) - 1;
+        $staff->contract_ends = $season + $contractLength - 1;
         $staff->salary = (int) $winner->bid_amount;
         $staff->specialisation = $this->roleSpecialisationForAuction((string) $candidate->role);
+        // SIP-0091: calculate termination fee at signing
+        $factor = round(random_int(25, 50) / 100, 2);
+        $staff->termination_fee = Staff::calcTerminationFee((int) $winner->bid_amount, $contractLength, $factor);
         $staff->recomputeEfficiency();
         if (!$staff->save(false)) {
             $candidate->delete();
@@ -2658,6 +2681,22 @@ class EconomyController extends Controller
         $team->budget -= (int) $winner->bid_amount;
         $team->save(false, ['budget', 'updated_at']);
         $candidate->delete();
+
+        // SIP-0091: record hire in staff history
+        $hireHistory = new StaffHistory();
+        $hireHistory->team_id      = (int) $team->id;
+        $hireHistory->name         = (string) $staff->name;
+        $hireHistory->role         = (string) $staff->role;
+        $hireHistory->ability      = (int) $staff->ability;
+        $hireHistory->experience   = (int) $staff->experience;
+        $hireHistory->motivation   = (int) $staff->motivation;
+        $hireHistory->salary       = (int) $staff->salary;
+        $hireHistory->efficiency   = (int) $staff->efficiency;
+        $hireHistory->joined_season = $season;
+        $hireHistory->left_season  = $season;
+        $hireHistory->left_reason  = 'hired';
+        $hireHistory->created_at   = $now;
+        $hireHistory->save(false);
 
         foreach ($bids as $bid) {
             $isWinner = (int) $bid->id === (int) $winner->id;
@@ -3063,12 +3102,16 @@ class EconomyController extends Controller
             return ['expired' => 0, 'released' => 0];
         }
 
+        // Only human-managed teams: CPU players are handled by maintainCpuRostersFromPool
+        $humanTeamIds = (array) Team::find()
+            ->select('id')
+            ->where(['id' => $competitionTeamIds, 'is_cpu' => 0])
+            ->andWhere(['not', ['user_id' => null]])
+            ->column();
+
         $expiredContracts = Contract::find()
             ->select(['id', 'player_id'])
-            ->where([
-                'team_id' => $competitionTeamIds,
-                'status' => Contract::STATUS_ACTIVE,
-            ])
+            ->where(['team_id' => $competitionTeamIds, 'status' => Contract::STATUS_ACTIVE])
             ->andWhere(['<', 'season_end', $newSeason])
             ->asArray()
             ->all();
@@ -3078,19 +3121,85 @@ class EconomyController extends Controller
         }
 
         $contractIds = array_map(static fn(array $row): int => (int) $row['id'], $expiredContracts);
-        $playerIds = array_values(array_unique(array_map(static fn(array $row): int => (int) $row['player_id'], $expiredContracts)));
+        $playerIds   = array_values(array_unique(array_map(static fn(array $row): int => (int) $row['player_id'], $expiredContracts)));
 
-        $expired = Contract::updateAll(
-            ['status' => Contract::STATUS_EXPIRED],
-            ['id' => $contractIds]
-        );
+        $expired = Contract::updateAll(['status' => Contract::STATUS_EXPIRED], ['id' => $contractIds]);
 
         $released = 0;
-        if (!empty($playerIds)) {
-            $released = Player::updateAll(['team_id' => null], ['id' => $playerIds]);
+        $retired  = 0;
+        $pooled   = 0;
+
+        if (empty($playerIds)) {
+            return ['expired' => (int) $expired, 'released' => 0];
         }
 
-        return ['expired' => (int) $expired, 'released' => (int) $released];
+        // Only release human-team players into the market
+        $humanPlayers = Player::find()
+            ->where(['id' => $playerIds, 'team_id' => $humanTeamIds])
+            ->all();
+
+        // CPU players: just detach from team (roster maintenance will refill)
+        Player::updateAll(['team_id' => null], [
+            'and',
+            ['id' => $playerIds],
+            ['not', ['team_id' => $humanTeamIds ?: [0]]],
+        ]);
+
+        $now       = time();
+        $ttlFull   = AuctionService::hoursForType(MarketBid::TYPE_TRANSFER_MARKET) * 3600;
+        $ttlShort  = 24 * 3600;
+        $valuator  = Yii::$app->has('playerValuator')
+            ? Yii::$app->get('playerValuator')
+            : new \app\components\PlayerValuator();
+
+        foreach ($humanPlayers as $player) {
+            $age = (int) $player->age;
+
+            // ≥ 38: retire — delete player
+            if ($age >= 38) {
+                $player->delete();
+                $retired++;
+                continue;
+            }
+
+            // Release from team
+            $player->team_id = null;
+            $player->save(false, ['team_id']);
+            $released++;
+
+            // Skip if already in pool
+            if (PlayerPool::find()->where(['player_id' => $player->id])->exists()) {
+                continue;
+            }
+
+            // 36–37: half-price, short TTL
+            $discount  = $age >= 36 ? 0.50 : 0.80;
+            $ttl       = $age >= 36 ? $ttlShort : $ttlFull;
+            $asking    = max(0, (int) round($valuator->marketValue($player) * $discount, -3));
+            $salaryAsk = max(10000, (int) round($valuator->suggestedSalary($player) * 0.7, -2));
+
+            // Spread entries across TTL window
+            $minExpiry = max(3600, (int) floor($ttl * 0.10));
+            $expiresAt = $now + random_int($minExpiry, $ttl);
+
+            $pool = new PlayerPool();
+            $pool->player_id       = (int) $player->id;
+            $pool->asking_fee      = $asking;
+            $pool->salary_ask      = $salaryAsk;
+            $pool->available_since = $now;
+            $pool->expires_at      = $expiresAt;
+            $pool->save(false);
+            $pooled++;
+        }
+
+        if ($retired > 0) {
+            $this->stdout("🏁 Ritirati (≥38 anni): {$retired}\n");
+        }
+        if ($pooled > 0) {
+            $this->stdout("🔓 Svincolati nel mercato: {$pooled}\n");
+        }
+
+        return ['expired' => (int) $expired, 'released' => $released];
     }
 
     /**

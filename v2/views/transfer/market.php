@@ -506,7 +506,7 @@ $pagerUrl = static function (array $extra = []) use ($q, $pos, $minSkill, $maxFe
         var h = Math.floor((sec % 86400) / 3600);
         var m = Math.floor((sec % 3600) / 60);
         var s = sec % 60;
-        if (d > 0) return d + 'g ' + h + 'h ' + m + 'm';
+        if (d > 0) return d + 'g ' + h + 'h ' + m + 'm ' + s + 's';
         if (h > 0) return h + 'h ' + m + 'm ' + s + 's';
         if (m > 0) return m + 'm ' + s + 's';
         return s + 's';

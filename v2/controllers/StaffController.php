@@ -79,11 +79,12 @@ class StaffController extends Controller
         }
 
         return $this->render('view', [
-            'team' => $team,
-            'staff' => $staff,
-            'market' => $market,
-            'history' => $history,
+            'team'               => $team,
+            'staff'              => $staff,
+            'market'             => $market,
+            'history'            => $history,
             'pendingByCandidate' => $pendingByCandidate,
+            'currentSeason'      => $this->currentSeason(),
         ]);
     }
 
@@ -105,14 +106,25 @@ class StaffController extends Controller
             return $this->redirect(['view']);
         }
 
+        // SIP-0091: contract duration choice (1–3 seasons), apply salary discount
+        $contractLength = (int) Yii::$app->request->post('contract_length', $candidate->contract_length ?? 1);
+        $contractLength = max(1, min(3, $contractLength));
+        $discount       = Staff::durationSalaryMultiplier($contractLength);
+        $baseSalary     = (int) $candidate->salary;
+        $discountedSalary = (int) round($baseSalary * $discount, -2);
+
         $offered = (int) Yii::$app->request->post('offered_fee', 0);
         if ($offered <= 0) {
-            $offered = max(1000, (int) $candidate->salary);
+            $offered = max(1000, $discountedSalary);
         }
         if ((int) $team->budget < $offered) {
             Yii::$app->session->setFlash('error', Yii::t('app', 'Insufficient budget to place this bid.'));
             return $this->redirect(['view']);
         }
+
+        // Save chosen contract_length on the candidate (per-team entry)
+        $candidate->contract_length = $contractLength;
+        $candidate->save(false, ['contract_length']);
 
         $bid = AuctionService::placeOrUpdateBid(
             (int) $team->id,
@@ -120,11 +132,23 @@ class StaffController extends Controller
             (int) $candidate->id,
             $offered
         );
+        $roleLabel = match ((string) $candidate->role) {
+            Staff::ROLE_HEAD_COACH        => Yii::t('app', 'Coach'),
+            Staff::ROLE_ASSISTANT_COACH   => Yii::t('app', 'Deputy'),
+            Staff::ROLE_GOALKEEPING_COACH => Yii::t('app', 'GK Coach'),
+            Staff::ROLE_FITNESS_COACH     => Yii::t('app', 'Physiotherapist'),
+            Staff::ROLE_DOCTOR            => Yii::t('app', 'Doctor'),
+            Staff::ROLE_SCOUT             => Yii::t('app', 'Scout'),
+            default                       => (string) $candidate->role,
+        };
         Yii::$app->session->setFlash(
             'success',
-            Yii::t('app', 'Staff offer placed: €{amount} (expires {date}).', [
-                '{amount}' => number_format((int) $bid->bid_amount, 0, ',', '.'),
-                '{date}'   => date('d/m H:i', (int) $bid->expires_at),
+            Yii::t('app', 'Offer for {name} ({role}): €{amount}/season × {seasons} season(s). Expires {date}.', [
+                'name'    => $candidate->name,
+                'role'    => $roleLabel,
+                'amount'  => number_format((int) $bid->bid_amount, 0, ',', '.'),
+                'seasons' => $contractLength,
+                'date'    => date('d/m H:i', (int) $bid->expires_at),
             ])
         );
         return $this->redirect(['view']);
@@ -168,30 +192,46 @@ class StaffController extends Controller
         );
         Yii::$app->session->setFlash(
             'success',
-            Yii::t('app', 'Staff offer raised to €{amount}.', ['{amount}' => number_format((int) $bid->bid_amount, 0, ',', '.')])
+            Yii::t('app', 'Staff offer raised to €{amount}.', ['amount' => number_format((int) $bid->bid_amount, 0, ',', '.')])
         );
         return $this->redirect(['view']);
     }
 
     /**
-     * Fires a staff member with one-week compensation.
+     * Fires a staff member, deducting termination fee (SIP-0091).
      */
     public function actionFire(int $id): Response
     {
         $staff = Staff::findOne($id);
-        $team = Team::findOne(['user_id' => Yii::$app->user->id]);
+        $team  = Team::findOne(['user_id' => Yii::$app->user->id]);
 
-        if ($staff && $team && $staff->team_id === $team->id) {
-            $season = $this->currentSeason();
-            $this->archiveStaffHistory($staff, $season, 'fired');
-
-            $compensation = (int) ceil(max(0, (int) $staff->salary) / 52);
-            $team->budget -= $compensation;
-            $team->save(false, ['budget', 'updated_at']);
-
-            $staff->delete();
-            Yii::$app->session->setFlash('success', Yii::t('app', 'Staff member fired. Severance: €{amount}', ['{amount}' => number_format($compensation, 0, ',', '.')]));
+        if (!$staff || !$team || $staff->team_id !== $team->id) {
+            return $this->redirect(['view']);
         }
+
+        $season  = $this->currentSeason();
+        $fee     = $staff->currentTerminationFee($season);
+
+        if ($fee > 0 && (int) $team->budget < $fee) {
+            Yii::$app->session->setFlash('error', Yii::t('app',
+                'Insufficient budget. Termination fee: €{amount}.',
+                ['amount' => number_format($fee, 0, ',', '.')]
+            ));
+            return $this->redirect(['view']);
+        }
+
+        $this->archiveStaffHistory($staff, $season, 'fired');
+
+        if ($fee > 0) {
+            $team->budget -= $fee;
+            $team->save(false, ['budget', 'updated_at']);
+        }
+
+        $staff->delete();
+        Yii::$app->session->setFlash('success', Yii::t('app',
+            'Staff member fired. Termination fee paid: €{amount}.',
+            ['amount' => number_format($fee, 0, ',', '.')]
+        ));
 
         return $this->redirect(['view']);
     }

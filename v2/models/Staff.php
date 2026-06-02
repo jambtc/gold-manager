@@ -20,6 +20,7 @@ use yii\db\ActiveRecord;
  * @property int      $contract_ends
  * @property string|null $philosophy   offensivo|difensivo|bilanciato|contropiede|possesso
  * @property int      $salary
+ * @property int      $termination_fee
  * @property int      $efficiency
  * @property string   $specialisation
  *
@@ -42,7 +43,7 @@ class Staff extends ActiveRecord
     {
         return [
             [['team_id', 'name', 'role'], 'required'],
-            [['team_id', 'ability', 'experience', 'age', 'motivation', 'contract_ends', 'salary', 'efficiency'], 'integer'],
+            [['team_id', 'ability', 'experience', 'age', 'motivation', 'contract_ends', 'salary', 'termination_fee', 'efficiency'], 'integer'],
             [['name', 'philosophy'], 'string'],
             [['nationality'], 'string', 'max' => 3],
             [['role'], 'string', 'max' => 30],
@@ -107,6 +108,42 @@ class Staff extends ActiveRecord
             self::ROLE_FITNESS_COACH     => ['po' => $eff * 0.01,   'df' => $eff * 0.01,'cn' => $eff * 0.01,'at' => $eff * 0.01],
             default                      => ['po' => 0,             'df' => 0,          'cn' => 0,          'at' => 0],
         };
+    }
+
+    /**
+     * SIP-0091: Pro-rata termination fee based on remaining contract.
+     * fee_due = base_fee × (seasons_left / original_length)
+     */
+    public function currentTerminationFee(int $currentSeason): int
+    {
+        if ($this->termination_fee <= 0) return 0;
+        $contractLength = max(1, $this->contract_ends - $currentSeason + 1);
+        // original length: inferred from contract_ends minus seasons served
+        // simplified: use remaining seasons as fraction (conservative, manager-friendly)
+        $seasonsLeft = max(0, $this->contract_ends - $currentSeason);
+        return (int) max(0, round($this->termination_fee * ($seasonsLeft / max(1, $contractLength))));
+    }
+
+    /**
+     * SIP-0091: Salary discount multiplier for multi-season contracts.
+     * 1 season = 1.00, 2 = 0.90, 3 = 0.82
+     */
+    public static function durationSalaryMultiplier(int $seasons): float
+    {
+        return match ($seasons) {
+            2  => 0.90,
+            3  => 0.82,
+            default => 1.00,
+        };
+    }
+
+    /**
+     * SIP-0091: Calculate termination fee at signing.
+     * factor = random in [0.25, 0.50]
+     */
+    public static function calcTerminationFee(int $salary, int $contractLength, float $factor): int
+    {
+        return (int) max(5000, round($salary * $contractLength * $factor, -3));
     }
 
     public function getTeam() { return $this->hasOne(Team::class, ['id' => 'team_id']); }

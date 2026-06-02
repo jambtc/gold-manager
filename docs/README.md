@@ -132,6 +132,7 @@ Required conventions:
 | SIP-0088 | Sequenza Piazzati PHP (Set Piece Sequence Parity) | Accepted (Implemented) |
 | SIP-0089 | Besu Node Infrastructure | Proposed |
 | SIP-0090 | Goal Rate Calibration (anti-over-scoring) | Accepted (Implemented) |
+| SIP-0091 | Contract Duration & Termination Fees | Accepted (Implemented) |
 
 ## Current verification snapshot
 
