@@ -40,14 +40,18 @@ class StatsController extends Controller
 
     public function actionKeepers(): string|Response
     {
-        [$season, $tier, $allSeasons] = $this->resolveFilters();
+        [$season, $tier, $allSeasons, $country] = $this->resolveFilters();
         $tierOptions = Competition::TIER_NAMES;
 
         $params = [':season' => $season];
-        $tierSql = '';
+        $extraSql = '';
         if ($tier !== null) {
-            $tierSql = ' AND c.tier = :tier ';
+            $extraSql .= ' AND c.tier = :tier ';
             $params[':tier'] = $tier;
+        }
+        if ($country !== 'ALL') {
+            $extraSql .= ' AND c.country_code = :cc ';
+            $params[':cc'] = $country;
         }
 
         $rows = Yii::$app->db->createCommand(
@@ -74,7 +78,7 @@ class StatsController extends Controller
              WHERE c.type <> "friendly"
                AND c.season = :season
                AND p.position = "GK"
-               ' . $tierSql . '
+               ' . $extraSql . '
              GROUP BY p.id, p.name, t.name
              HAVING minutes_played > 0
              ORDER BY clean_sheets DESC, saves DESC, goals_conceded ASC, minutes_played DESC'
@@ -82,7 +86,6 @@ class StatsController extends Controller
             $params
         )->queryAll();
 
-        // Tie-aware top 20 for keepers (by clean_sheets)
         if (count($rows) > 20) {
             $cutoff = (int) ($rows[19]['clean_sheets'] ?? 0);
             $rows = array_values(array_filter($rows, fn($r) => (int)$r['clean_sheets'] >= $cutoff));
@@ -94,12 +97,13 @@ class StatsController extends Controller
             'tier' => $tier,
             'tierOptions' => $tierOptions,
             'allSeasons' => $allSeasons,
+            'country' => $country,
         ]);
     }
 
     public function actionTeam(): string|Response
     {
-        [$season, $tier, $allSeasons] = $this->resolveFilters();
+        [$season, $tier, $allSeasons, $country] = $this->resolveFilters();
         $tierOptions = Competition::TIER_NAMES;
 
         $query = Standing::find()
@@ -110,6 +114,9 @@ class StatsController extends Controller
 
         if ($tier !== null) {
             $query->andWhere(['c.tier' => $tier]);
+        }
+        if ($country !== 'ALL') {
+            $query->andWhere(['c.country_code' => $country]);
         }
 
         $rows = $query
@@ -126,20 +133,25 @@ class StatsController extends Controller
             'tier' => $tier,
             'tierOptions' => $tierOptions,
             'allSeasons' => $allSeasons,
+            'country' => $country,
         ]);
     }
 
     private function renderRanking(string $mode): string|Response
     {
-        [$season, $tier, $allSeasons] = $this->resolveFilters();
+        [$season, $tier, $allSeasons, $country] = $this->resolveFilters();
         $tierOptions = Competition::TIER_NAMES;
         $sortField = $mode === 'assists' ? 'assists' : 'goals';
 
         $params = [':season' => $season];
-        $tierSql = '';
+        $extraSql = '';
         if ($tier !== null) {
-            $tierSql = ' AND c.tier = :tier ';
+            $extraSql .= ' AND c.tier = :tier ';
             $params[':tier'] = $tier;
+        }
+        if ($country !== 'ALL') {
+            $extraSql .= ' AND c.country_code = :cc ';
+            $params[':cc'] = $country;
         }
 
         $rows = Yii::$app->db->createCommand(
@@ -160,7 +172,7 @@ class StatsController extends Controller
              JOIN {{%competition}} c ON c.id = f.competition_id
              WHERE c.type <> "friendly"
                AND c.season = :season
-               ' . $tierSql . '
+               ' . $extraSql . '
              GROUP BY p.id, p.name, p.position, t.name
              HAVING ' . $sortField . ' > 0
              ORDER BY ' . $sortField . ' DESC, goals DESC, assists DESC, matches ASC'
@@ -168,7 +180,6 @@ class StatsController extends Controller
             $params
         )->queryAll();
 
-        // Tie-aware top 20: include all rows tied at position 20
         if (count($rows) > 20) {
             $cutoff = (int) ($rows[19][$sortField] ?? 0);
             $rows = array_values(array_filter($rows, fn($r) => (int)$r[$sortField] >= $cutoff));
@@ -180,20 +191,47 @@ class StatsController extends Controller
             'tier' => $tier,
             'tierOptions' => $tierOptions,
             'allSeasons' => $allSeasons,
+            'country' => $country,
         ]);
     }
 
     /**
-     * @return array{0:int,1:int|null,2:int[]}
+     * Returns the country_code filter to apply to stats queries.
+     * Defaults to the logged-in user's country; 'ALL' shows every country.
+     */
+    private function resolveCountry(): string
+    {
+        $req = Yii::$app->request->get('country', '');
+        if ($req === 'ALL') {
+            return 'ALL';
+        }
+        if ($req !== '' && \app\components\CountryContext::normalize($req) === $req) {
+            return $req;
+        }
+        if (!Yii::$app->user->isGuest) {
+            /** @var \app\models\User $identity */
+            $identity = Yii::$app->user->identity;
+            return \app\components\CountryContext::normalize((string) ($identity->country_code ?? 'IT'));
+        }
+        return 'ALL';
+    }
+
+    /**
+     * @return array{0:int,1:int|null,2:int[],3:string}
      */
     private function resolveFilters(): array
     {
-        $allSeasons = Competition::find()
+        $country = $this->resolveCountry();
+
+        $query = Competition::find()
             ->select('season')
             ->where(['!=', 'type', 'friendly'])
             ->distinct()
-            ->orderBy(['season' => SORT_DESC])
-            ->column();
+            ->orderBy(['season' => SORT_DESC]);
+        if ($country !== 'ALL') {
+            $query->andWhere(['country_code' => $country]);
+        }
+        $allSeasons = $query->column();
 
         $latestSeason = !empty($allSeasons) ? (int) $allSeasons[0] : 1;
         $season = (int) Yii::$app->request->get('season', $latestSeason);
@@ -207,6 +245,6 @@ class StatsController extends Controller
             $tier = null;
         }
 
-        return [$season, $tier, array_map('intval', $allSeasons)];
+        return [$season, $tier, array_map('intval', $allSeasons), $country];
     }
 }

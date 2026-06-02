@@ -8,7 +8,9 @@ declare(strict_types=1);
 /** @var int|null $tier */
 /** @var array<int,string> $tierOptions */
 /** @var int[] $allSeasons */
+/** @var string $country */
 
+use app\components\CountryContext;
 use yii\helpers\Html;
 use yii\helpers\Url;
 
@@ -38,8 +40,15 @@ $baseUrl = Url::to(['/stats/scorers']);
                     <option value="<?= $k ?>" <?= $tier === (int) $k ? 'selected' : '' ?> style="background:#1e293b"><?= Html::encode($label) ?></option>
                 <?php endforeach; ?>
             </select>
-            <?= Html::a('<i class="bi bi-people"></i> ' . Yii::t('app', 'Assists'), ['/stats/assists', 'season' => $season, 'tier' => $tier], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false]) ?>
-            <?= Html::a('<i class="bi bi-shield-check"></i> ' . Yii::t('app', 'Goalkeepers'), ['/stats/keepers', 'season' => $season, 'tier' => $tier], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false]) ?>
+            <select onchange="window.location.href='<?= $baseUrl ?>?season=<?= $season ?>&tier=<?= $tier === null ? '' : (int)$tier ?>&country='+this.value"
+                    style="background:rgba(255,255,255,.05);border:1px solid var(--border);color:#fff;border-radius:.6rem;padding:.4rem .75rem;font-size:.82rem">
+                <option value="ALL" <?= $country === 'ALL' ? 'selected' : '' ?> style="background:#1e293b"><?= Yii::t('app', 'All countries') ?></option>
+                <?php foreach (CountryContext::catalog() as $cc => $meta): ?>
+                <option value="<?= $cc ?>" <?= $country === $cc ? 'selected' : '' ?> style="background:#1e293b"><?= Html::encode($meta['label']) ?></option>
+                <?php endforeach; ?>
+            </select>
+            <?= Html::a('<i class="bi bi-people"></i> ' . Yii::t('app', 'Assists'), ['/stats/assists', 'season' => $season, 'tier' => $tier, 'country' => $country], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false]) ?>
+            <?= Html::a('<i class="bi bi-shield-check"></i> ' . Yii::t('app', 'Goalkeepers'), ['/stats/keepers', 'season' => $season, 'tier' => $tier, 'country' => $country], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false]) ?>
         </div>
     </div>
 

@@ -117,7 +117,7 @@ Required conventions:
 | SIP-0073 | Player Physical Attributes: Height & Weight | Accepted (Implemented) |
 | SIP-0074 | Natural Position Overall Rating (OVR) | Accepted (Implemented) |
 | SIP-0075 | Set Piece Skill (Calci Piazzati) | Accepted (Implemented) |
-| SIP-0076 | Multi-Nation Onboarding + Campionati per Paese | Proposed |
+| SIP-0076 | Multi-Nation Onboarding + Campionati per Paese | Accepted (Implemented) |
 | SIP-0077 | Go Orchestrator Hard-Cut (No Cron, Reset DB) | Accepted (Implemented) |
 | SIP-0078 | Prestiti Giocatori (Loan) con Scadenza Reale | Accepted (Implemented) |
 | SIP-0079 | Multilingual Match Commentary | Accepted (Implemented) |

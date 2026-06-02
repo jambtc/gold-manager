@@ -129,6 +129,8 @@ $navItems = Yii::$app->user->isGuest
                     <?= Html::encode($identity->username) ?>
                     <?php if ($isAdmin): ?>
                         <span class="nav-admin-badge">ADMIN</span>
+                    <?php elseif (!empty($identity->country_code)): ?>
+                        <span style="font-size:.6rem;background:rgba(245,158,11,.15);border:1px solid rgba(245,158,11,.3);color:var(--gold);border-radius:.3rem;padding:.05rem .3rem;vertical-align:middle;margin-left:.3rem"><?= Html::encode(strtoupper((string)$identity->country_code)) ?></span>
                     <?php endif; ?>
                 </a>
                 <ul class="dropdown-menu dropdown-menu-end dropdown-menu-dark gm-card" aria-labelledby="userDropdown">
