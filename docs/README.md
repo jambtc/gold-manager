@@ -75,7 +75,7 @@ Required conventions:
 | SIP-0021 | Go Match Worker (Live Engine) | Accepted (Implemented) |
 | SIP-0022 | World Generation and New-Game Seeding | Accepted (Implemented) |
 | SIP-0023 | Live Tactical Interventions (Command Channel) | Accepted |
-| SIP-0024 | Advanced Match Logic: Character Traits and Half-time | Accepted |
+| SIP-0024 | Advanced Match Logic: Character Traits and Half-time | Accepted (Implemented) |
 | SIP-0025 | Automatic League Expansion (Infinite World) | Accepted |
 | SIP-0026 | AI Match Commentary (Claude Haiku) | Accepted (Implemented) |
 | SIP-0027 | Season Rollover | Accepted (Implemented) |

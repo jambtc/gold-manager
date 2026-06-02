@@ -96,6 +96,16 @@ class MatchEngine extends Component
         $homeTotals = $this->applyStaffBonus($homeTotals, $fixture->home_team_id);
         $awayTotals = $this->applyStaffBonus($awayTotals, $fixture->away_team_id);
 
+        // SIP-0024: half-time morale — trailing team gets +5% in second half
+        if ($state->phase === 'second_half') {
+            if ($state->home_score < $state->away_score) {
+                $homeTotals = array_map(fn($v) => (int) round($v * 1.05), $homeTotals);
+            }
+            if ($state->away_score < $state->home_score) {
+                $awayTotals = array_map(fn($v) => (int) round($v * 1.05), $awayTotals);
+            }
+        }
+
         // SIP-0038: apply tactical training modifiers
         $homeTactics = $this->loadTactics($fixture->home_team_id);
         $awayTactics = $this->loadTactics($fixture->away_team_id);
@@ -904,7 +914,8 @@ class MatchEngine extends Component
                 $charBonus = $inPrimaryPosition ? 1.10 : 0.85;
                 break;
             case 'introverso':
-                $charBonus = $effort <= 2 ? 1.05 : 1.00; // rende con basso sforzo
+                // SIP-0024: −5% away (SIP spec alignment, replaces effort-based rule)
+                $charBonus = $isHome ? 1.00 : 0.95;
                 break;
             case 'duttile':
                 $charBonus = $inPrimaryPosition ? 1.00 : 1.05;
@@ -913,11 +924,21 @@ class MatchEngine extends Component
                 $charBonus = 1.02; // piccolo morale boost di squadra
                 break;
             case 'egoista':
+                // SIP-0024: spinge forte per gloria personale (+8% casa, −3% trasferta)
+                $charBonus = $isHome ? 1.08 : 0.97;
+                break;
             case 'fantasioso':
-            case 'duttile':
+                // SIP-0024: imprevedibile — +10% o −5% casualmente
+                $charBonus = (mt_rand(1, 100) <= 65) ? 1.10 : 0.95;
+                break;
             case 'corretto':
+                // SIP-0024: fair-play → piccolo bonus stabilità individuale
+                $charBonus = 1.03;
+                break;
             case 'carismatico':
-                break; // gestiti altrove o a livello squadra
+                // SIP-0024: leader → trascina i compagni, bonus individuale
+                $charBonus = 1.03;
+                break;
         }
 
         return $effortMult * $formMult * $freshMult * $condMult * $charBonus;
@@ -1073,6 +1094,7 @@ class MatchEngine extends Component
         $hs = $detail['home_score'] ?? ($detail['home'] ?? 0);
         $as = $detail['away_score'] ?? ($detail['away'] ?? 0);
         $gameState = $this->deriveGameState((int)$hs, (int)$as, $side, (int)$minute);
+        $kickoffTeam = trim((string) ($detail['kickoff_team'] ?? ''));
 
         // SIP-0062: try template first
         $templateDesc = \app\components\CommentaryTemplateService::pick(
@@ -1085,6 +1107,7 @@ class MatchEngine extends Component
                 'player_gk'       => $gk ?? '',
                 'player_in'       => $detail['in_name'] ?? '',
                 'player_out'      => $detail['out_name'] ?? '',
+                'kickoff_team'    => $kickoffTeam,
                 'score_home'      => (string)$hs,
                 'score_away'      => (string)$as,
                 'minute'          => (string)($detail['minute'] ?? ''),
@@ -1094,7 +1117,12 @@ class MatchEngine extends Component
             (int)($fixture->id ?? 0),
             $gameState
         );
-        if ($templateDesc) return $templateDesc;
+        if ($templateDesc) {
+            if (in_array($type, ['kickoff', 'second_half_start'], true) && $kickoffTeam !== '' && !str_contains($templateDesc, $kickoffTeam)) {
+                return "{$kickoffTeam} batte il calcio d'inizio. {$templateDesc}";
+            }
+            return $templateDesc;
+        }
 
         $templateTokens = [
             'home_team' => $home,
@@ -1109,7 +1137,7 @@ class MatchEngine extends Component
             'player_in' => (string) ($detail['in_name'] ?? 'il nuovo entrato'),
             'player_out' => (string) ($detail['out_name'] ?? 'il giocatore uscente'),
             'spectators' => (string) ($detail['spectators'] ?? 'numerosi'),
-            'kickoff_team' => (string) ($detail['kickoff_team'] ?? ''),
+            'kickoff_team' => $kickoffTeam,
         ];
         $templateSubtype = '';
         if ($type === 'goal') {
@@ -1117,14 +1145,18 @@ class MatchEngine extends Component
         }
         $templateText = CommentaryTemplateService::pick($type, $minute, $templateTokens, $templateSubtype, (int) $fixture->id, $gameState);
         if (is_string($templateText) && trim($templateText) !== '') {
-            return trim($templateText);
+            $templateText = trim($templateText);
+            if (in_array($type, ['kickoff', 'second_half_start'], true) && $kickoffTeam !== '' && !str_contains($templateText, $kickoffTeam)) {
+                return "{$kickoffTeam} batte il calcio d'inizio. {$templateText}";
+            }
+            return $templateText;
         }
 
         return match ($type) {
             'kickoff' => self::pick([
-                (($detail['kickoff_team'] ?? '') !== '' ? "{$detail['kickoff_team']} " : '') . "batte il calcio d'inizio! {$home} contro {$away}, si parte.",
-                "Tutto pronto! Fischio d'inizio tra {$home} e {$away} — palla a " . (($detail['kickoff_team'] ?? '') !== '' ? "{$detail['kickoff_team']}." : 'una delle due squadre.'),
-                "Si comincia! {$home} e {$away} scendono in campo" . (($detail['kickoff_team'] ?? '') !== '' ? ", primo possesso a {$detail['kickoff_team']}." : '.'),
+                ($kickoffTeam !== '' ? "{$kickoffTeam} " : '') . "batte il calcio d'inizio! {$home} contro {$away}, si parte.",
+                "Tutto pronto! Fischio d'inizio tra {$home} e {$away} — palla a " . ($kickoffTeam !== '' ? "{$kickoffTeam}." : 'una delle due squadre.'),
+                "Si comincia! {$home} e {$away} scendono in campo" . ($kickoffTeam !== '' ? ", primo possesso a {$kickoffTeam}." : '.'),
             ]),
 
             'half_time' => self::pick([
@@ -1134,9 +1166,9 @@ class MatchEngine extends Component
             ]),
 
             'second_half_start' => self::pick([
-                "Fischio d'inizio del secondo tempo! " . (($detail['kickoff_team'] ?? '') !== '' ? "{$detail['kickoff_team']} muove il primo pallone." : 'Si riparte.'),
-                "Le squadre tornano in campo. Si ricomincia sul {$hs}-{$as}" . (($detail['kickoff_team'] ?? '') !== '' ? ", palla a {$detail['kickoff_team']}." : '.'),
-                "Riparte il match! Secondo tempo tra {$home} e {$away}" . (($detail['kickoff_team'] ?? '') !== '' ? ", calcio d'inizio per {$detail['kickoff_team']}." : '.'),
+                "Fischio d'inizio del secondo tempo! " . ($kickoffTeam !== '' ? "{$kickoffTeam} muove il primo pallone." : 'Si riparte.'),
+                "Le squadre tornano in campo. Si ricomincia sul {$hs}-{$as}" . ($kickoffTeam !== '' ? ", palla a {$kickoffTeam}." : '.'),
+                "Riparte il match! Secondo tempo tra {$home} e {$away}" . ($kickoffTeam !== '' ? ", calcio d'inizio per {$kickoffTeam}." : '.'),
             ]),
 
             'full_time' => self::pick([
@@ -2166,24 +2198,26 @@ class MatchEngine extends Component
             }
         }
 
-        // Cards per fixture
-        $cardEvents = MatchEvent::find()
-            ->where(['fixture_id' => $fixture->id])
-            ->andWhere(['type' => ['yellow_card', 'red_card']])
-            ->all();
+        // Cards per fixture. Friendly cards are not counted.
+        if ($fixture->competition?->type !== 'friendly') {
+            $cardEvents = MatchEvent::find()
+                ->where(['fixture_id' => $fixture->id])
+                ->andWhere(['type' => ['yellow_card', 'red_card']])
+                ->all();
 
-        foreach ($cardEvents as $event) {
-            if (!$event->player_id) {
-                continue;
-            }
-            $teamId = $event->team_side === 'home' ? $fixture->home_team_id : $fixture->away_team_id;
-            if (!isset($stats[$event->player_id])) {
-                $stats[$event->player_id] = $this->blankPlayerStatRow($teamId);
-            }
-            if ($event->type === 'yellow_card') {
-                $stats[$event->player_id]['yellow_cards']++;
-            } elseif ($event->type === 'red_card') {
-                $stats[$event->player_id]['red_cards']++;
+            foreach ($cardEvents as $event) {
+                if (!$event->player_id) {
+                    continue;
+                }
+                $teamId = $event->team_side === 'home' ? $fixture->home_team_id : $fixture->away_team_id;
+                if (!isset($stats[$event->player_id])) {
+                    $stats[$event->player_id] = $this->blankPlayerStatRow($teamId);
+                }
+                if ($event->type === 'yellow_card') {
+                    $stats[$event->player_id]['yellow_cards']++;
+                } elseif ($event->type === 'red_card') {
+                    $stats[$event->player_id]['red_cards']++;
+                }
             }
         }
 

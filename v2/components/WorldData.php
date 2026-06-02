@@ -85,7 +85,7 @@ class WorldData
     public const CHARACTERS = [
         'grintoso', 'ambizioso', 'razionale', 'diligente', 'corretto',
         'duttile', 'inflessibile', 'introverso', 'carismatico', 'popolare',
-        'costante', 'irrequieto',
+        'costante', 'irrequieto', 'egoista', 'fantasioso',
     ];
 
     /** Nationality weights for random pick (SIP-0070). Sum = 100. */

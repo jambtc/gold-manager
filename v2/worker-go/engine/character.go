@@ -43,7 +43,7 @@ func MatchTraitScalar(character string, isLosing bool, isHome bool) float64 {
 	case "ambizioso":
 		return 1.05
 	case "introverso":
-		// Legacy-oriented behavior: lower performance away from home.
+		// SIP-0024: −5% pass/performance when away (SIP spec alignment).
 		if isHome {
 			return 1.00
 		}
@@ -58,6 +58,22 @@ func MatchTraitScalar(character string, isLosing bool, isHome bool) float64 {
 			return 1.10
 		}
 		return 0.95
+	case "egoista":
+		// SIP-0024: selfish player pushes harder individually (+8%) but
+		// only when home (crowd fuels ego); small penalty away.
+		if isHome {
+			return 1.08
+		}
+		return 0.97
+	case "fantasioso":
+		// SIP-0024: creative but inconsistent; net average +3%.
+		return 1.03
+	case "corretto":
+		// SIP-0024: fair-play → piccolo bonus stabilità
+		return 1.03
+	case "carismatico":
+		// SIP-0024: leader → trascina i compagni
+		return 1.03
 	case "popolare":
 		return 1.02
 	case "inflessibile":

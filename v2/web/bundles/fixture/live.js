@@ -1000,7 +1000,7 @@
         if (parsed > currentMin) {
             if (lastEventMinute !== parsed) {
                 quietTicks++;
-                if (quietTicks > 0 && quietTicks % 4 === 0 && parsed < 88) {
+                if (quietTicks > 0 && quietTicks % 4 === 0 && parsed <= 90) {
                     addQuietComment(parsed);
                 }
             } else {

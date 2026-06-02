@@ -143,6 +143,38 @@
         width: 108px;
     }
 }
+@media (max-width: 575.98px) {
+    .fixture-live .scoreboard .row.align-items-center > .col-12.col-md-8 > .row {
+        row-gap: .65rem;
+    }
+    .fixture-live .scoreboard-team-col {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    .fixture-live .scoreboard-score-col {
+        order: 3;
+        flex: 0 0 100%;
+        max-width: 100%;
+    }
+    .fixture-live .scoreboard-home-col {
+        order: 1;
+    }
+    .fixture-live .scoreboard-away-col {
+        order: 2;
+    }
+    .fixture-live .team-name-live {
+        font-size: .88rem;
+        line-height: 1.1;
+        white-space: normal;
+        overflow-wrap: anywhere;
+    }
+    .fixture-live .score-display {
+        margin-top: .2rem;
+    }
+    .fixture-live .team-dept-stats {
+        display: none;
+    }
+}
 .ai-wrap { position:relative; height:10px; margin:.5rem 0 0; }
 .ai-track { height:100%; border-radius:5px; background:rgba(255,255,255,.07); position:relative; overflow:visible; }
 .ai-fill-home { position:absolute; left:50%; top:0; bottom:0; width:0; border-radius:0 5px 5px 0; background:linear-gradient(to right,rgba(245,158,11,.0),rgba(245,158,11,.35)); transition:width .6s ease; }

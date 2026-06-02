@@ -484,6 +484,16 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	homeBonus := homeTraits.Bonus
 	awayBonus := awayTraits.Bonus
 
+	// SIP-0024: half-time morale boost — trailing team +5% in second half.
+	if state.Phase == "SECOND_HALF" {
+		if homeLosing {
+			homeBonus = clampFloat(homeBonus*1.05, 0.80, 1.40)
+		}
+		if awayLosing {
+			awayBonus = clampFloat(awayBonus*1.05, 0.80, 1.40)
+		}
+	}
+
 	// SIP-0038: tactical modifiers (parity with PHP MatchEngine::resolveTick)
 	homeTeamID, _ := e.teamID(fixtureID, "home")
 	awayTeamID, _ := e.teamID(fixtureID, "away")
@@ -799,6 +809,10 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// Pending substitutions from match_command table
 	e.processMatchCommands(fixtureID, state.CurrentMinute)
 
+	if state.CurrentMinute >= 90 {
+		return e.EndMatch(fixtureID)
+	}
+
 	return nil
 }
 
@@ -848,6 +862,10 @@ func (e *MatchEngine) generateCorner(fixtureID int, side string, minute int) {
 }
 
 func (e *MatchEngine) resolveGoCards(fixtureID, minute int, homeTraits, awayTraits teamTraitProfile) {
+	if e.fixtureCompetitionType(fixtureID) == "friendly" {
+		return
+	}
+
 	teams := map[string]teamTraitProfile{"home": homeTraits, "away": awayTraits}
 	for side, traits := range teams {
 		baseChance := 0.015 * traits.DisciplineScalar
@@ -1328,6 +1346,17 @@ func (e *MatchEngine) teamID(fixtureID int, side string) (int, error) {
 	return teamID, err
 }
 
+func (e *MatchEngine) fixtureCompetitionType(fixtureID int) string {
+	var competitionType string
+	_ = e.DB.Get(&competitionType, `
+		SELECT c.type
+		FROM fixture f
+		JOIN competition c ON c.id = f.competition_id
+		WHERE f.id = ?
+	`, fixtureID)
+	return competitionType
+}
+
 // teamUserID returns the user_id of the manager who owns this team (0 if CPU or error).
 func (e *MatchEngine) teamUserID(fixtureID int, side string) int {
 	teamID, err := e.teamID(fixtureID, side)
@@ -1449,6 +1478,12 @@ func (e *MatchEngine) teamTraitsProfile(fixtureID int, side string, isLosing boo
 			profile.DisciplineScalar *= 1.05
 		case "irrequieto":
 			profile.DisciplineScalar *= 1.15
+		case "egoista":
+			// SIP-0024: selfish → more fouls/frustration when things don't go their way
+			profile.DisciplineScalar *= 1.12
+		case "fantasioso":
+			// SIP-0024: creative → sometimes reckless
+			profile.DisciplineScalar *= 0.97
 		case "diligente":
 			profile.InjuryScalar *= 0.90
 		case "costante":
@@ -1946,29 +1981,31 @@ func (e *MatchEngine) savePlayerStatsTx(tx *sql.Tx, fixtureID int, state *models
 		}
 	}
 
-	// Cards
-	type cardRow struct {
-		PlayerID *int   `db:"player_id"`
-		TeamSide string `db:"team_side"`
-		Type     string `db:"type"`
-	}
-	var cards []cardRow
-	if err := e.DB.Select(&cards, "SELECT player_id, team_side, type FROM match_event WHERE fixture_id = ? AND type IN ('yellow_card','red_card')", fixtureID); err != nil {
-		return err
-	}
-	for _, c := range cards {
-		if c.PlayerID == nil || *c.PlayerID <= 0 {
-			continue
+	// Cards. Friendly cards are ignored even if old events exist.
+	if e.fixtureCompetitionType(fixtureID) != "friendly" {
+		type cardRow struct {
+			PlayerID *int   `db:"player_id"`
+			TeamSide string `db:"team_side"`
+			Type     string `db:"type"`
 		}
-		teamID := awayTeamID
-		if c.TeamSide == "home" {
-			teamID = homeTeamID
+		var cards []cardRow
+		if err := e.DB.Select(&cards, "SELECT player_id, team_side, type FROM match_event WHERE fixture_id = ? AND type IN ('yellow_card','red_card')", fixtureID); err != nil {
+			return err
 		}
-		row := ensure(*c.PlayerID, teamID)
-		if c.Type == "yellow_card" {
-			row.YellowCards++
-		} else if c.Type == "red_card" {
-			row.RedCards++
+		for _, c := range cards {
+			if c.PlayerID == nil || *c.PlayerID <= 0 {
+				continue
+			}
+			teamID := awayTeamID
+			if c.TeamSide == "home" {
+				teamID = homeTeamID
+			}
+			row := ensure(*c.PlayerID, teamID)
+			if c.Type == "yellow_card" {
+				row.YellowCards++
+			} else if c.Type == "red_card" {
+				row.RedCards++
+			}
 		}
 	}
 

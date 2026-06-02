@@ -409,6 +409,7 @@ class FixtureController extends Controller
             'marking'       => $detail['marking'] ?? null,
             'offside_trap'  => $detail['offside_trap'] ?? null,
             'trained_tactic'=> $detail['trained_tactic'] ?? null,
+            'kickoff_team'  => $detail['kickoff_team'] ?? null,
             'weather'       => $detail['weather'] ?? null,
             'field_condition' => $detail['field_condition'] ?? null,
             'spectators'    => $detail['spectators'] ?? null,

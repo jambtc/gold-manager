@@ -89,12 +89,12 @@ final class FixtureViewHelper
     public static function computeStrength(Team $team): array
     {
         $players = $team->players;
-        usort($players, static fn($a, $b) => $b->general_skill <=> $a->general_skill);
+        usort($players, static fn($a, $b) => $b->getNaturalOverall() <=> $a->getNaturalOverall());
         $best = array_slice($players, 0, 11);
         $dept = ['GK' => [], 'DF' => [], 'MF' => [], 'FW' => []];
         foreach ($best as $player) {
             if (isset($dept[$player->position])) {
-                $dept[$player->position][] = $player->general_skill;
+                $dept[$player->position][] = (int) $player->getNaturalOverall();
             }
         }
         $avg = static fn(array $scores) => count($scores) ? (int) round(array_sum($scores) / count($scores)) : 0;
@@ -104,7 +104,7 @@ final class FixtureViewHelper
             'def' => $avg($dept['DF']),
             'mid' => $avg($dept['MF']),
             'att' => $avg($dept['FW']),
-            'ovr' => count($best) ? (int) round(array_sum(array_column($best, 'general_skill')) / count($best)) : 0,
+            'ovr' => count($best) ? (int) round(array_sum(array_map(static fn($p) => (int) $p->getNaturalOverall(), $best)) / count($best)) : 0,
         ];
     }
 

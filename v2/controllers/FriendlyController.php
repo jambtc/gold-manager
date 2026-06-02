@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace app\controllers;
 
 use app\components\FriendlyChallengeService;
+use app\components\FixtureViewHelper;
 use app\components\MultiplayerSyncService;
 use app\components\NewsService;
 use app\components\NotificationService;
@@ -64,16 +65,8 @@ class FriendlyController extends Controller
         $teamData = [];
         foreach ($teams as $team) {
             $standing = Standing::find()->with('competition')->where(['team_id' => $team->id])->one();
-            $players = $team->players;
-            usort($players, static fn($a, $b) => $b->general_skill <=> $a->general_skill);
-            $best11 = array_slice($players, 0, 11);
-
-            $dept = ['GK' => [], 'DF' => [], 'MF' => [], 'FW' => []];
-            foreach ($best11 as $p) {
-                $dept[$p->position][] = $p->general_skill;
-            }
-            $avg = static fn(array $arr) => count($arr) ? (int) round(array_sum($arr) / count($arr)) : 0;
-            $overall = count($best11) ? (int) round(array_sum(array_column($best11, 'general_skill')) / count($best11)) : 0;
+            $strength = FixtureViewHelper::computeStrength($team);
+            $overall = (int) ($strength['ovr'] ?? 0);
 
             $busy = FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $team->id, $proposedAt);
             $avgFreshness = FriendlyChallengeService::averageFreshness($team);
@@ -93,10 +86,10 @@ class FriendlyController extends Controller
                 'league' => $standing ? $standing->competition->getLabel() : '—',
                 'tier' => $standing ? (int) $standing->competition->tier : 3,
                 'overall' => $overall,
-                'gk' => $avg($dept['GK']),
-                'def' => $avg($dept['DF']),
-                'mid' => $avg($dept['MF']),
-                'att' => $avg($dept['FW']),
+                'gk' => (int) ($strength['po'] ?? 0),
+                'def' => (int) ($strength['def'] ?? 0),
+                'mid' => (int) ($strength['mid'] ?? 0),
+                'att' => (int) ($strength['att'] ?? 0),
                 'availability' => $availability,
                 'availabilityLabel' => $availabilityLabel,
                 'avgFreshness' => round($avgFreshness, 1),
@@ -141,10 +134,8 @@ class FriendlyController extends Controller
             ->limit(40)
             ->all();
 
-        $myPlayers = $myTeam->players;
-        usort($myPlayers, static fn($a, $b) => $b->general_skill <=> $a->general_skill);
-        $myBest11 = array_slice($myPlayers, 0, 11);
-        $myOverall = count($myBest11) ? (int) round(array_sum(array_column($myBest11, 'general_skill')) / count($myBest11)) : 0;
+        $myStrength = FixtureViewHelper::computeStrength($myTeam);
+        $myOverall = (int) ($myStrength['ovr'] ?? 0);
         $myStadium = \app\models\Stadium::findOne(['team_id' => $myTeam->id]);
 
         return $this->render('index', [
@@ -208,7 +199,7 @@ class FriendlyController extends Controller
             return $this->redirect(['/friendly/index']);
         }
         if (FriendlyChallengeService::hasWeeklyFriendlyCommitment((int) $target->id, $proposedAt)) {
-            Yii::$app->session->setFlash('error', Yii::t('app', '{name} is not available this week.', ['{name}' => $target->name]));
+            Yii::$app->session->setFlash('error', Yii::t('app', '{name} is not available this week.', ['name' => $target->name]));
             return $this->redirect(['/friendly/index']);
         }
 
@@ -233,7 +224,7 @@ class FriendlyController extends Controller
                 "📩 <b>" . Yii::t('app', 'Friendly challenge received') . "</b>\n{$challengeBody}"
             );
 
-            Yii::$app->session->setFlash('success', Yii::t('app', 'Challenge sent to {name}. Awaiting response.', ['{name}' => $target->name]));
+            Yii::$app->session->setFlash('success', Yii::t('app', 'Challenge sent to {name}. Awaiting response.', ['name' => $target->name]));
             return $this->redirect(['/friendly/index']);
         }
 
@@ -242,11 +233,11 @@ class FriendlyController extends Controller
         $accepted = false;
         $reason = null;
         if ($avgFreshness < 70) {
-            $reason = Yii::t('app', 'Players of {name} are too fatigued.', ['{name}' => $target->name]);
+            $reason = Yii::t('app', 'Players of {name} are too fatigued.', ['name' => $target->name]);
         } else {
             $accepted = random_int(1, 100) <= 80;
             if (!$accepted) {
-                $reason = Yii::t('app', '{name} preferred to rest this week.', ['{name}' => $target->name]);
+                $reason = Yii::t('app', '{name} preferred to rest this week.', ['name' => $target->name]);
             }
         }
 
@@ -261,7 +252,7 @@ class FriendlyController extends Controller
 
             if ($myTeam->user_id) {
                 $acceptBody = sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', $proposedAt));
-                $acceptTitle = Yii::t('app', '{name} accepted the friendly', ['{name}' => $target->name]);
+                $acceptTitle = Yii::t('app', '{name} accepted the friendly', ['name' => $target->name]);
                 NotificationService::notify(
                     (int) $myTeam->user_id, NewsItem::CAT_FRIENDLY, '+',
                     $acceptTitle, $acceptBody,
@@ -270,7 +261,7 @@ class FriendlyController extends Controller
                 );
             }
 
-            Yii::$app->session->setFlash('success', Yii::t('app', '{name} accepted. Friendly scheduled.', ['{name}' => $target->name]));
+            Yii::$app->session->setFlash('success', Yii::t('app', '{name} accepted. Friendly scheduled.', ['name' => $target->name]));
         } else {
             $challenge->status = FriendlyChallenge::STATUS_DECLINED;
             $challenge->decline_reason = $reason;
@@ -280,7 +271,7 @@ class FriendlyController extends Controller
             $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
             if ($myTeam->user_id) {
-                $declineTitle = Yii::t('app', '{name} declined the friendly', ['{name}' => $target->name]);
+                $declineTitle = Yii::t('app', '{name} declined the friendly', ['name' => $target->name]);
                 $declineBody  = $reason ?: Yii::t('app', 'Challenge rejected.');
                 NotificationService::notify(
                     (int) $myTeam->user_id, NewsItem::CAT_FRIENDLY, '-',
@@ -290,7 +281,7 @@ class FriendlyController extends Controller
                 );
             }
 
-            Yii::$app->session->setFlash('warning', Yii::t('app', '{name} declined the challenge.', ['{name}' => $target->name]));
+            Yii::$app->session->setFlash('warning', Yii::t('app', '{name} declined the challenge.', ['name' => $target->name]));
         }
 
         return $this->redirect(['/friendly/index']);
@@ -373,7 +364,7 @@ class FriendlyController extends Controller
             $challenge->save(false, ['status', 'fixture_id', 'responded_at', 'request_id', 'request_source']);
 
             if ($challenge->challenger && $challenge->challenger->user_id) {
-                $t = Yii::t('app', '{name} accepted the friendly', ['{name}' => $myTeam->name]);
+                $t = Yii::t('app', '{name} accepted the friendly', ['name' => $myTeam->name]);
                 $b = sprintf(Yii::t('app', 'Match scheduled for %s.'), date('d/m H:i', (int) $challenge->proposed_at));
                 NotificationService::notify(
                     (int) $challenge->challenger->user_id, NewsItem::CAT_FRIENDLY, '+',
@@ -404,7 +395,7 @@ class FriendlyController extends Controller
         $challenge->save(false, ['status', 'decline_reason', 'responded_at', 'request_id', 'request_source']);
 
         if ($challenge->challenger && $challenge->challenger->user_id) {
-            $t = Yii::t('app', '{name} declined your challenge', ['{name}' => $myTeam->name]);
+            $t = Yii::t('app', '{name} declined your challenge', ['name' => $myTeam->name]);
             $b = Yii::t('app', 'Invitation rejected.');
             NotificationService::notify(
                 (int) $challenge->challenger->user_id, NewsItem::CAT_FRIENDLY, '-',
@@ -486,7 +477,7 @@ class FriendlyController extends Controller
             $prematchSeconds = $this->preMatchSeconds();
             Yii::$app->session->setFlash(
                 'success',
-                Yii::t('app', 'Start queued. Kickoff in approximately {seconds} seconds.', ['{seconds}' => $prematchSeconds])
+                Yii::t('app', 'Start queued. Kickoff in approximately {seconds} seconds.', ['seconds' => $prematchSeconds])
             );
             return $this->redirect(['/fixture/live', 'id' => $fixture->id]);
         }
@@ -496,7 +487,7 @@ class FriendlyController extends Controller
             $prematchSeconds = $this->preMatchSeconds();
             Yii::$app->session->setFlash(
                 'success',
-                Yii::t('app', 'Forced pre-match started. Kickoff in approximately {seconds} seconds.', ['{seconds}' => $prematchSeconds])
+                Yii::t('app', 'Forced pre-match started. Kickoff in approximately {seconds} seconds.', ['seconds' => $prematchSeconds])
             );
         } else {
             Yii::$app->session->setFlash('info', Yii::t('app', 'Match cannot be started.'));

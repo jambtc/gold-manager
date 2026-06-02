@@ -80,7 +80,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                     </div>
                     <div class="col-12 col-md-8">
                         <div class="row align-items-center">
-                            <div class="col-5">
+                            <div class="col-5 scoreboard-team-col scoreboard-home-col">
                                 <div class="text-end">
                                     <div class="team-name-live text-white mb-1"><?= Html::encode($fixture->homeTeam->name) ?></div>
                                     <div class="text-muted-gm" style="font-size:.68rem;letter-spacing:.04em"><?= Yii::t('app', 'HOME') ?></div>
@@ -91,7 +91,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-2">
+                            <div class="col-2 scoreboard-score-col">
                                 <div class="score-display" id="score-text">
                                     <span id="home-score"><?= $state ? $state->home_score : 0 ?></span>:<span id="away-score"><?= $state ? $state->away_score : 0 ?></span>
                                 </div>
@@ -102,7 +102,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
                                     <?= $state ? str_replace('_', ' ', $state->phase) : 'IN ATTESA' ?>
                                 </div>
                             </div>
-                            <div class="col-5">
+                            <div class="col-5 scoreboard-team-col scoreboard-away-col">
                                 <div class="text-start">
                                     <div class="team-name-live text-white mb-1" style="white-space: nowrap;overflow: hidden;text-overflow: ellipsis;"><?= Html::encode($fixture->awayTeam->name) ?></div>
                                     <div class=" text-muted-gm" style="font-size:.68rem;letter-spacing:.04em"><?= Yii::t('app', 'AWAY') ?></div>
@@ -143,7 +143,7 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
         </div><!-- /col-md-9 -->
 
         <!-- Info + Marcatori col-3 -->
-        <div class="col-md-3 d-flex flex-column gap-3">
+        <div class="col-md-3 d-none d-md-flex flex-column gap-3">
             <?= $this->render('_match_info_card', [
                 'fixture' => $fixture,
                 'weatherLabel' => $weatherLabel,
@@ -337,6 +337,15 @@ $spectatorsLabel = $initialSpectators !== null ? number_format($initialSpectator
             <?php endif; ?>
         </div>
 
+    </div>
+
+    <div class="d-md-none mt-3">
+        <?= $this->render('_match_info_card', [
+            'fixture' => $fixture,
+            'weatherLabel' => $weatherLabel,
+            'spectatorsLabel' => $spectatorsLabel,
+            'showLiveDebugControls' => $isDevLiveUi,
+        ]) ?>
     </div>
 
 

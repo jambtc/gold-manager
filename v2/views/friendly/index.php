@@ -51,7 +51,7 @@ $diffColor = static function (int $mySkill, int $theirSkill): string {
             </div>
 
             <div class="text-center mb-3 p-3 rounded-3" style="background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2)">
-                <div class="text-muted-gm" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Average strength') ?></div>
+                <div class="text-muted-gm" style="font-size:.65rem;text-transform:uppercase;letter-spacing:.06em"><?= Yii::t('app', 'Avg OVR') ?></div>
                 <div class="fw-black text-gold" style="font-size:2rem"><?= $myOverall ?: '—' ?></div>
             </div>
 
