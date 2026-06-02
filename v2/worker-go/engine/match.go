@@ -508,13 +508,15 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// SIP-0075: set piece skill modifier
 	homeSetPieceMod := e.teamSetPieceMod(homeTeamID, fixtureID)
 	awaySetPieceMod := e.teamSetPieceMod(awayTeamID, fixtureID)
+	homePressureMod := e.pressureGoalMod(fixtureID, "home", state.CurrentMinute, state.HomeScore, state.AwayScore)
+	awayPressureMod := e.pressureGoalMod(fixtureID, "away", state.CurrentMinute, state.HomeScore, state.AwayScore)
 	// SIP-0073: short opposing GK raises the attacking team's goal threshold
 	// Fine-tune parity with PHP engine:
 	// - slightly higher base conversion
 	// - keep tactical/trait multipliers
-	baseGoalThreshold := 4.4
-	homeGoalThreshold := baseGoalThreshold * homeBonus * homeGoalMod * homeSetPieceMod * awayTraits.GkHeightMod
-	awayGoalThreshold := homeGoalThreshold + baseGoalThreshold*awayBonus*awayGoalMod*awaySetPieceMod*homeTraits.GkHeightMod
+	baseGoalThreshold := 3.0 // SIP-0090: calibrated for 2.5–3.0 avg goals/match
+	homeGoalThreshold := baseGoalThreshold * homeBonus * homeGoalMod * homeSetPieceMod * homePressureMod * awayTraits.GkHeightMod
+	awayGoalThreshold := homeGoalThreshold + baseGoalThreshold*awayBonus*awayGoalMod*awaySetPieceMod*awayPressureMod*homeTraits.GkHeightMod
 	homeChanceEnd := awayGoalThreshold + 4.5
 	awayChanceEnd := homeChanceEnd + 4.5
 	midfieldEnd := awayChanceEnd + 15.0
@@ -969,7 +971,7 @@ func (e *MatchEngine) resolvePendingSetPiece(fixtureID int, state *models.MatchS
 		}
 	case "freekick":
 		switch {
-		case roll < 0.16:
+		case roll < 0.20:
 			eventType = "goal"
 			if side == "home" {
 				state.HomeScore++
@@ -978,12 +980,12 @@ func (e *MatchEngine) resolvePendingSetPiece(fixtureID int, state *models.MatchS
 			}
 			description = fmt.Sprintf("Punizione perfetta di %s: palla oltre la barriera e gol! %s %d-%d %s.", taker, e.teamName(fixtureID, "home"), state.HomeScore, state.AwayScore, e.teamName(fixtureID, "away"))
 			detailExtra = `,"origin":"freekick"`
-		case roll < 0.42:
+		case roll < 0.46:
 			eventType = "gk_save"
 			eventPlayerID = gkID
 			description = fmt.Sprintf("%s respinge la punizione di %s.", gk, taker)
 			detailExtra = `,"origin":"freekick"`
-		case roll < 0.72:
+		case roll < 0.76:
 			eventType = "near_miss"
 			description = fmt.Sprintf("Punizione di %s fuori di poco.", taker)
 			detailExtra = `,"origin":"freekick"`
@@ -993,7 +995,7 @@ func (e *MatchEngine) resolvePendingSetPiece(fixtureID int, state *models.MatchS
 		}
 	case "corner":
 		switch {
-		case roll < 0.10:
+		case roll < 0.16:
 			eventType = "goal"
 			if side == "home" {
 				state.HomeScore++
@@ -1002,12 +1004,12 @@ func (e *MatchEngine) resolvePendingSetPiece(fixtureID int, state *models.MatchS
 			}
 			description = fmt.Sprintf("Corner tagliato, %s anticipa tutti e segna! %s %d-%d %s.", taker, e.teamName(fixtureID, "home"), state.HomeScore, state.AwayScore, e.teamName(fixtureID, "away"))
 			detailExtra = `,"origin":"corner"`
-		case roll < 0.35:
+		case roll < 0.40:
 			eventType = "gk_save"
 			eventPlayerID = gkID
 			description = fmt.Sprintf("%s esce sul corner e salva la porta.", gk)
 			detailExtra = `,"origin":"corner"`
-		case roll < 0.68:
+		case roll < 0.72:
 			eventType = "near_miss"
 			description = fmt.Sprintf("Corner battuto da %s, colpo di testa fuori di poco.", taker)
 			detailExtra = `,"origin":"corner"`
@@ -1875,6 +1877,39 @@ func (e *MatchEngine) teamSetPieceMod(teamID, fixtureID int) float64 {
 	}
 	// 14% of shots are set pieces; skill_cp 100 → +30% precision cap → ~4.2% extra conversion
 	return 1.0 + float64(maxSkillCp)/100.0*0.06
+}
+
+func (e *MatchEngine) pressureGoalMod(fixtureID int, side string, minute int, homeScore int, awayScore int) float64 {
+	var dangerous, attacks, setPieces int
+	_ = e.DB.Get(&dangerous,
+		`SELECT COUNT(*)
+		 FROM match_event
+		 WHERE fixture_id = ? AND team_side = ? AND type IN ('near_miss','gk_save')`,
+		fixtureID, side)
+	_ = e.DB.Get(&attacks,
+		`SELECT COUNT(*)
+		 FROM match_event
+		 WHERE fixture_id = ? AND team_side = ? AND type = 'attack_attempt'`,
+		fixtureID, side)
+	_ = e.DB.Get(&setPieces,
+		`SELECT COUNT(*)
+		 FROM match_event
+		 WHERE fixture_id = ? AND team_side = ? AND type IN ('corner','freekick','penalty_awarded')`,
+		fixtureID, side)
+
+	bonus := float64(dangerous)*0.08 + float64(attacks)*0.02 + float64(setPieces)*0.10
+	if minute >= 60 {
+		bonus += float64(minute-59) * 0.004
+	}
+	if homeScore+awayScore == 0 {
+		if minute >= 55 {
+			bonus += 0.12
+		}
+		if minute >= 75 {
+			bonus += 0.18
+		}
+	}
+	return clampFloat(1.0+bonus, 1.0, 1.95)
 }
 
 func (e *MatchEngine) ProcessCommand(fixtureID int, state *models.MatchState, cmd models.MatchCommand) {

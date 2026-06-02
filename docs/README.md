@@ -74,7 +74,7 @@ Required conventions:
 | SIP-0020 | Real-Time Match Engine Architecture | Accepted |
 | SIP-0021 | Go Match Worker (Live Engine) | Accepted (Implemented) |
 | SIP-0022 | World Generation and New-Game Seeding | Accepted (Implemented) |
-| SIP-0023 | Live Tactical Interventions (Command Channel) | Accepted |
+| SIP-0023 | Live Tactical Interventions (Command Channel) | Accepted (Implemented) |
 | SIP-0024 | Advanced Match Logic: Character Traits and Half-time | Accepted (Implemented) |
 | SIP-0025 | Automatic League Expansion (Infinite World) | Accepted (Implemented) |
 | SIP-0026 | AI Match Commentary (Claude Haiku) | Accepted (Implemented) |
@@ -124,11 +124,14 @@ Required conventions:
 | SIP-0080 | Notifiche affidabili (SSE first, Telegram best-effort) | Accepted (Implemented) |
 | SIP-0081 | Daily Manager Digest (riepilogo giornaliero) | Accepted (Implemented) |
 | SIP-0082 | Gold Manager Coin (GMC) — Token Economy su Besu | Draft |
-| SIP-0083 | Smart Contract Suite (GoldManagerCoin + GameEconomy) | Proposed |
-| SIP-0084 | Wallet Manager UI | Proposed |
-| SIP-0085 | PHP ↔ Besu Bridge | Proposed |
-| SIP-0086 | Besu Node Infrastructure | Proposed |
+| SIP-0083 | Team Effort Trigger (0/25/50/100) | Draft |
+| SIP-0084 | Smart Contract Suite (GoldManagerCoin + GameEconomy) | Proposed |
+| SIP-0085 | Wallet Manager UI (GMC) | Proposed |
+| SIP-0086 | PHP ↔ Besu Bridge | Proposed |
 | SIP-0087 | Always-On Market & Continuous Play | Accepted (Implemented) |
+| SIP-0088 | Sequenza Piazzati PHP (Set Piece Sequence Parity) | Accepted (Implemented) |
+| SIP-0089 | Besu Node Infrastructure | Proposed |
+| SIP-0090 | Goal Rate Calibration (anti-over-scoring) | Accepted (Implemented) |
 
 ## Current verification snapshot
 

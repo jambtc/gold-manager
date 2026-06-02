@@ -116,6 +116,8 @@ class NotificationController extends Controller
             usleep(1000000);
         }
 
+        // Mark response as already sent so Yii doesn't attempt to send headers again.
+        Yii::$app->response->isSent = true;
         Yii::$app->end();
     }
 }

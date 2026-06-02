@@ -88,39 +88,42 @@ class MatchEngine extends Component
         }
 
         $events = array_merge($events, $this->applyPendingActions($fixture, $state, $min));
+        $setPieceResolved = $this->hasSetPieceResolution($events);
 
-        $homeTotals = $this->computeTeamTotals($fixture->homeTeam, $state->homeFormation, $state, 'home');
-        $awayTotals = $this->computeTeamTotals($fixture->awayTeam, $state->awayFormation, $state, 'away');
+        if (!$setPieceResolved) {
+            $homeTotals = $this->computeTeamTotals($fixture->homeTeam, $state->homeFormation, $state, 'home');
+            $awayTotals = $this->computeTeamTotals($fixture->awayTeam, $state->awayFormation, $state, 'away');
 
-        // SIP-0035: apply staff bonus to department totals
-        $homeTotals = $this->applyStaffBonus($homeTotals, $fixture->home_team_id);
-        $awayTotals = $this->applyStaffBonus($awayTotals, $fixture->away_team_id);
+            // SIP-0035: apply staff bonus to department totals
+            $homeTotals = $this->applyStaffBonus($homeTotals, $fixture->home_team_id);
+            $awayTotals = $this->applyStaffBonus($awayTotals, $fixture->away_team_id);
 
-        // SIP-0024: half-time morale — trailing team gets +5% in second half
-        if ($state->phase === 'second_half') {
-            if ($state->home_score < $state->away_score) {
-                $homeTotals = array_map(fn($v) => (int) round($v * 1.05), $homeTotals);
+            // SIP-0024: half-time morale — trailing team gets +5% in second half
+            if ($state->phase === 'second_half') {
+                if ($state->home_score < $state->away_score) {
+                    $homeTotals = array_map(fn($v) => (int) round($v * 1.05), $homeTotals);
+                }
+                if ($state->away_score < $state->home_score) {
+                    $awayTotals = array_map(fn($v) => (int) round($v * 1.05), $awayTotals);
+                }
             }
-            if ($state->away_score < $state->home_score) {
-                $awayTotals = array_map(fn($v) => (int) round($v * 1.05), $awayTotals);
-            }
+
+            // SIP-0038: apply tactical training modifiers
+            $homeTactics = $this->loadTactics($fixture->home_team_id);
+            $awayTactics = $this->loadTactics($fixture->away_team_id);
+
+            $events = array_merge($events, $this->resolveTick(
+                $fixture,
+                $state,
+                $homeTotals,
+                $awayTotals,
+                $min,
+                $homeTactics,
+                $awayTactics,
+                $state->homeFormation,
+                $state->awayFormation
+            ));
         }
-
-        // SIP-0038: apply tactical training modifiers
-        $homeTactics = $this->loadTactics($fixture->home_team_id);
-        $awayTactics = $this->loadTactics($fixture->away_team_id);
-
-        $events = array_merge($events, $this->resolveTick(
-            $fixture,
-            $state,
-            $homeTotals,
-            $awayTotals,
-            $min,
-            $homeTactics,
-            $awayTactics,
-            $state->homeFormation,
-            $state->awayFormation
-        ));
 
         $state->current_minute++;
 
@@ -376,8 +379,8 @@ class MatchEngine extends Component
 
         // ── Step 4: Tiro vs Portiere ──
         $shotPower = (int) ($atk['tc'] * 0.4 + $atk['tr'] * 0.6);
-        // Fine-tune: GK influence still strong, but less absolute than before.
-        $gkPower = (int) ($def['po'] * 1.55 + $def['df'] * 0.2);
+        // SIP-0090: increased GK weight to reduce conversion rate (avg 4.8→2.8 goals)
+        $gkPower = (int) ($def['po'] * 2.00 + $def['df'] * 0.30);
 
         // SIP-0073: GK height penalty — short GK loses effective po (not persisted)
         $defGk = $this->getActivePlayer($fixture, $state, $defSide, 'GK');
@@ -387,6 +390,8 @@ class MatchEngine extends Component
                 $gkPower = max(0, $gkPower - $gkHPenalty * 2);
             }
         }
+        // SIP-0090: floor prevents teams without GK in formation from scoring on every shot
+        $gkPower = max(80, $gkPower);
 
         if (!$this->duel($shotPower, $gkPower)) {
             $type = mt_rand(0, 1) === 0 ? 'near_miss' : 'gk_save';
@@ -398,41 +403,35 @@ class MatchEngine extends Component
                 'shooter_name' => $shooter ? $shooter->name : null,
                 'gk_name' => $gk ? $gk->name : null
             ]);
+            if (mt_rand(1, 100) <= 30) {
+                $events[] = $this->awardSetPiece($fixture, $state, $min, $attSide, 'corner', $shooter);
+            }
             return $events;
         }
 
-        // ── Step 5: Gate precisione — base 30%, set-piece taker can raise cap ──
-        $setPieceType = null;
+        // ── Step 5: possible set-piece award before final precision gate ──
         $setPieceRoll = mt_rand(1, 100);
         if ($setPieceRoll <= 8) {
-            $setPieceType = 'penalty';
+            $taker = $this->resolveSetPieceTaker($atkFormation, 'penalty')
+                ?: $this->getActivePlayer($fixture, $state, $attSide, 'FW');
+            $events[] = $this->awardSetPiece($fixture, $state, $min, $attSide, 'penalty', $taker);
+            return $events;
         } elseif ($setPieceRoll <= 20) {
-            $setPieceType = 'freekick';
+            $taker = $this->resolveSetPieceTaker($atkFormation, 'freekick')
+                ?: $this->getActivePlayer($fixture, $state, $attSide, 'FW');
+            $events[] = $this->awardSetPiece($fixture, $state, $min, $attSide, 'freekick', $taker);
+            return $events;
         }
 
-        $roleHelper = new FormationRoleHelper();
-        $precisionCap = $setPieceType && $atkFormation
-            ? $roleHelper->precisionCapForSetPiece($atkFormation, $setPieceType)
-            : 44;
-        if ($setPieceType) {
-            $precisionCap = min(70, $precisionCap);
-        }
-        $taker = null;
-        if ($setPieceType === 'penalty' && $atkFormation) {
-            $taker = $roleHelper->resolvePenaltyTaker($atkFormation);
-        } elseif ($setPieceType === 'freekick' && $atkFormation) {
-            $taker = $roleHelper->resolveFreeKickTaker($atkFormation);
-        }
-        if ($setPieceType === 'penalty' && $taker && CharacterTraitHelper::normalize((string) $taker->character) === 'razionale') {
-            $precisionCap = min(70, $precisionCap + 10);
-        }
-        $shooter = $taker ?: $this->getActivePlayer($fixture, $state, $attSide, 'FW');
+        // SIP-0090: reduced cap to lower avg goals (44→32 start, 70→60 max)
+        $precisionCap = min(60, 32 + $this->pressurePrecisionBonus($fixture, $state, $attSide, $min));
+        $shooter = $this->getActivePlayer($fixture, $state, $attSide, 'FW');
 
         if (mt_rand(1, 100) > $precisionCap) {
             $events[] = $this->saveEvent($fixture, $min, 'near_miss', $attSide, $shooter ? $shooter->id : null, [
                 'side' => $side,
                 'shooter_name' => $shooter ? $shooter->name : null,
-                'origin' => $setPieceType ?? 'open_play',
+                'origin' => 'open_play',
             ]);
             return $events;
         }
@@ -447,8 +446,8 @@ class MatchEngine extends Component
             'away_score' => $state->away_score,
             'side' => $side,
             'scorer_name' => $scorer ? $scorer->name : null,
-            'origin' => $setPieceType ?? 'open_play',
-            'is_penalty' => $setPieceType === 'penalty',
+            'origin' => 'open_play',
+            'is_penalty' => false,
         ]);
 
         return $events;
@@ -1089,12 +1088,13 @@ class MatchEngine extends Component
     {
         $home = $fixture->homeTeam->name ?? 'Casa';
         $away = $fixture->awayTeam->name ?? 'Trasferta';
-        $shooter = $detail['shooter_name'] ?? ($detail['attacker_name'] ?? null);
+        $shooter = $detail['shooter_name'] ?? ($detail['attacker_name'] ?? ($detail['taker_name'] ?? null));
         $gk = $detail['gk_name'] ?? null;
         $hs = $detail['home_score'] ?? ($detail['home'] ?? 0);
         $as = $detail['away_score'] ?? ($detail['away'] ?? 0);
         $gameState = $this->deriveGameState((int)$hs, (int)$as, $side, (int)$minute);
         $kickoffTeam = trim((string) ($detail['kickoff_team'] ?? ''));
+        $origin = strtolower((string) ($detail['origin'] ?? $detail['set_piece'] ?? ''));
 
         // SIP-0062: try template first
         $templateDesc = \app\components\CommentaryTemplateService::pick(
@@ -1177,13 +1177,41 @@ class MatchEngine extends Component
                 "L'arbitro decreta la fine. {$home} {$hs} - {$as} {$away}.",
             ]),
 
-            'goal' => self::pick([
+            'goal' => $origin === 'penalty' && $shooter
+            ? "Dal dischetto {$shooter} resta freddo e segna! {$home} {$hs}-{$as} {$away}."
+            : ($origin === 'freekick' && $shooter
+                ? "Punizione perfetta di {$shooter}: palla oltre la barriera e gol! {$home} {$hs}-{$as} {$away}."
+                : ($origin === 'corner' && $shooter
+                    ? "Corner tagliato, {$shooter} anticipa tutti e segna! {$home} {$hs}-{$as} {$away}."
+                    : self::pick([
                 "RETE! Punteggio aggiornato: {$hs}-{$as}!",
                 "GOL! La sfera gonfia la rete! Siamo sul {$hs}-{$as}!",
                 "GOOOOOL! Vantaggio! Il tabellone segna {$hs}-{$as}!",
-            ]),
+                    ]))),
 
-            'gk_save' => $gk
+            'penalty_awarded' => $shooter
+            ? "Rigore! {$shooter} prende il pallone e si presenta sul dischetto."
+            : "Rigore! L'arbitro indica il dischetto.",
+
+            'penalty_miss' => $shooter
+            ? "{$shooter} calcia il rigore ma non trova lo specchio."
+            : "Rigore sbagliato! Palla fuori.",
+
+            'freekick' => $shooter
+            ? "Calcio di punizione per " . ($side === 'away' ? $away : $home) . ": {$shooter} sistema il pallone."
+            : "Calcio di punizione da posizione interessante.",
+
+            'corner' => $shooter
+            ? "{$shooter} conquista un calcio d'angolo: palla dalla bandierina."
+            : "Calcio d'angolo: la difesa devia sul fondo.",
+
+            'gk_save' => $origin === 'penalty' && $gk && $shooter
+            ? "{$gk} intuisce il rigore e para il tiro di {$shooter}!"
+            : ($origin === 'freekick' && $gk && $shooter
+                ? "{$gk} respinge la punizione di {$shooter}."
+                : ($origin === 'corner' && $gk
+                    ? "{$gk} esce sul corner e salva la porta."
+                    : ($gk
             ? self::pick([
                 "{$gk} vola e respinge il tiro" . ($shooter ? " di {$shooter}" : '') . "! Che parata!",
                 "Miracolo di {$gk}!" . ($shooter ? " {$shooter} calcia," : '') . " ma il portiere è attento!",
@@ -1193,9 +1221,13 @@ class MatchEngine extends Component
                 "Parata! Il portiere respinge la conclusione.",
                 "Che intervento del portiere! Palla in corner.",
                 "Riflessi fulminei del portiere, il tiro è neutralizzato.",
-            ]),
+                    ])))),
 
-            'near_miss' => $shooter
+            'near_miss' => $origin === 'freekick' && $shooter
+            ? "Punizione di {$shooter} fuori di poco."
+            : ($origin === 'corner' && $shooter
+                ? "Corner battuto da {$shooter}, colpo di testa fuori di poco."
+                : ($shooter
             ? self::pick([
                 "{$shooter} calcia e sfiora il palo! Palla fuori di un soffio.",
                 "Tiro di {$shooter} — palo! Occasione clamorosa sprecata.",
@@ -1206,7 +1238,7 @@ class MatchEngine extends Component
                 "Che occasione! Il tiro sfiora il palo.",
                 "Palla fuori di pochissimo! Occasione sprecata.",
                 "Conclusione alta, niente gol.",
-            ]),
+                    ]))),
 
             'midfield_duel' => $shooter
             ? self::pick([
@@ -1220,7 +1252,11 @@ class MatchEngine extends Component
                 "Duelli intensi a centrocampo per il possesso del pallone.",
             ]),
 
-            'attack_attempt' => $shooter
+            'attack_attempt' => $origin === 'freekick' && $shooter
+            ? "Punizione battuta da {$shooter}, la difesa libera l'area."
+            : ($origin === 'corner' && $shooter
+                ? "Corner di {$shooter}, respinta della difesa sul primo palo."
+                : ($shooter
             ? self::pick([
                 "{$shooter} accelera in avanti! Azione offensiva palla al piede.",
                 "Incursione pericolosa di {$shooter} che prova a sfondare centralmente.",
@@ -1230,7 +1266,7 @@ class MatchEngine extends Component
                 "Azione offensiva! La palla viene smistata in area.",
                 "Pressing in avanti, la difesa deve stringersi.",
                 "Manovra d'attacco bloccata prima del tiro.",
-            ]),
+                    ]))),
 
             'substitution' => self::pick([
                 "Cambio in campo! L'allenatore mescola le carte.",
@@ -1603,6 +1639,176 @@ class MatchEngine extends Component
             && abs($coordA['lane'] - $coordB['lane']) <= $distance;
     }
 
+    private function hasSetPieceResolution(array $events): bool
+    {
+        foreach ($events as $event) {
+            if (!$event instanceof MatchEvent || !$event->detail) {
+                continue;
+            }
+            $detail = json_decode((string) $event->detail, true);
+            if (is_array($detail) && !empty($detail['set_piece_resolved'])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private function resolveSetPieceTaker(?Formation $formation, string $setPieceType): ?Player
+    {
+        if (!$formation) {
+            return null;
+        }
+        $roleHelper = new FormationRoleHelper();
+        return match ($setPieceType) {
+            'penalty' => $roleHelper->resolvePenaltyTaker($formation),
+            'freekick' => $roleHelper->resolveFreeKickTaker($formation),
+            'corner' => $roleHelper->resolveCornerTaker($formation),
+            default => null,
+        };
+    }
+
+    private function pressurePrecisionBonus(Fixture $fixture, MatchState $state, string $side, int $min): int
+    {
+        $dangerous = MatchEvent::find()
+            ->where(['fixture_id' => $fixture->id, 'team_side' => $side])
+            ->andWhere(['type' => ['near_miss', 'gk_save']])
+            ->count();
+        $attacks = MatchEvent::find()
+            ->where(['fixture_id' => $fixture->id, 'team_side' => $side, 'type' => 'attack_attempt'])
+            ->count();
+        $setPieces = MatchEvent::find()
+            ->where(['fixture_id' => $fixture->id, 'team_side' => $side])
+            ->andWhere(['type' => ['corner', 'freekick', 'penalty_awarded']])
+            ->count();
+
+        $bonus = ((int) $dangerous * 3) + ((int) $attacks) + ((int) $setPieces * 4);
+        if ($min >= 60) {
+            $bonus += (int) floor(($min - 59) / 3);
+        }
+        if ((int) $state->home_score + (int) $state->away_score === 0) {
+            if ($min >= 55) {
+                $bonus += 5;
+            }
+            if ($min >= 75) {
+                $bonus += 7;
+            }
+        }
+
+        return max(0, min(26, $bonus));
+    }
+
+    private function awardSetPiece(Fixture $fixture, MatchState $state, int $min, string $side, string $setPieceType, ?Player $taker = null): MatchEvent
+    {
+        $formation = $side === 'home' ? $state->homeFormation : $state->awayFormation;
+        $taker = $taker ?: $this->resolveSetPieceTaker($formation, $setPieceType) ?: $this->getActivePlayer($fixture, $state, $side, 'FW');
+        $eventType = match ($setPieceType) {
+            'penalty' => 'penalty_awarded',
+            'freekick' => 'freekick',
+            default => 'corner',
+        };
+
+        $field = "pending_{$side}_actions";
+        $actions = json_decode((string) ($state->$field ?? '[]'), true);
+        if (!is_array($actions)) {
+            $actions = [];
+        }
+        $actions[] = [
+            'type' => 'set_piece',
+            'set_piece' => $setPieceType,
+            'taker_id' => $taker?->id,
+            'awarded_minute' => $min,
+        ];
+        $state->$field = json_encode($actions);
+
+        return $this->saveEvent($fixture, $min, $eventType, $side, $taker?->id, [
+            'set_piece' => $setPieceType,
+            'taker_name' => $taker?->name,
+            'attacker_name' => $taker?->name,
+        ]);
+    }
+
+    private function resolvePendingSetPieceAction(Fixture $fixture, MatchState $state, string $side, array $action, int $min): ?MatchEvent
+    {
+        $setPieceType = (string) ($action['set_piece'] ?? '');
+        if (!in_array($setPieceType, ['corner', 'freekick', 'penalty'], true)) {
+            return null;
+        }
+
+        $formation = $side === 'home' ? $state->homeFormation : $state->awayFormation;
+        $taker = !empty($action['taker_id']) ? Player::findOne((int) $action['taker_id']) : null;
+        $taker = $taker ?: $this->resolveSetPieceTaker($formation, $setPieceType) ?: $this->getActivePlayer($fixture, $state, $side, 'FW');
+        $oppSide = $side === 'home' ? 'away' : 'home';
+        $gk = $this->getActivePlayer($fixture, $state, $oppSide, 'GK');
+        $roll = mt_rand(1, 100);
+
+        $eventType = 'attack_attempt';
+        $player = $taker;
+        $detail = [
+            'set_piece' => $setPieceType,
+            'origin' => $setPieceType,
+            'set_piece_resolved' => true,
+            'taker_name' => $taker?->name,
+            'attacker_name' => $taker?->name,
+            'shooter_name' => $taker?->name,
+            'gk_name' => $gk?->name,
+            'home_score' => $state->home_score,
+            'away_score' => $state->away_score,
+        ];
+
+        if ($setPieceType === 'penalty') {
+            $detail['is_penalty'] = true;
+            $pressureBonus = $this->pressurePrecisionBonus($fixture, $state, $side, $min);
+            if ($roll <= min(88, 74 + (int) floor($pressureBonus / 2))) {
+                $eventType = 'goal';
+                $scoreField = "{$side}_score";
+                $state->$scoreField++;
+                $detail['home_score'] = $state->home_score;
+                $detail['away_score'] = $state->away_score;
+                $detail['scorer_name'] = $taker?->name;
+            } elseif ($roll <= 90) {
+                $eventType = 'gk_save';
+                $player = $gk;
+            } else {
+                $eventType = 'penalty_miss';
+            }
+            return $this->saveEvent($fixture, $min, $eventType, $side, $player?->id, $detail);
+        }
+
+        if ($setPieceType === 'freekick') {
+            $pressureBonus = $this->pressurePrecisionBonus($fixture, $state, $side, $min);
+            if ($roll <= min(35, 20 + (int) floor($pressureBonus / 2))) {
+                $eventType = 'goal';
+                $scoreField = "{$side}_score";
+                $state->$scoreField++;
+                $detail['home_score'] = $state->home_score;
+                $detail['away_score'] = $state->away_score;
+                $detail['scorer_name'] = $taker?->name;
+            } elseif ($roll <= 46) {
+                $eventType = 'gk_save';
+                $player = $gk;
+            } elseif ($roll <= 76) {
+                $eventType = 'near_miss';
+            }
+            return $this->saveEvent($fixture, $min, $eventType, $side, $player?->id, $detail);
+        }
+
+        $pressureBonus = $this->pressurePrecisionBonus($fixture, $state, $side, $min);
+        if ($roll <= min(30, 16 + (int) floor($pressureBonus / 2))) {
+            $eventType = 'goal';
+            $scoreField = "{$side}_score";
+            $state->$scoreField++;
+            $detail['home_score'] = $state->home_score;
+            $detail['away_score'] = $state->away_score;
+            $detail['scorer_name'] = $taker?->name;
+        } elseif ($roll <= 40) {
+            $eventType = 'gk_save';
+            $player = $gk;
+        } elseif ($roll <= 72) {
+            $eventType = 'near_miss';
+        }
+        return $this->saveEvent($fixture, $min, $eventType, $side, $player?->id, $detail);
+    }
+
     protected function applyPendingActions(Fixture $fixture, MatchState $state, int $min): array
     {
         $events = [];
@@ -1615,7 +1821,12 @@ class MatchEngine extends Component
 
             $remaining = [];
             foreach ($actions as $action) {
-                if ($action['type'] === 'substitution') {
+                if (($action['type'] ?? '') === 'set_piece') {
+                    $event = $this->resolvePendingSetPieceAction($fixture, $state, $side, $action, $min);
+                    if ($event) {
+                        $events[] = $event;
+                    }
+                } elseif (($action['type'] ?? '') === 'substitution') {
                     $subsField = "{$side}_subs_used";
                     $state->$subsField++;
                     $outPlayer = \app\models\Player::findOne($action['out']);
@@ -1628,7 +1839,7 @@ class MatchEngine extends Component
                     ]);
                     // Actually swap player in formation slot
                     $this->performSubstitution($state, $side, $action['out'], $action['in']);
-                } elseif ($action['type'] === 'tactic_change') {
+                } elseif (($action['type'] ?? '') === 'tactic_change') {
                     $formField = "{$side}_formation_id";
                     if ($state->$formField) {
                         $formation = Formation::findOne($state->$formField);

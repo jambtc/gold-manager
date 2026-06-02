@@ -412,7 +412,15 @@ Tiro vs portiere:
 
 ### 3.5 Precisione finale e piazzati
 
-Base precision cap `44`.
+Base precision cap `44`, con bonus pressione fino a `+26`.
+
+Bonus pressione PHP:
+
+- `near_miss/gk_save` della stessa squadra: `+3` ciascuno
+- `attack_attempt`: `+1` ciascuno
+- piazzati assegnati: `+4` ciascuno
+- dal 60': bonus progressivo
+- se match ancora `0-0`: ulteriore bonus dal 55' e 75'
 
 Su piazzati:
 
@@ -420,7 +428,8 @@ Su piazzati:
   - `cap = min(60, 30 + int((tc*0.2 + tr*0.3)/10))`
 - +bonus livello team `calci_piazzati` (allenato via `alloc_calci_piazzati`)
 - bonus razionale sul rigorista.
-- PHP legacy: sui tiri arrivati alla fase precisione, `8%` diventa rigore e `12%` punizione.
+- PHP/Go: sui tiri arrivati alla fase precisione, `8%` diventa rigore e `12%` punizione.
+- Il piazzato viene salvato come evento (`penalty_awarded`, `freekick`, `corner`) e risolto al tick successivo prima della normale azione random.
 
 Se roll > cap -> `near_miss`, altrimenti `goal`.
 
@@ -428,14 +437,15 @@ Se roll > cap -> `near_miss`, altrimenti `goal`.
 
 Il worker Go usa una soglia probabilistica per minuto, con random seedato ad avvio worker:
 
-- `baseGoalThreshold = 4.4`
+- `baseGoalThreshold = 5.2`
 - `homeGoalThreshold = baseGoalThreshold * traitBonus * tacticGoalModifier * setPieceMod * awayGkHeightMod`
 - `awayGoalThreshold = homeGoalThreshold + baseGoalThreshold * traitBonus * tacticGoalModifier * setPieceMod * homeGkHeightMod`
 - finestre successive: `near_miss/gk_save`, poi `midfield_duel`, poi `attack_attempt`
+- Go applica `pressureGoalMod` per squadra: occasioni, parate, attacchi, piazzati e finale `0-0` aumentano progressivamente la probabilita' di goal.
 - se ultimo evento e' `corner`, `freekick` o `penalty_awarded`, il tick successivo risolve quel piazzato prima della normale azione random
-- rigore Go: `74% goal`, `16% parata`, `10% errore`
-- punizione Go: `16% goal`, `26% parata`, `30% fuori`, resto respinta
-- corner Go: `10% goal`, `25% parata`, `33% fuori`, resto respinta
+- rigore: `74% goal`, `16% parata`, `10% errore`
+- punizione: `20% goal`, `26% parata`, `30% fuori`, resto respinta
+- corner: `16% goal`, `24% parata`, `32% fuori`, resto respinta
 
 Obiettivo gameplay: ridurre eccesso di `0-0` senza eliminare partite chiuse.
 

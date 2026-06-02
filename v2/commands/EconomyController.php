@@ -1006,7 +1006,7 @@ class EconomyController extends Controller
         foreach ($fixtures as $fixture) {
             $homeName = (string) ($fixture->homeTeam->name ?? 'Home');
             $awayName = (string) ($fixture->awayTeam->name ?? 'Away');
-            $linkUrl  = \Yii::$app->urlManager->createUrl(['/fixture/view', 'id' => $fixture->id]);
+            $linkUrl  = $this->safeUrl('/fixture/view', ['id' => $fixture->id]);
 
             // Notify home manager
             if ($fixture->homeTeam?->user_id) {
