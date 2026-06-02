@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
 	"net/http"
 	"os"
 	"strconv"
@@ -55,6 +56,7 @@ func initDB() {
 
 func main() {
 	log.Println("Starting Gold Manager Live Engine Worker with SSE Support...")
+	rand.Seed(time.Now().UnixNano())
 	initDB()
 
 	// Start SSE Server in a goroutine

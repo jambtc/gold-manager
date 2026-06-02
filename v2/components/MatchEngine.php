@@ -377,7 +377,7 @@ class MatchEngine extends Component
         // ── Step 4: Tiro vs Portiere ──
         $shotPower = (int) ($atk['tc'] * 0.4 + $atk['tr'] * 0.6);
         // Fine-tune: GK influence still strong, but less absolute than before.
-        $gkPower = (int) ($def['po'] * 1.75 + $def['df'] * 0.2);
+        $gkPower = (int) ($def['po'] * 1.55 + $def['df'] * 0.2);
 
         // SIP-0073: GK height penalty — short GK loses effective po (not persisted)
         $defGk = $this->getActivePlayer($fixture, $state, $defSide, 'GK');
@@ -404,16 +404,16 @@ class MatchEngine extends Component
         // ── Step 5: Gate precisione — base 30%, set-piece taker can raise cap ──
         $setPieceType = null;
         $setPieceRoll = mt_rand(1, 100);
-        if ($setPieceRoll <= 4) {
+        if ($setPieceRoll <= 8) {
             $setPieceType = 'penalty';
-        } elseif ($setPieceRoll <= 14) {
+        } elseif ($setPieceRoll <= 20) {
             $setPieceType = 'freekick';
         }
 
         $roleHelper = new FormationRoleHelper();
         $precisionCap = $setPieceType && $atkFormation
             ? $roleHelper->precisionCapForSetPiece($atkFormation, $setPieceType)
-            : 36;
+            : 44;
         if ($setPieceType) {
             $precisionCap = min(70, $precisionCap);
         }

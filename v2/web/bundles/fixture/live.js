@@ -67,6 +67,9 @@
         red_card: '🟥',
         injury: '🚑',
         corner: '🚩',
+        freekick: '🎯',
+        penalty_awarded: '⚠️',
+        penalty_miss: '❌',
         woodwork: '🥅',
         post: '🥅',
         crossbar: '🥅'
@@ -87,6 +90,9 @@
         'red_card',
         'injury',
         'corner',
+        'freekick',
+        'penalty_awarded',
+        'penalty_miss',
         'woodwork',
         'post',
         'crossbar'
@@ -97,6 +103,9 @@
         'gk_save',
         'near_miss',
         'corner',
+        'freekick',
+        'penalty_awarded',
+        'penalty_miss',
         'woodwork',
         'post',
         'crossbar'

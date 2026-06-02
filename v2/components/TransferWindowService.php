@@ -18,17 +18,12 @@ class TransferWindowService
     public static function isOpen(?int $ts = null, ?int $teamId = null, ?int $competitionId = null): bool
     {
         $ts = $ts ?? time();
+        // SIP-0087: market always open by default; set GM_TRANSFER_ALWAYS_OPEN=0 to re-enable windows.
         $forced = getenv('GM_TRANSFER_ALWAYS_OPEN');
-        if ($forced === '1') {
-            return true;
-        }
         if ($forced === '0') {
             return false;
         }
-
-        if (defined('YII_ENV_DEV') && YII_ENV_DEV) {
-            return true;
-        }
+        return true;
 
         $resolvedCompetitionId = $competitionId ?? self::resolveCompetitionIdForTeam($teamId);
         if ($resolvedCompetitionId === null) {

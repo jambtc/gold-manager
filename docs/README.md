@@ -76,7 +76,7 @@ Required conventions:
 | SIP-0022 | World Generation and New-Game Seeding | Accepted (Implemented) |
 | SIP-0023 | Live Tactical Interventions (Command Channel) | Accepted |
 | SIP-0024 | Advanced Match Logic: Character Traits and Half-time | Accepted (Implemented) |
-| SIP-0025 | Automatic League Expansion (Infinite World) | Accepted |
+| SIP-0025 | Automatic League Expansion (Infinite World) | Accepted (Implemented) |
 | SIP-0026 | AI Match Commentary (Claude Haiku) | Accepted (Implemented) |
 | SIP-0027 | Season Rollover | Accepted (Implemented) |
 | SIP-0028 | Promotion and Relegation | Accepted (Implemented) |
@@ -128,6 +128,7 @@ Required conventions:
 | SIP-0084 | Wallet Manager UI | Proposed |
 | SIP-0085 | PHP ↔ Besu Bridge | Proposed |
 | SIP-0086 | Besu Node Infrastructure | Proposed |
+| SIP-0087 | Always-On Market & Continuous Play | Accepted (Implemented) |
 
 ## Current verification snapshot
 

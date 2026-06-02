@@ -116,6 +116,20 @@ register_job \
     "$LOGS/daily-digest.log" \
     "daily-digest"
 
+register_job \
+    "${CRON_ENABLE_AUTO_ROLLOVER:-1}" \
+    "${CRON_AUTO_ROLLOVER_SCHEDULE:-0 3 * * *}" \
+    "php yii economy/auto-rollover" \
+    "$LOGS/auto-rollover.log" \
+    "auto-rollover"
+
+register_job \
+    "${CRON_ENABLE_EXPANSION_POOL:-1}" \
+    "${CRON_EXPANSION_POOL_SCHEDULE:-0 4 * * *}" \
+    "php yii economy/ensure-expansion-pool" \
+    "$LOGS/expansion-pool.log" \
+    "expansion-pool"
+
 crontab "$TMP_CRON"
 
 LOADED="$(grep -Ecv '^(#|$|[A-Za-z_][A-Za-z0-9_]*=)' "$TMP_CRON" || true)"
@@ -149,6 +163,8 @@ LOG_FILES=(
     "$LOGS/pre-match-notifications.log"
     "$LOGS/loan-returns.log"
     "$LOGS/daily-digest.log"
+    "$LOGS/auto-rollover.log"
+    "$LOGS/expansion-pool.log"
 )
 tail -n 0 -F "${LOG_FILES[@]}" &
 TAIL_PID=$!

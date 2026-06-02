@@ -11,13 +11,14 @@
         goal: '⚽', gk_save: '🧤', near_miss: '💨', substitution: '🔄',
         tactic_change: '📋', half_time: '🔔', full_time: '🏁',
         kickoff: '🎯', second_half_start: '▶️', yellow_card: '🟨', red_card: '🟥',
-        midfield_duel: '⚔️', attack_attempt: '🏃'
+        midfield_duel: '⚔️', attack_attempt: '🏃',
+        corner: '🚩', freekick: '🎯', penalty_awarded: '⚠️', penalty_miss: '❌'
     };
     var SHOW_TYPES = new Set([
         'pre_match',
         'goal', 'gk_save', 'near_miss', 'substitution', 'tactic_change',
         'half_time', 'full_time', 'kickoff', 'second_half_start', 'yellow_card', 'red_card',
-        'midfield_duel', 'attack_attempt'
+        'midfield_duel', 'attack_attempt', 'corner', 'freekick', 'penalty_awarded', 'penalty_miss'
     ]);
     var phaseLabels = {
         first_half: 'PRIMO TEMPO', half_time: 'INTERVALLO',

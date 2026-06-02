@@ -394,12 +394,12 @@ Attacco vs difesa:
 
 Fuorigioco:
 
-- `offsideChance = fuorigioco * 0.15 * offside_mult`
+- `offsideChance = fuorigioco * 0.10 * offside_mult`
 
 Tiro vs portiere:
 
 - `shotPower = tc*0.4 + tr*0.6`
-- `gkPower = po*2.0 + df*0.2`
+- `gkPower = po*1.55 + df*0.2`
 
 ### 3.4b Allenamento tattico — formula crescita (aggiornata)
 
@@ -412,7 +412,7 @@ Tiro vs portiere:
 
 ### 3.5 Precisione finale e piazzati
 
-Base precision cap `30`.
+Base precision cap `44`.
 
 Su piazzati:
 
@@ -420,8 +420,24 @@ Su piazzati:
   - `cap = min(60, 30 + int((tc*0.2 + tr*0.3)/10))`
 - +bonus livello team `calci_piazzati` (allenato via `alloc_calci_piazzati`)
 - bonus razionale sul rigorista.
+- PHP legacy: sui tiri arrivati alla fase precisione, `8%` diventa rigore e `12%` punizione.
 
 Se roll > cap -> `near_miss`, altrimenti `goal`.
+
+### 3.5b Conversione Go realtime
+
+Il worker Go usa una soglia probabilistica per minuto, con random seedato ad avvio worker:
+
+- `baseGoalThreshold = 4.4`
+- `homeGoalThreshold = baseGoalThreshold * traitBonus * tacticGoalModifier * setPieceMod * awayGkHeightMod`
+- `awayGoalThreshold = homeGoalThreshold + baseGoalThreshold * traitBonus * tacticGoalModifier * setPieceMod * homeGkHeightMod`
+- finestre successive: `near_miss/gk_save`, poi `midfield_duel`, poi `attack_attempt`
+- se ultimo evento e' `corner`, `freekick` o `penalty_awarded`, il tick successivo risolve quel piazzato prima della normale azione random
+- rigore Go: `74% goal`, `16% parata`, `10% errore`
+- punizione Go: `16% goal`, `26% parata`, `30% fuori`, resto respinta
+- corner Go: `10% goal`, `25% parata`, `33% fuori`, resto respinta
+
+Obiettivo gameplay: ridurre eccesso di `0-0` senza eliminare partite chiuse.
 
 ### 3.6 Cartellini e infortuni
 

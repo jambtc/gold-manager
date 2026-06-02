@@ -476,6 +476,10 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 
 	log.Printf("[MATCH %d] Simulating Minute %d", fixtureID, state.CurrentMinute)
 
+	if handled, err := e.resolvePendingSetPiece(fixtureID, &state); handled || err != nil {
+		return err
+	}
+
 	// SIP-0037: team trait bonus (average of active XI traits)
 	homeLosing := state.HomeScore < state.AwayScore
 	awayLosing := state.AwayScore < state.HomeScore
@@ -508,7 +512,7 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// Fine-tune parity with PHP engine:
 	// - slightly higher base conversion
 	// - keep tactical/trait multipliers
-	baseGoalThreshold := 3.2
+	baseGoalThreshold := 4.4
 	homeGoalThreshold := baseGoalThreshold * homeBonus * homeGoalMod * homeSetPieceMod * awayTraits.GkHeightMod
 	awayGoalThreshold := homeGoalThreshold + baseGoalThreshold*awayBonus*awayGoalMod*awaySetPieceMod*homeTraits.GkHeightMod
 	homeChanceEnd := awayGoalThreshold + 4.5
@@ -624,12 +628,15 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		// Home near_miss or gk_save window
 	case chance < homeChanceEnd:
 		attackSide = "home"
-		shooter := e.randomPlayerName(fixtureID, "home", "FW")
-		gk := e.randomPlayerName(fixtureID, "away", "GK")
+		shooterID, shooter := e.randomPlayerIDName(fixtureID, "home", "FW")
+		gkID, gk := e.randomPlayerIDName(fixtureID, "away", "GK")
 		suspense := pickSuspense(homeSuspense)
 		suspenseText = suspense
 		if rand.Intn(2) == 0 {
 			eventType, teamSide = "near_miss", "home"
+			if shooterID > 0 {
+				eventPlayerID = &shooterID
+			}
 			fallback = fmt.Sprintf("%s calcia ma non trova la porta! Che occasione sprecata.", shooter)
 			gameState := deriveGameState(state.HomeScore, state.AwayScore, "home", state.CurrentMinute)
 			if tpl, ok := e.pickTemplate("near_miss", "", gameState, state.CurrentMinute, fixtureID, map[string]string{
@@ -643,6 +650,9 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 			detail = fmt.Sprintf(`{"description":%q,"suspense_text":%q,"shooter_name":%q}`, fallback, suspense, shooter)
 		} else {
 			eventType, teamSide = "gk_save", "home"
+			if gkID > 0 {
+				eventPlayerID = &gkID
+			}
 			fallback = fmt.Sprintf("%s vola e para! %s non riesce a battere il portiere.", gk, shooter)
 			gameState := deriveGameState(state.HomeScore, state.AwayScore, "home", state.CurrentMinute)
 			if tpl, ok := e.pickTemplate("gk_save", "", gameState, state.CurrentMinute, fixtureID, map[string]string{
@@ -660,12 +670,15 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// Away near_miss or gk_save ~4.5%
 	case chance < awayChanceEnd:
 		attackSide = "away"
-		shooter := e.randomPlayerName(fixtureID, "away", "FW")
-		gk := e.randomPlayerName(fixtureID, "home", "GK")
+		shooterID, shooter := e.randomPlayerIDName(fixtureID, "away", "FW")
+		gkID, gk := e.randomPlayerIDName(fixtureID, "home", "GK")
 		suspense := pickSuspense(awaySuspense)
 		suspenseText = suspense
 		if rand.Intn(2) == 0 {
 			eventType, teamSide = "near_miss", "away"
+			if shooterID > 0 {
+				eventPlayerID = &shooterID
+			}
 			fallback = fmt.Sprintf("Pericolo sventato! %s degli ospiti non inquadra la porta.", shooter)
 			gameState := deriveGameState(state.HomeScore, state.AwayScore, "away", state.CurrentMinute)
 			if tpl, ok := e.pickTemplate("near_miss", "", gameState, state.CurrentMinute, fixtureID, map[string]string{
@@ -679,6 +692,9 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 			detail = fmt.Sprintf(`{"description":%q,"suspense_text":%q,"shooter_name":%q}`, fallback, suspense, shooter)
 		} else {
 			eventType, teamSide = "gk_save", "away"
+			if gkID > 0 {
+				eventPlayerID = &gkID
+			}
 			fallback = fmt.Sprintf("%s risponde presente! Para il tiro di %s.", gk, shooter)
 			gameState := deriveGameState(state.HomeScore, state.AwayScore, "away", state.CurrentMinute)
 			if tpl, ok := e.pickTemplate("gk_save", "", gameState, state.CurrentMinute, fixtureID, map[string]string{
@@ -799,6 +815,14 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	if eventType == "near_miss" && rand.Float64() < 0.30 {
 		e.generateCorner(fixtureID, teamSide, state.CurrentMinute)
 	}
+	if eventType == "attack_attempt" {
+		roll := rand.Float64()
+		if roll < 0.03 {
+			e.generateSetPieceAward(fixtureID, teamSide, state.CurrentMinute, "penalty")
+		} else if roll < 0.13 {
+			e.generateSetPieceAward(fixtureID, teamSide, state.CurrentMinute, "freekick")
+		}
+	}
 
 	// Cards check (~1.5% per team per tick)
 	e.resolveGoCards(fixtureID, state.CurrentMinute, homeTraits, awayTraits)
@@ -859,6 +883,170 @@ func (e *MatchEngine) generateCorner(fixtureID int, side string, minute int) {
 	}
 	evID, _ := res.LastInsertId()
 	e.broadcastEvent(fixtureID, evID, minute, "corner", side, desc, 0, 0, "")
+}
+
+func (e *MatchEngine) generateSetPieceAward(fixtureID int, side string, minute int, setPieceType string) {
+	takerID, taker := e.randomPlayerIDName(fixtureID, side, "FW")
+	if taker == "" {
+		taker = e.randomPlayerName(fixtureID, side, "FW")
+	}
+
+	eventType := "freekick"
+	desc := fmt.Sprintf("Calcio di punizione per %s: %s sistema il pallone.", e.teamName(fixtureID, side), taker)
+	if setPieceType == "penalty" {
+		eventType = "penalty_awarded"
+		desc = fmt.Sprintf("Rigore per %s! %s prende il pallone e si prepara dal dischetto.", e.teamName(fixtureID, side), taker)
+	}
+
+	det := fmt.Sprintf(`{"description":%q,"taker_name":%q,"set_piece":%q}`, desc, taker, setPieceType)
+	var playerID interface{} = nil
+	if takerID > 0 {
+		playerID = takerID
+	}
+	res, err := e.DB.Exec("INSERT INTO match_event (fixture_id, minute, type, team_side, player_id, detail) VALUES (?, ?, ?, ?, ?, ?)", fixtureID, minute, eventType, side, playerID, det)
+	if err != nil {
+		return
+	}
+	evID, _ := res.LastInsertId()
+	e.broadcastEvent(fixtureID, evID, minute, eventType, side, desc, 0, 0, "")
+}
+
+func (e *MatchEngine) resolvePendingSetPiece(fixtureID int, state *models.MatchState) (bool, error) {
+	var last struct {
+		ID       int    `db:"id"`
+		Minute   int    `db:"minute"`
+		Type     string `db:"type"`
+		TeamSide string `db:"team_side"`
+	}
+	err := e.DB.Get(&last, "SELECT id, minute, type, team_side FROM match_event WHERE fixture_id = ? ORDER BY id DESC LIMIT 1", fixtureID)
+	if err != nil {
+		return false, nil
+	}
+	if last.Type != "corner" && last.Type != "freekick" && last.Type != "penalty_awarded" {
+		return false, nil
+	}
+
+	side := last.TeamSide
+	opp := oppositeSide(side)
+	takerID, taker := e.randomPlayerIDName(fixtureID, side, "FW")
+	if taker == "" {
+		taker = e.randomPlayerName(fixtureID, side, "FW")
+	}
+	gkID, gk := e.randomPlayerIDName(fixtureID, opp, "GK")
+	if gk == "" {
+		gk = e.randomPlayerName(fixtureID, opp, "GK")
+	}
+
+	eventType := "attack_attempt"
+	eventSide := side
+	eventPlayerID := takerID
+	description := ""
+	detailExtra := ""
+	roll := rand.Float64()
+
+	switch last.Type {
+	case "penalty_awarded":
+		switch {
+		case roll < 0.74:
+			eventType = "goal"
+			if side == "home" {
+				state.HomeScore++
+			} else {
+				state.AwayScore++
+			}
+			description = fmt.Sprintf("Dal dischetto %s resta freddo e segna! %s %d-%d %s.", taker, e.teamName(fixtureID, "home"), state.HomeScore, state.AwayScore, e.teamName(fixtureID, "away"))
+			detailExtra = `,"origin":"penalty","is_penalty":true`
+		case roll < 0.90:
+			eventType = "gk_save"
+			eventSide = side
+			eventPlayerID = gkID
+			description = fmt.Sprintf("%s intuisce il rigore e para il tiro di %s!", gk, taker)
+			detailExtra = `,"origin":"penalty","is_penalty":true`
+		default:
+			eventType = "penalty_miss"
+			description = fmt.Sprintf("%s calcia il rigore ma non trova lo specchio.", taker)
+			detailExtra = `,"origin":"penalty","is_penalty":true`
+		}
+	case "freekick":
+		switch {
+		case roll < 0.16:
+			eventType = "goal"
+			if side == "home" {
+				state.HomeScore++
+			} else {
+				state.AwayScore++
+			}
+			description = fmt.Sprintf("Punizione perfetta di %s: palla oltre la barriera e gol! %s %d-%d %s.", taker, e.teamName(fixtureID, "home"), state.HomeScore, state.AwayScore, e.teamName(fixtureID, "away"))
+			detailExtra = `,"origin":"freekick"`
+		case roll < 0.42:
+			eventType = "gk_save"
+			eventPlayerID = gkID
+			description = fmt.Sprintf("%s respinge la punizione di %s.", gk, taker)
+			detailExtra = `,"origin":"freekick"`
+		case roll < 0.72:
+			eventType = "near_miss"
+			description = fmt.Sprintf("Punizione di %s fuori di poco.", taker)
+			detailExtra = `,"origin":"freekick"`
+		default:
+			description = fmt.Sprintf("Punizione battuta da %s, la difesa libera l'area.", taker)
+			detailExtra = `,"origin":"freekick"`
+		}
+	case "corner":
+		switch {
+		case roll < 0.10:
+			eventType = "goal"
+			if side == "home" {
+				state.HomeScore++
+			} else {
+				state.AwayScore++
+			}
+			description = fmt.Sprintf("Corner tagliato, %s anticipa tutti e segna! %s %d-%d %s.", taker, e.teamName(fixtureID, "home"), state.HomeScore, state.AwayScore, e.teamName(fixtureID, "away"))
+			detailExtra = `,"origin":"corner"`
+		case roll < 0.35:
+			eventType = "gk_save"
+			eventPlayerID = gkID
+			description = fmt.Sprintf("%s esce sul corner e salva la porta.", gk)
+			detailExtra = `,"origin":"corner"`
+		case roll < 0.68:
+			eventType = "near_miss"
+			description = fmt.Sprintf("Corner battuto da %s, colpo di testa fuori di poco.", taker)
+			detailExtra = `,"origin":"corner"`
+		default:
+			description = fmt.Sprintf("Corner di %s, respinta della difesa sul primo palo.", taker)
+			detailExtra = `,"origin":"corner"`
+		}
+	}
+
+	var playerID interface{} = nil
+	if eventPlayerID > 0 {
+		playerID = eventPlayerID
+	}
+	detail := fmt.Sprintf(`{"description":%q,"player_attacker":%q,"player_gk":%q,"home_score":%d,"away_score":%d%s}`, description, taker, gk, state.HomeScore, state.AwayScore, detailExtra)
+
+	tx, txErr := e.DB.Begin()
+	if txErr != nil {
+		return true, txErr
+	}
+	if _, txErr = tx.Exec("UPDATE match_state SET current_minute = ?, home_score = ?, away_score = ? WHERE id = ?", state.CurrentMinute, state.HomeScore, state.AwayScore, state.ID); txErr != nil {
+		tx.Rollback()
+		return true, txErr
+	}
+	res, txErr := tx.Exec("INSERT INTO match_event (fixture_id, minute, type, team_side, player_id, detail) VALUES (?, ?, ?, ?, ?, ?)", fixtureID, state.CurrentMinute, eventType, eventSide, playerID, detail)
+	if txErr != nil {
+		tx.Rollback()
+		return true, txErr
+	}
+	if _, txErr = tx.Exec("UPDATE fixture SET home_score = ?, away_score = ? WHERE id = ?", state.HomeScore, state.AwayScore, fixtureID); txErr != nil {
+		tx.Rollback()
+		return true, txErr
+	}
+	if txErr = tx.Commit(); txErr != nil {
+		return true, txErr
+	}
+	eventID, _ := res.LastInsertId()
+	e.broadcastEvent(fixtureID, eventID, state.CurrentMinute, eventType, eventSide, description, state.HomeScore, state.AwayScore, "")
+	e.broadcast(fixtureID, streamPayload{"type": "state", "minute": state.CurrentMinute, "home_score": state.HomeScore, "away_score": state.AwayScore, "attack_side": side})
+	return true, nil
 }
 
 func (e *MatchEngine) resolveGoCards(fixtureID, minute int, homeTraits, awayTraits teamTraitProfile) {

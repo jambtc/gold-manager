@@ -3775,6 +3775,119 @@ class EconomyController extends Controller
      *
      * @param array<string, scalar> $params
      */
+    /**
+     * SIP-0025: Auto-rollover all league competitions whose season is fully played.
+     * Runs daily (cron: 0 3 * * *). Safe to run multiple times — idempotent.
+     *
+     * Usage: ./yii economy/auto-rollover
+     */
+    public function actionAutoRollover(): int
+    {
+        $competitions = Competition::find()
+            ->where(['type' => 'league'])
+            ->all();
+
+        $rolled = 0;
+        $skipped = 0;
+
+        foreach ($competitions as $competition) {
+            $total = (int) Fixture::find()
+                ->where(['competition_id' => $competition->id])
+                ->count();
+
+            if ($total === 0) {
+                $skipped++;
+                continue;
+            }
+
+            $unfinished = (int) Fixture::find()
+                ->where(['competition_id' => $competition->id])
+                ->andWhere(['!=', 'status', Fixture::STATUS_FINISHED])
+                ->count();
+
+            if ($unfinished > 0) {
+                $skipped++;
+                continue;
+            }
+
+            $newSeason = $competition->season + 1;
+            $this->stdout("🔄 Rollover automatico: {$competition->name} → stagione {$newSeason}\n");
+
+            $exitCode = $this->actionSeasonRollover($competition->id, $newSeason);
+            if ($exitCode === ExitCode::OK) {
+                $rolled++;
+            } else {
+                $this->stderr("❌ Rollover fallito per competition #{$competition->id}\n");
+            }
+        }
+
+        $this->stdout("✅ Auto-rollover: {$rolled} completati, {$skipped} saltati.\n");
+        return ExitCode::OK;
+    }
+
+    /**
+     * SIP-0025: Pre-seed a new Serie C group when the current pool of free CPU teams
+     * drops below the configured threshold (default: 4).
+     * Run daily or after each registration burst.
+     *
+     * Usage: ./yii economy/ensure-expansion-pool [minFreeSlots]
+     */
+    public function actionEnsureExpansionPool(int $minFreeSlots = 4): int
+    {
+        $countryCodes = Competition::find()
+            ->select('country_code')
+            ->where(['type' => 'league', 'tier' => Competition::TIER_C])
+            ->distinct()
+            ->column();
+
+        $seeded = 0;
+        foreach ($countryCodes as $cc) {
+            $freeSlots = (int) \app\models\Team::find()
+                ->innerJoin(
+                    \app\models\Standing::tableName() . ' s',
+                    's.team_id = ' . \app\models\Team::tableName() . '.id'
+                )
+                ->innerJoin(
+                    Competition::tableName() . ' c',
+                    'c.id = s.competition_id'
+                )
+                ->where([
+                    \app\models\Team::tableName() . '.is_cpu'   => 1,
+                    \app\models\Team::tableName() . '.user_id'  => null,
+                    \app\models\Team::tableName() . '.country_code' => $cc,
+                    'c.tier' => Competition::TIER_C,
+                    'c.type' => 'league',
+                ])
+                ->count();
+
+            if ($freeSlots < $minFreeSlots) {
+                $nextGroup = (int) Competition::find()
+                    ->where(['tier' => Competition::TIER_C, 'country_code' => $cc])
+                    ->max('group_number') + 1;
+
+                $this->stdout("🌍 [{$cc}] Slot liberi: {$freeSlots} < {$minFreeSlots} — seed nuovo girone C #{$nextGroup}\n");
+
+                $tx = \Yii::$app->db->beginTransaction();
+                try {
+                    (new \app\components\WorldSeeder())->seedLeague(
+                        Competition::TIER_C, $nextGroup, null, 16, $cc
+                    );
+                    $tx->commit();
+                    $seeded++;
+                    $this->stdout("✅ [{$cc}] Girone C #{$nextGroup} creato.\n");
+                } catch (\Throwable $e) {
+                    $tx->rollBack();
+                    $this->stderr("❌ [{$cc}] Espansione fallita: {$e->getMessage()}\n");
+                }
+            } else {
+                $this->stdout("ℹ️  [{$cc}] Slot liberi ok ({$freeSlots}).\n");
+            }
+        }
+
+        $this->stdout("✅ Expansion pool: {$seeded} nuovi gironi creati.\n");
+        return ExitCode::OK;
+    }
+
     private function safeUrl(string $route, array $params = []): string
     {
         if (Yii::$app instanceof \yii\console\Application) {
