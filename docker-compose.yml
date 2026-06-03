@@ -12,6 +12,7 @@ services:
       - DB_NAME=gold_manager
       - DB_USER=gm_user
       - DB_PASSWORD=secret
+      - TZ=${TZ:-Europe/Rome}
       - GM_TEST_TIME_TRAVEL=${GM_TEST_TIME_TRAVEL:-0}
       - GM_TRANSFER_ALWAYS_OPEN=${GM_TRANSFER_ALWAYS_OPEN:-1}
       - GM_LLM_ENABLED=${GM_LLM_ENABLED:-1}
@@ -65,11 +66,13 @@ services:
       --interactive_timeout=28800
       --net_read_timeout=60
       --net_write_timeout=60
+      --default-time-zone=Europe/Rome
     environment:
       - MYSQL_ROOT_PASSWORD=root_secret
       - MYSQL_DATABASE=gold_manager
       - MYSQL_USER=gm_user
       - MYSQL_PASSWORD=secret
+      - TZ=${TZ:-Europe/Rome}
     volumes:
       - db-data:/var/lib/mysql
     restart: unless-stopped
@@ -171,6 +174,7 @@ services:
       - GM_LEAGUE_MATCH_DAYS=${GM_LEAGUE_MATCH_DAYS:-3,6}
       - GM_FRIENDLY_SLOT_DOW=${GM_FRIENDLY_SLOT_DOW:-4}
       - GM_FRIENDLY_SLOT_HOUR=${GM_FRIENDLY_SLOT_HOUR:-15}
+      - TZ=${TZ:-Europe/Rome}
       - CRON_TZ=${CRON_TZ:-Europe/Rome}
       - CRON_ENABLED=${CRON_ENABLED:-1}
       - CRON_ENABLE_PAY_WAGES=${CRON_ENABLE_PAY_WAGES:-1}
@@ -229,6 +233,7 @@ services:
       - GM_ORCHESTRATOR_RETRY_MAX=${GM_ORCHESTRATOR_RETRY_MAX:-8}
       - GM_ORCHESTRATOR_RETRY_BACKOFF_SEC=${GM_ORCHESTRATOR_RETRY_BACKOFF_SEC:-30}
       - GM_GOAL_THRESHOLD=${GM_GOAL_THRESHOLD:-3.0}
+      - TZ=${TZ:-Europe/Rome}
     depends_on:
       - mariadb
     expose:
