@@ -120,6 +120,7 @@ class Transfer extends ActiveRecord
             $player->team_id = $toTeam->id;
             $player->save(false);
 
+            // Loan fee
             if ($this->fee > 0) {
                 $toTeam->budget -= $this->fee;
                 $toTeam->save(false);
@@ -128,6 +129,24 @@ class Transfer extends ActiveRecord
                     $fromTeam->save(false);
                 }
             }
+
+            // Suspend original contract (status = on_loan)
+            Contract::updateAll(
+                ['status' => Contract::STATUS_ON_LOAN],
+                ['player_id' => $player->id, 'status' => Contract::STATUS_ACTIVE]
+            );
+
+            // Create loan contract for receiving team
+            $loanEndSeason = $this->loan_return_season ?? ($currentSeason + 1);
+            $loanContract = new Contract();
+            $loanContract->player_id = $player->id;
+            $loanContract->team_id = $toTeam->id;
+            $loanContract->salary = max(0, (int) $this->proposed_salary);
+            $loanContract->season_start = $currentSeason;
+            $loanContract->season_end = max($currentSeason + 1, (int)$loanEndSeason);
+            $loanContract->status = Contract::STATUS_ACTIVE;
+            $loanContract->termination_fee = 0; // loans have no termination fee
+            $loanContract->save(false);
         } else {
             $player->team_id = $toTeam->id;
             $player->save(false);

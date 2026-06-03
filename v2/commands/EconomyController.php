@@ -2274,6 +2274,16 @@ class EconomyController extends Controller
             if ((int) $player->team_id === (int) $loan->to_team_id && $loan->from_team_id) {
                 $player->team_id = (int) $loan->from_team_id;
                 $player->save(false);
+                // Expire loan contract at receiving team
+                \app\models\Contract::updateAll(
+                    ['status' => \app\models\Contract::STATUS_TERMINATED],
+                    ['player_id' => $player->id, 'team_id' => (int)$loan->to_team_id, 'status' => \app\models\Contract::STATUS_ACTIVE]
+                );
+                // Reactivate parent contract
+                \app\models\Contract::updateAll(
+                    ['status' => \app\models\Contract::STATUS_ACTIVE],
+                    ['player_id' => $player->id, 'status' => \app\models\Contract::STATUS_ON_LOAN]
+                );
                 $returned++;
             }
             $loan->loan_return_season = null;
@@ -2314,6 +2324,16 @@ class EconomyController extends Controller
                 $player->team_id = (int) $loan->from_team_id;
                 $player->save(false);
                 $returned++;
+
+                // Expire loan contract at receiving team, reactivate parent contract
+                \app\models\Contract::updateAll(
+                    ['status' => \app\models\Contract::STATUS_TERMINATED],
+                    ['player_id' => $player->id, 'team_id' => (int)$loan->to_team_id, 'status' => \app\models\Contract::STATUS_ACTIVE]
+                );
+                \app\models\Contract::updateAll(
+                    ['status' => \app\models\Contract::STATUS_ACTIVE],
+                    ['player_id' => $player->id, 'status' => \app\models\Contract::STATUS_ON_LOAN]
+                );
 
                 // Notify owner manager
                 if ($ownerTeam?->user_id) {

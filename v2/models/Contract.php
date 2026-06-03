@@ -27,6 +27,7 @@ class Contract extends ActiveRecord
     const STATUS_EXPIRED     = 'expired';
     const STATUS_TERMINATED  = 'terminated';
     const STATUS_TRANSFERRED = 'transferred';
+    const STATUS_ON_LOAN     = 'on_loan'; // parent club contract suspended during loan
 
     public static function tableName(): string { return '{{%contract}}'; }
 
@@ -40,7 +41,7 @@ class Contract extends ActiveRecord
             [['status'], 'string', 'max' => 20],
             [['status'], 'in', 'range' => [
                 self::STATUS_ACTIVE, self::STATUS_EXPIRED,
-                self::STATUS_TERMINATED, self::STATUS_TRANSFERRED,
+                self::STATUS_TERMINATED, self::STATUS_TRANSFERRED, self::STATUS_ON_LOAN,
             ]],
             [['player_id'], 'exist', 'targetClass' => Player::class, 'targetAttribute' => ['player_id' => 'id']],
             [['team_id'],   'exist', 'targetClass' => Team::class,   'targetAttribute' => ['team_id'   => 'id']],
