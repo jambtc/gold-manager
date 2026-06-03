@@ -450,11 +450,22 @@ class MatchEngine extends Component
         $state->$scoreField++;
         $scorer = $shooter ?: $this->getActivePlayer($fixture, $state, $attSide, 'FW');
 
+        // Assist: pick a different MF/FW player from the attacking team
+        $assister = $this->getActivePlayer($fixture, $state, $attSide, 'MF');
+        if ($assister && $scorer && $assister->id === $scorer->id) {
+            $assister = $this->getActivePlayer($fixture, $state, $attSide, 'FW');
+            if ($assister && $assister->id === $scorer->id) {
+                $assister = null;
+            }
+        }
+
         $events[] = $this->saveEvent($fixture, $min, 'goal', $attSide, $scorer ? $scorer->id : null, [
             'home_score' => $state->home_score,
             'away_score' => $state->away_score,
             'side' => $side,
             'scorer_name' => $scorer ? $scorer->name : null,
+            'assister_id' => $assister ? (int)$assister->id : null,
+            'assister_name' => $assister ? $assister->name : null,
             'origin' => 'open_play',
             'is_penalty' => false,
         ]);
@@ -2194,6 +2205,9 @@ class MatchEngine extends Component
         // SIP-0050: news for human managers involved
         $this->createMatchResultNews($fixture, $state);
 
+        // Freshness cost for all match types based on minutes played
+        $this->applyMatchFreshnessCost($fixture, $state);
+
         // Friendly matches do not affect standings
         if ($fixture->competition?->type === 'friendly') {
             return;
@@ -2300,6 +2314,54 @@ class MatchEngine extends Component
                 ['freshness' => new \yii\db\Expression('GREATEST(0, freshness - 3)')],
                 ['id' => $playerIds]
             );
+        }
+    }
+
+    /**
+     * Reduce freshness for all players who played, proportional to minutes.
+     * Applied to every match type (league + friendly).
+     * Effort level modifier: effort=100 → ×1.55, effort=0 → ×0.55.
+     */
+    private function applyMatchFreshnessCost(Fixture $fixture, MatchState $state): void
+    {
+        $rows = Yii::$app->db->createCommand(
+            'SELECT player_id, minutes_played FROM {{%player_stat}} WHERE fixture_id = :f AND minutes_played > 0',
+            [':f' => (int) $fixture->id]
+        )->queryAll();
+
+        if (empty($rows)) {
+            return;
+        }
+
+        $homeEffort = (int)($state->home_effort_level ?? 50);
+        $awayEffort = (int)($state->away_effort_level ?? 50);
+
+        foreach ($rows as $row) {
+            $playerId = (int) $row['player_id'];
+            $minutes  = (int) $row['minutes_played'];
+
+            // Base cost: 8 full match, 5 half, 3 short
+            $base = match (true) {
+                $minutes >= 80 => 8,
+                $minutes >= 45 => 5,
+                default        => 3,
+            };
+
+            // Determine side effort
+            $isHome = Yii::$app->db->createCommand(
+                'SELECT 1 FROM {{%player}} p
+                 JOIN {{%team}} t ON t.id=p.team_id
+                 WHERE p.id=:pid AND t.id=:tid LIMIT 1',
+                [':pid' => $playerId, ':tid' => (int)$fixture->home_team_id]
+            )->queryScalar();
+            $effortLevel = $isHome ? $homeEffort : $awayEffort;
+            $effortMod   = self::effortFreshnessMod($effortLevel);
+            $cost        = (int) max(1, round($base * $effortMod));
+
+            Yii::$app->db->createCommand(
+                'UPDATE {{%player}} SET freshness = GREATEST(1, freshness - :cost) WHERE id = :pid',
+                [':cost' => $cost, ':pid' => $playerId]
+            )->execute();
         }
     }
 

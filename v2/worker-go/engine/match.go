@@ -599,7 +599,17 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}); ok {
 			fallback = tpl
 		}
-		detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
+		// Assist: pick a MF from the same side, different player
+		assisterID, assisterName := e.randomPlayerIDName(fixtureID, "home", "MF")
+		if assisterID == scorerID {
+			assisterID, assisterName = 0, ""
+		}
+		if assisterID > 0 {
+			detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"assister_id":%d,"assister_name":%q,"description":%q,"suspense_text":%q}`,
+				state.HomeScore, state.AwayScore, scorer, assisterID, assisterName, fallback, suspense)
+		} else {
+			detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
+		}
 
 		// Away goal threshold
 	case chance < awayGoalThreshold:
@@ -637,7 +647,17 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}); ok {
 			fallback = tpl
 		}
-		detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
+		// Assist for away goal
+		assisterIDa, assisterNamea := e.randomPlayerIDName(fixtureID, "away", "MF")
+		if assisterIDa == scorerID {
+			assisterIDa, assisterNamea = 0, ""
+		}
+		if assisterIDa > 0 {
+			detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"assister_id":%d,"assister_name":%q,"description":%q,"suspense_text":%q}`,
+				state.HomeScore, state.AwayScore, scorer, assisterIDa, assisterNamea, fallback, suspense)
+		} else {
+			detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"description":%q,"suspense_text":%q}`, state.HomeScore, state.AwayScore, scorer, fallback, suspense)
+		}
 
 		// Home near_miss or gk_save window
 	case chance < homeChanceEnd:
@@ -2085,6 +2105,10 @@ func (e *MatchEngine) EndMatch(fixtureID int) error {
 		tx.Rollback()
 		return err
 	}
+	if err = e.applyMatchFreshnessCostTx(tx, fixtureID, state.HomeEffortLevel, state.AwayEffortLevel, fx.HomeTeamID); err != nil {
+		log.Printf("[MATCH %d] freshness cost warning: %v", fixtureID, err)
+		// non-blocking: continue even if freshness update fails
+	}
 	if fx.CompetitionType != "friendly" {
 		if err = e.applyStandings(tx, fixtureID, state.HomeScore, state.AwayScore); err != nil {
 			tx.Rollback()
@@ -2698,6 +2722,45 @@ func (e *MatchEngine) applyFixtureExperienceTx(tx *sql.Tx, fixtureID int, state 
 			  official_credits = official_credits + VALUES(official_credits),
 			  friendly_credits = friendly_credits + VALUES(friendly_credits)
 		`, row.PlayerID, displayZone, officialCredits, friendlyCredits); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// applyMatchFreshnessCostTx reduces freshness for all players who played,
+// proportional to minutes. Effort level modifies the cost.
+func (e *MatchEngine) applyMatchFreshnessCostTx(tx *sql.Tx, fixtureID, homeEffort, awayEffort, homeTeamID int) error {
+	type row struct {
+		PlayerID  int `db:"player_id"`
+		Minutes   int `db:"minutes_played"`
+		TeamID    int `db:"team_id"`
+	}
+	var rows []row
+	if err := e.DB.Select(&rows,
+		"SELECT ps.player_id, ps.minutes_played, p.team_id FROM player_stat ps JOIN player p ON p.id=ps.player_id WHERE ps.fixture_id=? AND ps.minutes_played>0",
+		fixtureID); err != nil || len(rows) == 0 {
+		return err
+	}
+
+	for _, r := range rows {
+		base := 3
+		if r.Minutes >= 80 {
+			base = 8
+		} else if r.Minutes >= 45 {
+			base = 5
+		}
+
+		effort := awayEffort
+		if r.TeamID == homeTeamID {
+			effort = homeEffort
+		}
+		cost := int(float64(base)*effortInjuryMod(effort) + 0.5) // reuse effortInjuryMod scale
+		if cost < 1 {
+			cost = 1
+		}
+
+		if _, err := tx.Exec("UPDATE player SET freshness=GREATEST(1, freshness-?) WHERE id=?", cost, r.PlayerID); err != nil {
 			return err
 		}
 	}
