@@ -1169,6 +1169,7 @@ class MatchEngine extends Component
         $gameState = $this->deriveGameState((int)$hs, (int)$as, $side, (int)$minute);
         $kickoffTeam = trim((string) ($detail['kickoff_team'] ?? ''));
         $origin = strtolower((string) ($detail['origin'] ?? $detail['set_piece'] ?? ''));
+        $assisterName = trim((string) ($detail['assister_name'] ?? ''));
 
         // SIP-0062: try template first
         $templateDesc = \app\components\CommentaryTemplateService::pick(
@@ -1207,7 +1208,7 @@ class MatchEngine extends Component
             'player_attacker' => (string) ($shooter ?: $playerName ?: 'un giocatore'),
             'player_defender' => (string) ($detail['defender_name'] ?? 'il difensore'),
             'player_gk' => (string) ($gk ?: 'il portiere'),
-            'player_assist' => (string) ($detail['assist_name'] ?? 'un compagno'),
+            'player_assist' => (string) ($detail['assister_name'] ?? $detail['assist_name'] ?? 'un compagno'),
             'player_in' => (string) ($detail['in_name'] ?? 'il nuovo entrato'),
             'player_out' => (string) ($detail['out_name'] ?? 'il giocatore uscente'),
             'spectators' => (string) ($detail['spectators'] ?? 'numerosi'),
@@ -1257,11 +1258,19 @@ class MatchEngine extends Component
                 ? "Punizione perfetta di {$shooter}: palla oltre la barriera e gol! {$home} {$hs}-{$as} {$away}."
                 : ($origin === 'corner' && $shooter
                     ? "Corner tagliato, {$shooter} anticipa tutti e segna! {$home} {$hs}-{$as} {$away}."
-                    : self::pick([
-                "RETE! Punteggio aggiornato: {$hs}-{$as}!",
-                "GOL! La sfera gonfia la rete! Siamo sul {$hs}-{$as}!",
-                "GOOOOOL! Vantaggio! Il tabellone segna {$hs}-{$as}!",
-                    ]))),
+                    : ($shooter && $assisterName
+                        ? "GOL! {$shooter} su assist di {$assisterName}! Punteggio: {$hs}-{$as}!"
+                        : ($shooter
+                            ? self::pick([
+                                "GOL! {$shooter} la piazza in rete! Siamo sul {$hs}-{$as}!",
+                                "GOOOOOL! {$shooter} non sbaglia! {$hs}-{$as}!",
+                                "Rete di {$shooter}! Il tabellone segna {$hs}-{$as}!",
+                              ])
+                            : self::pick([
+                                "RETE! Punteggio aggiornato: {$hs}-{$as}!",
+                                "GOL! La sfera gonfia la rete! Siamo sul {$hs}-{$as}!",
+                                "GOOOOOL! Vantaggio! Il tabellone segna {$hs}-{$as}!",
+                              ]))))),
 
             'penalty_awarded' => $shooter
             ? "Rigore! {$shooter} prende il pallone e si presenta sul dischetto."

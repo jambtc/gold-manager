@@ -577,7 +577,22 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 		suspense := pickSuspense(homeSuspense)
 		suspenseText = suspense
-		fallback = fmt.Sprintf("GOL! %s segna per il %s al minuto %d! Punteggio: %d-%d!", scorer, e.teamName(fixtureID, "home"), state.CurrentMinute, state.HomeScore, state.AwayScore)
+
+		// Assist: pick a MF from the same side, different player (before building fallback)
+		assisterID, assisterName := e.randomPlayerIDName(fixtureID, "home", "MF")
+		if assisterID == scorerID {
+			assisterID, assisterName = 0, ""
+		}
+
+		// Build fallback with assister when available
+		if assisterName != "" {
+			fallback = fmt.Sprintf("GOL! %s su assist di %s al minuto %d! %s %d-%d %s!",
+				scorer, assisterName, state.CurrentMinute,
+				e.teamName(fixtureID, "home"), state.HomeScore, state.AwayScore, e.teamName(fixtureID, "away"))
+		} else {
+			fallback = fmt.Sprintf("GOL! %s segna per il %s al minuto %d! Punteggio: %d-%d!",
+				scorer, e.teamName(fixtureID, "home"), state.CurrentMinute, state.HomeScore, state.AwayScore)
+		}
 
 		// SIP-0080: in-app goal notifications
 		homeName := e.teamName(fixtureID, "home")
@@ -593,17 +608,14 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 			"home_team":       e.teamName(fixtureID, "home"),
 			"away_team":       e.teamName(fixtureID, "away"),
 			"player_attacker": scorer,
+			"player_assist":   assisterName,
 			"score_home":      fmt.Sprintf("%d", state.HomeScore),
 			"score_away":      fmt.Sprintf("%d", state.AwayScore),
 			"minute":          fmt.Sprintf("%d", state.CurrentMinute),
 		}); ok {
 			fallback = tpl
 		}
-		// Assist: pick a MF from the same side, different player
-		assisterID, assisterName := e.randomPlayerIDName(fixtureID, "home", "MF")
-		if assisterID == scorerID {
-			assisterID, assisterName = 0, ""
-		}
+
 		if assisterID > 0 {
 			detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"assister_id":%d,"assister_name":%q,"description":%q,"suspense_text":%q}`,
 				state.HomeScore, state.AwayScore, scorer, assisterID, assisterName, fallback, suspense)
@@ -625,7 +637,21 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 		}
 		suspense := pickSuspense(awaySuspense)
 		suspenseText = suspense
-		fallback = fmt.Sprintf("GOL! %s segna per il %s al minuto %d! Punteggio: %d-%d!", scorer, e.teamName(fixtureID, "away"), state.CurrentMinute, state.HomeScore, state.AwayScore)
+
+		// Assist for away goal (before fallback)
+		assisterIDa, assisterNamea := e.randomPlayerIDName(fixtureID, "away", "MF")
+		if assisterIDa == scorerID {
+			assisterIDa, assisterNamea = 0, ""
+		}
+
+		if assisterNamea != "" {
+			fallback = fmt.Sprintf("GOL! %s su assist di %s al minuto %d! %s %d-%d %s!",
+				scorer, assisterNamea, state.CurrentMinute,
+				e.teamName(fixtureID, "home"), state.HomeScore, state.AwayScore, e.teamName(fixtureID, "away"))
+		} else {
+			fallback = fmt.Sprintf("GOL! %s segna per il %s al minuto %d! Punteggio: %d-%d!",
+				scorer, e.teamName(fixtureID, "away"), state.CurrentMinute, state.HomeScore, state.AwayScore)
+		}
 
 		// SIP-0080: in-app goal notifications
 		homeName2 := e.teamName(fixtureID, "home")
@@ -641,17 +667,14 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 			"home_team":       e.teamName(fixtureID, "home"),
 			"away_team":       e.teamName(fixtureID, "away"),
 			"player_attacker": scorer,
+			"player_assist":   assisterNamea,
 			"score_home":      fmt.Sprintf("%d", state.HomeScore),
 			"score_away":      fmt.Sprintf("%d", state.AwayScore),
 			"minute":          fmt.Sprintf("%d", state.CurrentMinute),
 		}); ok {
 			fallback = tpl
 		}
-		// Assist for away goal
-		assisterIDa, assisterNamea := e.randomPlayerIDName(fixtureID, "away", "MF")
-		if assisterIDa == scorerID {
-			assisterIDa, assisterNamea = 0, ""
-		}
+
 		if assisterIDa > 0 {
 			detail = fmt.Sprintf(`{"home_score":%d,"away_score":%d,"scorer_name":%q,"assister_id":%d,"assister_name":%q,"description":%q,"suspense_text":%q}`,
 				state.HomeScore, state.AwayScore, scorer, assisterIDa, assisterNamea, fallback, suspense)

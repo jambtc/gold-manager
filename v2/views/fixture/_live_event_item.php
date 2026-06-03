@@ -39,7 +39,7 @@ $minuteStr = $ev->type === 'pre_match' ? 'PRE' : ($isKickoff ? '0' : (string) $e
                 <span style="font-weight:700;color:var(--gold);font-size:.75rem"><?= \yii\helpers\Html::encode((string) $hs) ?>–<?= \yii\helpers\Html::encode((string) $as) ?></span>
             <?php endif; ?>
             <?php if ($ev->type === 'goal' && !empty($detail['scorer_name'])): ?>
-                <span style="font-size:.7rem;color:var(--gold);font-weight:600">⚽ <?= \yii\helpers\Html::encode((string) $detail['scorer_name']) ?></span>
+                <span style="font-size:.7rem;color:var(--gold);font-weight:600">⚽ <?= \yii\helpers\Html::encode((string) $detail['scorer_name']) ?><?php if (!empty($detail['assister_name'])): ?><span style="color:var(--text-secondary);font-weight:400"> (ass. <?= \yii\helpers\Html::encode((string) $detail['assister_name']) ?>)</span><?php endif; ?></span>
             <?php endif; ?>
             <?php if ($ev->type === 'substitution' && (!empty($detail['out_name']) || !empty($detail['in_name']))): ?>
                 <span style="font-size:.7rem;color:var(--text-secondary)"><?= \yii\helpers\Html::encode((string) ($detail['out_name'] ?? '?')) ?> ↗ <?= \yii\helpers\Html::encode((string) ($detail['in_name'] ?? '?')) ?></span>
