@@ -151,7 +151,7 @@ $legRound = $round <= $midRound ? $round : ($round - $midRound);
                                     <?= Html::a('<i class="bi bi-play-circle"></i>', ['replay', 'id' => $f->id], ['class' => 'btn btn-outline-gold btn-sm', 'encode' => false, 'title' => Yii::t('app', 'Replay')]) ?>
                                 </div>
                             <?php else: ?>
-                                <span class="text-muted-gm" style="font-size:.75rem"><?= date('H:i', $f->match_date) ?></span>
+                                <?= Html::a(date('H:i', $f->match_date), ['view', 'id' => $f->id], ['style' => 'font-size:.75rem;color:var(--text-secondary);text-decoration:none', 'title' => Yii::t('app', 'Match details')]) ?>
                             <?php endif; ?>
                         </td>
                     </tr>

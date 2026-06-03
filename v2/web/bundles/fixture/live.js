@@ -1532,6 +1532,7 @@
 
     // SIP-0083: send effort level to server
     window.sendEffortLevel = function (level) {
+        if (!window.GM_LIVE || !GM_LIVE.effortUrl) return; // not in live view context
         var validLevels = [0, 25, 50, 75, 100];
         if (validLevels.indexOf(level) === -1) return;
         var body = new URLSearchParams();

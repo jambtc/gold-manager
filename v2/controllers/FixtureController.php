@@ -106,11 +106,22 @@ class FixtureController extends Controller
     /**
      * Match report / details (post-match or scheduled).
      */
-    public function actionView(int $id): string
+    public function actionView(int $id): string|\yii\web\Response
     {
         $fixture = Fixture::findOne($id);
         if (!$fixture) {
             throw new NotFoundHttpException(Yii::t('app', 'Match not found.'));
+        }
+
+        // Auto-redirect to live view when match is in progress and user is a manager
+        if ($fixture->status === Fixture::STATUS_PLAYING && !Yii::$app->user->isGuest) {
+            $myTeam = \app\models\Team::findOne(['user_id' => Yii::$app->user->id]);
+            if ($myTeam && (
+                $fixture->home_team_id === $myTeam->id ||
+                $fixture->away_team_id === $myTeam->id
+            )) {
+                return $this->redirect(['live', 'id' => $id]);
+            }
         }
 
         $state = MatchState::findOne(['fixture_id' => $id]);
