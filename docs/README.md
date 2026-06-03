@@ -53,8 +53,8 @@ Required conventions:
 
 | SIP | Title | Status |
 | --- | --- | --- |
-| SIP-0001 | SIP Process and Governance | Accepted |
-| SIP-0002 | Target Architecture | Accepted |
+| SIP-0001 | SIP Process and Governance | Accepted (Implemented) |
+| SIP-0002 | Target Architecture | Accepted (Implemented) |
 | SIP-0003 | Domain Model | Accepted (Implemented) |
 | SIP-0004 | Database and Migrations | Accepted (Implemented) |
 | SIP-0005 | Authentication and Authorization | Accepted (Implemented) |
@@ -62,7 +62,7 @@ Required conventions:
 | SIP-0007 | Team and Player Management | Accepted (Implemented) |
 | SIP-0008 | Competitions, Fixtures and Standings | Accepted (Implemented) |
 | SIP-0009 | Economy, Transfers and Contracts | Accepted (Implemented) |
-| SIP-0010 | Docker, Environments and Delivery | Accepted |
+| SIP-0010 | Docker, Environments and Delivery | Accepted (Implemented) |
 | SIP-0011 | Match Simulation Engine | Accepted (Implemented) |
 | SIP-0012 | AI Controlled Teams | Accepted (Implemented) |
 | SIP-0013 | Match Event Sourcing | Accepted (Implemented) |
@@ -71,7 +71,7 @@ Required conventions:
 | SIP-0016 | Plugin System | Deferred (Backlog) |
 | SIP-0017 | Mobile Application Support | Deferred (Backlog — Final Phase) |
 | SIP-0018 | Multiplayer Synchronization | Accepted (Implemented Baseline) |
-| SIP-0020 | Real-Time Match Engine Architecture | Accepted |
+| SIP-0020 | Real-Time Match Engine Architecture | Accepted (Implemented) |
 | SIP-0021 | Go Match Worker (Live Engine) | Accepted (Implemented) |
 | SIP-0022 | World Generation and New-Game Seeding | Accepted (Implemented) |
 | SIP-0023 | Live Tactical Interventions (Command Channel) | Accepted (Implemented) |
@@ -113,7 +113,7 @@ Required conventions:
 | SIP-0069 | Internationalization (i18n) | Accepted (Implemented) |
 | SIP-0070 | Player Nationality & Multi-National Name Database | Accepted (Implemented) |
 | SIP-0071 | Auction Market System (Free Agent, Staff, Sponsor) | Accepted (Implemented) |
-| SIP-0072 | Repository Migration: gold-manager → gold-manager-v2 | Accepted |
+| SIP-0072 | Repository Migration: gold-manager → gold-manager-v2 | Accepted (Implemented) |
 | SIP-0073 | Player Physical Attributes: Height & Weight | Accepted (Implemented) |
 | SIP-0074 | Natural Position Overall Rating (OVR) | Accepted (Implemented) |
 | SIP-0075 | Set Piece Skill (Calci Piazzati) | Accepted (Implemented) |

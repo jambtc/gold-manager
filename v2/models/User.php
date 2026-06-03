@@ -24,6 +24,14 @@ use yii\filters\RateLimitInterface;
  * @property string|null $telegram_bot_token
  * @property string|null $telegram_chat_id
  * @property int    $telegram_enabled
+ * @property int    $tg_notify_transfer
+ * @property int    $tg_notify_match
+ * @property int    $tg_notify_staff
+ * @property int    $tg_notify_injury
+ * @property int    $tg_notify_discipline
+ * @property int    $tg_notify_finance
+ * @property int    $tg_notify_friendly
+ * @property int    $tg_notify_system
  * @property int    $created_at
  * @property int    $updated_at
  */
@@ -44,6 +52,12 @@ class User extends ActiveRecord implements IdentityInterface, RateLimitInterface
     public function isReady(): bool
     {
         return $this->status === self::STATUS_ACTIVE || $this->role === self::ROLE_ADMIN;
+    }
+
+    public function isTelegramCategoryEnabled(string $category): bool
+    {
+        $col = 'tg_notify_' . $category;
+        return (bool) ($this->$col ?? true);
     }
     /**
      * {@inheritdoc}

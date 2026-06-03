@@ -6,6 +6,7 @@ declare(strict_types=1);
 /** @var app\models\User $user */
 /** @var app\models\Team|null $team */
 
+use app\models\NewsItem;
 use yii\helpers\Html;
 
 $this->title = Yii::t('app', 'Profile');
@@ -110,6 +111,16 @@ $tgToken  = trim((string) ($user->telegram_bot_token ?? ''));
 $tgChatId = trim((string) ($user->telegram_chat_id   ?? ''));
 $tgLinked = $tgToken !== '' && $tgChatId !== '';
 $tgEnabled = (bool) ($user->telegram_enabled ?? true);
+$tgCategories = [
+    NewsItem::CAT_TRANSFER   => ['icon' => '💸', 'label' => Yii::t('app', 'Transfers')],
+    NewsItem::CAT_MATCH      => ['icon' => '⚽', 'label' => Yii::t('app', 'Matches')],
+    NewsItem::CAT_STAFF      => ['icon' => '👨‍💼', 'label' => Yii::t('app', 'Staff')],
+    NewsItem::CAT_INJURY     => ['icon' => '🏥', 'label' => Yii::t('app', 'Injuries')],
+    NewsItem::CAT_DISCIPLINE => ['icon' => '🟥', 'label' => Yii::t('app', 'Suspensions')],
+    NewsItem::CAT_FINANCE    => ['icon' => '💰', 'label' => Yii::t('app', 'Finance')],
+    NewsItem::CAT_FRIENDLY   => ['icon' => '📩', 'label' => Yii::t('app', 'Friendlies')],
+    NewsItem::CAT_SYSTEM     => ['icon' => '⚙️', 'label' => Yii::t('app', 'System')],
+];
 ?>
 <div class="gm-card mt-4"
      id="tg-root"
@@ -120,7 +131,8 @@ $tgEnabled = (bool) ($user->telegram_enabled ?? true);
      data-link-confirm-url="<?= Html::encode(\yii\helpers\Url::to(['/user/telegram-link-confirm'])) ?>"
      data-test-url="<?= Html::encode(\yii\helpers\Url::to(['/user/telegram-test'])) ?>"
      data-revoke-url="<?= Html::encode(\yii\helpers\Url::to(['/user/telegram-revoke'])) ?>"
-     data-toggle-url="<?= Html::encode(\yii\helpers\Url::to(['/user/telegram-toggle'])) ?>">
+     data-toggle-url="<?= Html::encode(\yii\helpers\Url::to(['/user/telegram-toggle'])) ?>"
+     data-notify-prefs-url="<?= Html::encode(\yii\helpers\Url::to(['/user/telegram-notify-prefs'])) ?>">
 
     <div class="d-flex align-items-center justify-content-between mb-3">
         <h3 class="h5 text-white mb-0"><i class="bi bi-telegram text-gold me-2"></i><?= Yii::t('app', 'Telegram notifications') ?></h3>
@@ -184,7 +196,55 @@ $tgEnabled = (bool) ($user->telegram_enabled ?? true);
             ? '<span style="color:var(--accent-green)">✅ ' . Yii::t('app', 'Telegram connected') . ($tgEnabled ? ' ' . Yii::t('app', 'and active') : ' (' . Yii::t('app', 'notifications disabled') . ')') . '</span>'
             : Yii::t('app', 'Use the buttons above to connect your Telegram bot.') ?>
     </div>
+
+    <?php if ($tgLinked): ?>
+    <div class="mt-3 pt-3" style="border-top:1px solid var(--border)">
+        <div class="text-muted-gm small mb-2"><?= Yii::t('app', 'Notification types') ?></div>
+        <div class="row g-2">
+            <?php foreach ($tgCategories as $cat => $info):
+                $colName = 'tg_notify_' . $cat;
+                $active  = (bool) ($user->$colName ?? true);
+            ?>
+            <div class="col-6 col-md-3">
+                <div class="d-flex align-items-center justify-content-between px-2 py-2 rounded-2" style="background:rgba(255,255,255,.04);border:1px solid var(--border)">
+                    <span class="small"><?= $info['icon'] ?> <?= Html::encode($info['label']) ?></span>
+                    <label class="tg-pill-switch ms-2 mb-0">
+                        <input type="checkbox" data-cat="<?= Html::encode($cat) ?>" <?= $active ? 'checked' : '' ?>>
+                        <span class="tg-pill-track"><span class="tg-pill-thumb"></span></span>
+                    </label>
+                </div>
+            </div>
+            <?php endforeach; ?>
+        </div>
+    </div>
+    <?php endif; ?>
 </div>
+
+<style>
+.tg-pill-switch { position:relative; display:inline-flex; align-items:center; cursor:pointer; }
+.tg-pill-switch input { position:absolute; opacity:0; width:0; height:0; }
+.tg-pill-track {
+    display:inline-flex; align-items:center;
+    width:36px; height:20px; border-radius:10px;
+    background:rgba(255,255,255,.15);
+    border:1px solid rgba(255,255,255,.1);
+    transition:background .2s, border-color .2s;
+    flex-shrink:0;
+}
+.tg-pill-thumb {
+    width:14px; height:14px; border-radius:50%;
+    background:#fff; margin-left:2px;
+    transition:transform .2s, background .2s;
+    box-shadow:0 1px 3px rgba(0,0,0,.4);
+}
+.tg-pill-switch input:checked ~ .tg-pill-track {
+    background:var(--gold, #d4a843);
+    border-color:var(--gold, #d4a843);
+}
+.tg-pill-switch input:checked ~ .tg-pill-track .tg-pill-thumb {
+    transform:translateX(16px);
+}
+</style>
 
 <script>
 (function () {
@@ -292,6 +352,19 @@ $tgEnabled = (bool) ($user->telegram_enabled ?? true);
             post(root.dataset.toggleUrl, {}, function (r) {
                 var lbl = toggleChk.nextElementSibling;
                 if (lbl) lbl.textContent = r.enabled ? 'Attive' : 'Disattivate';
+            });
+        });
+    }
+
+    // Per-category toggles
+    var prefsUrl = root.dataset.notifyPrefsUrl;
+    if (prefsUrl) {
+        document.querySelectorAll('.tg-pill-switch input[data-cat]').forEach(function (chk) {
+            chk.addEventListener('change', function () {
+                var cat = chk.dataset.cat;
+                post(prefsUrl, { category: cat }, function (r) {
+                    if (!r.ok) { chk.checked = !chk.checked; }
+                });
             });
         });
     }

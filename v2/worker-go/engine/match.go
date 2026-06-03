@@ -526,7 +526,7 @@ func (e *MatchEngine) RunTick(fixtureID int) error {
 	// Fine-tune parity with PHP engine:
 	// - slightly higher base conversion
 	// - keep tactical/trait multipliers
-	baseGoalThreshold := 3.0 // SIP-0090: calibrated for 2.5–3.0 avg goals/match
+	baseGoalThreshold := goalThresholdFromEnv()
 	homeGoalThreshold := baseGoalThreshold * homeBonus * homeGoalMod * homeSetPieceMod * homePressureMod * awayTraits.GkHeightMod * effortGoalMod(state.HomeEffortLevel)
 	awayGoalThreshold := homeGoalThreshold + baseGoalThreshold*awayBonus*awayGoalMod*awaySetPieceMod*awayPressureMod*homeTraits.GkHeightMod*effortGoalMod(state.AwayEffortLevel)
 	homeChanceEnd := awayGoalThreshold + 4.5
@@ -3029,6 +3029,20 @@ func templateChunkDelayMs() int {
 		return 2000
 	}
 	return n
+}
+
+// goalThresholdFromEnv reads GM_GOAL_THRESHOLD (float, default 3.0).
+// Higher = more goals. Calibration: 3.0 ≈ 2.8 avg goals/match.
+func goalThresholdFromEnv() float64 {
+	raw := strings.TrimSpace(os.Getenv("GM_GOAL_THRESHOLD"))
+	if raw == "" {
+		return 3.0
+	}
+	v, err := strconv.ParseFloat(raw, 64)
+	if err != nil || v <= 0 {
+		return 3.0
+	}
+	return v
 }
 
 func envBool(key string, defaultVal bool) bool {

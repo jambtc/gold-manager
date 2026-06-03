@@ -43,7 +43,7 @@ final class NotificationService
 
         // 2. Enqueue Telegram delivery if caller requested it
         if ($telegramText !== null) {
-            self::enqueueDelivery($userId, $newsItemId, $telegramText);
+            self::enqueueDelivery($userId, $newsItemId, $telegramText, $category);
         }
 
         return $newsItemId;
@@ -53,10 +53,14 @@ final class NotificationService
      * Enqueue a Telegram delivery row (skips if user has no Telegram configured).
      * Can be called directly when a news_item already exists (e.g. from Go worker).
      */
-    public static function enqueueDelivery(int $userId, ?int $newsItemId, string $telegramText): void
+    public static function enqueueDelivery(int $userId, ?int $newsItemId, string $telegramText, string $category = ''): void
     {
         $user = User::findOne(['id' => $userId, 'telegram_enabled' => 1]);
         if (!$user || empty($user->telegram_chat_id) || empty($user->telegram_bot_token)) {
+            return;
+        }
+
+        if ($category !== '' && !$user->isTelegramCategoryEnabled($category)) {
             return;
         }
 

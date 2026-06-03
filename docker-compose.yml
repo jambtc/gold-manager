@@ -228,6 +228,7 @@ services:
       - GM_ORCHESTRATOR_TOKEN=${GM_ORCHESTRATOR_TOKEN:-change-me-orchestrator-token}
       - GM_ORCHESTRATOR_RETRY_MAX=${GM_ORCHESTRATOR_RETRY_MAX:-8}
       - GM_ORCHESTRATOR_RETRY_BACKOFF_SEC=${GM_ORCHESTRATOR_RETRY_BACKOFF_SEC:-30}
+      - GM_GOAL_THRESHOLD=${GM_GOAL_THRESHOLD:-3.0}
     depends_on:
       - mariadb
     expose:

@@ -31,6 +31,7 @@ class UserController extends Controller
                     'telegram-test'         => ['post'],
                     'telegram-revoke'       => ['post'],
                     'telegram-toggle'       => ['post'],
+                    'telegram-notify-prefs' => ['post'],
                 ],
             ],
         ];
@@ -197,5 +198,25 @@ class UserController extends Controller
         $user->telegram_enabled = $user->telegram_enabled ? 0 : 1;
         $user->save(false);
         return $this->asJson(['ok' => true, 'enabled' => (bool) $user->telegram_enabled]);
+    }
+
+    public function actionTelegramNotifyPrefs(): Response
+    {
+        Yii::$app->response->format = Response::FORMAT_JSON;
+        /** @var User $user */
+        $user = Yii::$app->user->identity;
+
+        $valid = ['transfer', 'match', 'staff', 'injury', 'discipline', 'finance', 'friendly', 'system'];
+        $cat   = trim((string) Yii::$app->request->post('category', ''));
+
+        if (!in_array($cat, $valid, true)) {
+            return $this->asJson(['ok' => false, 'error' => 'Invalid category']);
+        }
+
+        $col         = 'tg_notify_' . $cat;
+        $user->$col  = $user->$col ? 0 : 1;
+        $user->save(false, [$col]);
+
+        return $this->asJson(['ok' => true, 'enabled' => (bool) $user->$col]);
     }
 }
