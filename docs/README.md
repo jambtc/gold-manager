@@ -131,11 +131,34 @@ Required conventions:
 | SIP-0087 | Always-On Market & Continuous Play | Accepted (Implemented) |
 | SIP-0088 | Sequenza Piazzati PHP (Set Piece Sequence Parity) | Accepted (Implemented) |
 | SIP-0089 | Besu Node Infrastructure | Proposed |
+| SIP-0090 | Goal Rate Calibration (anti-over-scoring) | Accepted (Implemented) |
+| SIP-0091 | Contract Duration & Termination Fees | Accepted (Implemented) |
+| SIP-0092 | PWA + Landing Page | Accepted (Implemented) |
 | SIP-0093 | Squadra Primavera / Youth Team | Proposed |
 | SIP-0094 | Assistman in Telecronaca | Accepted (Implemented) |
-| SIP-0090 | Goal Rate Calibration (anti-over-scoring) | Accepted (Implemented) |
-| SIP-0092 | PWA + Landing Page | Accepted (Implemented) |
-| SIP-0091 | Contract Duration & Termination Fees | Accepted (Implemented) |
+| SIP-0095 | Documentation Governance and SIP Verification Audit | Proposed |
+| SIP-0096 | i18n Compliance Enforcement | Proposed |
+| SIP-0097 | Go Engine Test Coverage Framework | Proposed |
+| SIP-0098 | Dynamic Transfer Market and Rival Bidding | Proposed |
+| SIP-0099 | Daily Engagement Loop | Proposed |
+| SIP-0100 | Objectives, Missions and Achievements | Proposed |
+| SIP-0101 | Rivalries and Manager Reputation | Proposed |
+| SIP-0102 | Dynamic News and Narrative Engine | Proposed |
+| SIP-0103 | Youth Academy and Primavera | Proposed |
+| SIP-0104 | Market Pressure and Urgency Mechanics | Proposed |
+
+## Retention and narrative roadmap proposals
+
+The SIP-0095 to SIP-0104 block introduces the next planning layer after the core v2 implementation: documentation quality, engine safety, daily retention, narrative depth, youth development, and market urgency.
+
+Suggested priority:
+
+1. **Quality gate**: SIP-0095, SIP-0096, SIP-0097.
+2. **Daily retention loop**: SIP-0099, SIP-0100, SIP-0102.
+3. **Long-term attachment**: SIP-0101, SIP-0103.
+4. **Market activity and urgency**: SIP-0098, SIP-0104.
+
+These SIPs are proposed planning items. They are not implementation gaps in the current release unless accepted by maintainers.
 
 ## Current verification snapshot
 
