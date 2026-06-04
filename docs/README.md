@@ -8,7 +8,8 @@ Gold Manager v2 is intended as a modern rewrite of the original PHP 7.4 football
 
 - `docs/architecture.md` describes the target technical architecture.
 - `docs/roadmap.md` defines the staged development roadmap.
-- `docs/GAP.md` tracks implementation gaps against the roadmap.
+- `docs/backlog.md` tracks proposed future initiatives and SIP priorities.
+- `docs/archive/` contains historical planning snapshots, including the archived GAP document.
 - `docs/game-formulas.md` documents gameplay formulas (players, training, match engine, staff, economy).
 - `docs/testing.md` describes the current test database and Unit test setup.
 - `docs/sip/` contains Software Improvement Proposals.
