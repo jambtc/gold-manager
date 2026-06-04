@@ -47,6 +47,7 @@ docs/
 ├── architecture.md
 ├── testing.md
 ├── game-formulas.md
+├── repository-migration-runbook.md
 ├── agent-working-notes.md
 ├── sip/
 └── archive/
@@ -54,6 +55,24 @@ docs/
 ```
 
 `docs/GAP.md` was archived and removed from active planning. The historical snapshot is preserved in `docs/archive/GAP-2026-05-19.md`.
+
+## Repository migration focus
+
+SIP-0072 covers extracting `v2/` from the current monorepo into a new dedicated repository named:
+
+```text
+jambtc/gold-manager-v2
+```
+
+A migration runbook is available at:
+
+```text
+docs/repository-migration-runbook.md
+```
+
+The next manual step is to run `git filter-repo` in an isolated local clone, because GitHub API operations cannot rewrite repository history in the same way.
+
+After the migration, the new repository should have the former `v2/` contents at root, plus restored root-level assets such as `docs/`, `docker/`, `docker-compose.yml`, and `start-queue.sh` when present.
 
 ## Recently added SIPs
 
@@ -70,7 +89,7 @@ docs/
 
 ## Current roadmap focus
 
-Recommended implementation order:
+Recommended implementation order after repository migration:
 
 1. SIP-0097 Go Engine Test Coverage Framework
 2. SIP-0102 Dynamic News and Narrative Engine
@@ -80,6 +99,8 @@ Recommended implementation order:
 6. SIP-0095 Documentation Governance and SIP Verification Audit
 
 ## Rationale
+
+SIP-0072 should be completed before new feature development so the active v2 codebase becomes the canonical repository and future commits do not continue accumulating under a legacy monorepo layout.
 
 SIP-0097 protects the realtime match engine and reduces regression risk before future gameplay changes.
 
@@ -91,6 +112,7 @@ SIP-0096 and SIP-0095 keep the project maintainable as documentation and UI surf
 
 ## Open analysis topics
 
+- Complete SIP-0072 repository migration and verify the new repository root layout.
 - Audit current Go worker tests and identify first test files to add.
 - Audit existing NewsService and determine how much of SIP-0102 can reuse current code.
 - Compare SIP-0093 and SIP-0103 to avoid duplicate Youth Academy scope.
