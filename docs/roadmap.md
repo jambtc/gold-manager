@@ -1,6 +1,6 @@
 # Gold Manager v2 Roadmap
 
-> Aggiornato: 2026-05-19 — Stato reale verificato sul codice
+> Aggiornato: 2026-06-04 — Core v2 implemented, next proposals tracked through SIP-0095 to SIP-0104
 
 ## Phase 1 - Discovery ✅
 
@@ -142,3 +142,25 @@
 ## Phase 13 - Mobile Apps (Final Phase) 📱
 
 - [ ] Mobile API (SIP-0017) — scheduled as last implementation block
+
+## Phase 14 - Quality & Verification 📋
+
+- [ ] Documentation Governance and SIP Verification Audit (SIP-0095)
+- [ ] i18n Compliance Enforcement (SIP-0096)
+- [ ] Go Engine Test Coverage Framework (SIP-0097)
+
+## Phase 15 - Retention & Narrative 📋
+
+- [ ] Daily Engagement Loop (SIP-0099)
+- [ ] Objectives, Missions and Achievements (SIP-0100)
+- [ ] Rivalries and Manager Reputation (SIP-0101)
+- [ ] Dynamic News and Narrative Engine (SIP-0102)
+
+## Phase 16 - Long-Term Club Identity 📋
+
+- [ ] Youth Academy and Primavera (SIP-0103)
+
+## Phase 17 - Market Evolution 📋
+
+- [ ] Dynamic Transfer Market and Rival Bidding (SIP-0098)
+- [ ] Market Pressure and Urgency Mechanics (SIP-0104)
